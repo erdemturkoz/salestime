@@ -1,21 +1,34 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useAppContext } from "@/contexts/AppContext";
+import { Kampanya, Hediye } from "@/types";
+import { useToast } from "@/hooks/use-toast";
+import { calculateDiscount, formatCurrency, formatPercentage } from "@/lib/utils";
+import { calculateInstallments } from "@/utils/calculator";
+
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useAppContext } from "@/contexts/AppContext";
-import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
-import { calculateInstallments } from "@/utils/calculator";
-import { Kampanya } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import HediyeTag from "@/components/HediyeTag";
 import { RefreshCwIcon } from "lucide-react";
 
@@ -93,7 +106,6 @@ const UcretlendirmePage = () => {
 
   const handleAddHediye = () => {
     const trimmedInput = hediyeInput.trim();
-    console.log("Hediye ekleniyor:", trimmedInput, "Fiyat:", hediyeFiyat);
     
     if (trimmedInput) {
       const yeniHediye = {
@@ -103,8 +115,6 @@ const UcretlendirmePage = () => {
       
       setFormData(prevData => {
         const updatedHediyeler = [...prevData.hediyeler, yeniHediye];
-        console.log("Güncellenmiş hediyeler:", updatedHediyeler);
-        
         return {
           ...prevData,
           hediyeler: updatedHediyeler
@@ -221,6 +231,28 @@ const UcretlendirmePage = () => {
         description: "Kampanya başarıyla silindi",
       });
     }
+  };
+
+  const handleEditKampanya = (kampanya: Kampanya) => {
+    setFormData({
+      kampanyaAdi: kampanya.kampanyaAdi,
+      egitimTipi: kampanya.egitimTipi,
+      kurSayisi: kampanya.kurSayisi,
+      toplamDersSaati: kampanya.toplamDersSaati,
+      listeFiyati: kampanya.listeFiyati,
+      nakitFiyati: kampanya.nakitFiyati,
+      indirimOrani: kampanya.indirimOrani,
+      faizOrani: kampanya.faizOrani,
+      kitapFiyati: kampanya.kitapFiyati,
+      kitapSetSayisi: kampanya.kitapSetSayisi,
+      maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit,
+      maxSenetTaksit: kampanya.maxSenetTaksit,
+      hediyeler: kampanya.hediyeler,
+    });
+    setIsEditing(true);
+    setEditingId(kampanya.id);
+    // Forma doğru scroll
+    document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -530,77 +562,72 @@ const UcretlendirmePage = () => {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Label htmlFor="kitap-set-sayisi">Kitap Seti Sayısı</Label>
+                        <Label htmlFor="kitap-set-sayisi">Kitap Set Sayısı</Label>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Alınacak kitap seti adedi</p>
+                        <p>Kursta verilecek kitap seti sayısı</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <Input
-                    id="kitap-set-sayisi"
-                    name="kitapSetSayisi"
-                    type="number"
-                    min="1"
-                    max="10"
-                    placeholder="Örn: 1"
-                    value={formData.kitapSetSayisi || ""}
-                    onChange={handleInputChange}
-                  />
+                  <Select
+                    value={formData.kitapSetSayisi?.toString() || "1"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, kitapSetSayisi: parseInt(value) }))}
+                  >
+                    <SelectTrigger id="kitap-set-sayisi">
+                      <SelectValue placeholder="Kitap set sayısı" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Set</SelectItem>
+                      <SelectItem value="2">2 Set</SelectItem>
+                      <SelectItem value="3">3 Set</SelectItem>
+                      <SelectItem value="4">4 Set</SelectItem>
+                      <SelectItem value="5">5 Set</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label>Hediye/Ekstra Ürün veya Eğitim</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Kampanya ile birlikte verilen ekstra ürün veya hizmetler</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-3">
-                      <Input
-                        id="hediye-input"
-                        placeholder="Hediye ürün/hizmet adı..."
-                        value={hediyeInput}
-                        onChange={(e) => setHediyeInput(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Input
-                        id="hediye-fiyat"
-                        type="number"
-                        placeholder="Fiyatı (₺)"
-                        value={hediyeFiyat || ""}
-                        onChange={(e) => setHediyeFiyat(parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button 
-                        type="button" 
-                        variant="default"
-                        className="w-full h-10 flex items-center justify-center" 
-                        onClick={handleAddHediye}
-                      >
-                        <span className="text-lg font-bold">+</span>
-                      </Button>
-                    </div>
+                <Label htmlFor="hediyeler">Hediyeler</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.hediyeler.map((hediye, index) => (
+                    <HediyeTag 
+                      key={index} 
+                      hediye={hediye} 
+                      onRemove={() => handleRemoveHediye(index)} 
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  <div className="col-span-3">
+                    <Input
+                      id="hediye-input"
+                      placeholder="Hediye adı"
+                      value={hediyeInput}
+                      onChange={(e) => setHediyeInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                    />
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.hediyeler.map((hediye, index) => (
-                      <HediyeTag 
-                        key={index} 
-                        hediye={hediye} 
-                        onRemove={() => handleRemoveHediye(index)} 
-                      />
-                    ))}
+                  <div className="col-span-2">
+                    <Input
+                      id="hediye-fiyat"
+                      type="number"
+                      min="0"
+                      placeholder="Fiyatı (₺)"
+                      value={hediyeFiyat || ""}
+                      onChange={(e) => setHediyeFiyat(parseFloat(e.target.value) || 0)}
+                      onKeyPress={handleKeyPress}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={handleAddHediye}
+                    >
+                      Ekle
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -612,7 +639,7 @@ const UcretlendirmePage = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="ml-2" 
+                  className="w-full mt-2" 
                   onClick={() => {
                     setIsEditing(false);
                     setEditingId(null);
@@ -729,7 +756,11 @@ const UcretlendirmePage = () => {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>Kayıtlı Kampanyalar</CardTitle>
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary hover:text-primary/80 flex items-center gap-1"
+              >
                 <RefreshCwIcon className="h-4 w-4" />
                 <span>Yenile</span>
               </Button>
@@ -789,31 +820,7 @@ const UcretlendirmePage = () => {
                             variant="ghost" 
                             size="sm" 
                             className="text-primary hover:text-primary/80 mr-2"
-                            onClick={() => {
-                              // kampanya parametresi zaten map döngüsündeki değişken olduğu için
-                              // aynı isimdeki değişkeni tekrar aramaya gerek yok
-                              if (kampanya) {
-                                setFormData({
-                                  kampanyaAdi: kampanya.kampanyaAdi,
-                                  egitimTipi: kampanya.egitimTipi,
-                                  kurSayisi: kampanya.kurSayisi,
-                                  toplamDersSaati: kampanya.toplamDersSaati,
-                                  listeFiyati: kampanya.listeFiyati,
-                                  nakitFiyati: kampanya.nakitFiyati,
-                                  indirimOrani: kampanya.indirimOrani,
-                                  faizOrani: kampanya.faizOrani,
-                                  kitapFiyati: kampanya.kitapFiyati,
-                                  kitapSetSayisi: kampanya.kitapSetSayisi,
-                                  maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit,
-                                  maxSenetTaksit: kampanya.maxSenetTaksit,
-                                  hediyeler: kampanya.hediyeler,
-                                });
-                                setIsEditing(true);
-                                setEditingId(kampanya.id);
-                                // Forma doğru scroll
-                                document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth' });
-                              }
-                            }}
+                            onClick={() => handleEditKampanya(kampanya)}
                           >
                             Düzenle
                           </Button>
