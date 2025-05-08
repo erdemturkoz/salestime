@@ -20,7 +20,7 @@ import HediyeTag from "@/components/HediyeTag";
 import { RefreshCwIcon } from "lucide-react";
 
 const UcretlendirmePage = () => {
-  const { kampanyalar, addKampanya, deleteKampanya } = useAppContext();
+  const { kampanyalar, addKampanya, deleteKampanya, updateKampanya } = useAppContext();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<Omit<Kampanya, "id">>({
@@ -38,6 +38,9 @@ const UcretlendirmePage = () => {
     maxSenetTaksit: 12,
     hediyeler: [],
   });
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [hediyeInput, setHediyeInput] = useState("");
   const [hediyeFiyat, setHediyeFiyat] = useState<number>(0);
@@ -169,11 +172,27 @@ const UcretlendirmePage = () => {
       return;
     }
 
-    addKampanya(formData);
-    toast({
-      title: "Başarılı",
-      description: "Kampanya başarıyla kaydedildi",
-    });
+    if (isEditing && editingId) {
+      // Kampanyayı güncelle
+      updateKampanya({
+        ...formData,
+        id: editingId
+      });
+      toast({
+        title: "Başarılı",
+        description: "Kampanya başarıyla güncellendi",
+      });
+      // Düzenleme modundan çık
+      setIsEditing(false);
+      setEditingId(null);
+    } else {
+      // Yeni kampanya ekle
+      addKampanya(formData);
+      toast({
+        title: "Başarılı",
+        description: "Kampanya başarıyla kaydedildi",
+      });
+    }
 
     // Form verilerini sıfırla
     setFormData({
@@ -222,7 +241,7 @@ const UcretlendirmePage = () => {
         {/* Kampanya Form */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>Yeni Kampanya Ekle</CardTitle>
+            <CardTitle>{isEditing ? "Kampanya Düzenle" : "Yeni Kampanya Ekle"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -587,8 +606,36 @@ const UcretlendirmePage = () => {
               </div>
 
               <Button type="submit" className="w-full">
-                Kampanya Kaydet
+                {isEditing ? "Kampanyayı Güncelle" : "Kampanya Kaydet"}
               </Button>
+              {isEditing && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="ml-2" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditingId(null);
+                    setFormData({
+                      kampanyaAdi: "",
+                      egitimTipi: "",
+                      kurSayisi: 1,
+                      toplamDersSaati: 0,
+                      listeFiyati: 0,
+                      nakitFiyati: 0,
+                      indirimOrani: 0,
+                      faizOrani: 12,
+                      kitapFiyati: 0,
+                      kitapSetSayisi: 1,
+                      maxKrediKartiTaksit: 8,
+                      maxSenetTaksit: 12,
+                      hediyeler: [],
+                    });
+                  }}
+                >
+                  İptal Et
+                </Button>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -742,6 +789,30 @@ const UcretlendirmePage = () => {
                             variant="ghost" 
                             size="sm" 
                             className="text-primary hover:text-primary/80 mr-2"
+                            onClick={() => {
+                              const kampanya = kampanyalar.find(k => k.id === kampanya.id);
+                              if (kampanya) {
+                                setFormData({
+                                  kampanyaAdi: kampanya.kampanyaAdi,
+                                  egitimTipi: kampanya.egitimTipi,
+                                  kurSayisi: kampanya.kurSayisi,
+                                  toplamDersSaati: kampanya.toplamDersSaati,
+                                  listeFiyati: kampanya.listeFiyati,
+                                  nakitFiyati: kampanya.nakitFiyati,
+                                  indirimOrani: kampanya.indirimOrani,
+                                  faizOrani: kampanya.faizOrani,
+                                  kitapFiyati: kampanya.kitapFiyati,
+                                  kitapSetSayisi: kampanya.kitapSetSayisi,
+                                  maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit,
+                                  maxSenetTaksit: kampanya.maxSenetTaksit,
+                                  hediyeler: kampanya.hediyeler,
+                                });
+                                setIsEditing(true);
+                                setEditingId(kampanya.id);
+                                // Forma doğru scroll
+                                document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth' });
+                              }
+                            }}
                           >
                             Düzenle
                           </Button>
