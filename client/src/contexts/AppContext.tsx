@@ -59,12 +59,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         
         // Eski formattan yeni formata dönüştür (string[] -> Hediye[])
         const updatedKampanyalar = parsedData.map((kampanya: any) => {
-          // Taksit alanları eski versiyonda yoksa ekle
+          // Taksit alanları ve toplam ders saati eski versiyonda yoksa ekle
           const withTaksitFields = {
             ...kampanya,
             maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ?? 8,
             maxSenetTaksit: kampanya.maxSenetTaksit ?? 12,
-            kitapSetSayisi: kampanya.kitapSetSayisi ?? 1
+            kitapSetSayisi: kampanya.kitapSetSayisi ?? 1,
+            toplamDersSaati: kampanya.toplamDersSaati ?? 0
           };
 
           if (withTaksitFields.hediyeler && Array.isArray(withTaksitFields.hediyeler)) {

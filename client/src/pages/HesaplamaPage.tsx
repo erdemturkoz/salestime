@@ -516,6 +516,12 @@ const HesaplamaPage = () => {
                       <span className="text-neutral-600">Eğitim Tipi:</span>
                       <span className="font-medium">{selectedEgitimTipi}</span>
                     </div>
+                    {selectedKampanya && selectedKampanya.toplamDersSaati > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Toplam Ders Saati:</span>
+                        <span className="font-medium">{selectedKampanya.toplamDersSaati} saat</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Ödeme Şekli:</span>
                       <span className="font-medium">{sonuclar.odemeTipiText}</span>
