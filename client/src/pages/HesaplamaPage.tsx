@@ -55,12 +55,12 @@ const HesaplamaPage = () => {
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
   
-  // Kampanya seçildiğinde otomatik olarak kur sayısını 1 olarak ayarla
+  // Kampanya seçildiğinde otomatik olarak kampanyada tanımlı kur sayısını seç
   useEffect(() => {
     if (selectedKampanyaId) {
       const kampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
       if (kampanya) {
-        setSelectedKurSayisi(1);
+        setSelectedKurSayisi(kampanya.kurSayisi); // Kampanyada tanımlı kur sayısını ata
       }
     }
   }, [selectedKampanyaId, kampanyalar]);
