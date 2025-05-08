@@ -427,6 +427,11 @@ const HesaplamaPage = () => {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
             <CardTitle>Hesaplama Sonucu</CardTitle>
+            {isCalculated && sonuclar.kampanyaAdi && (
+              <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md p-2 text-center">
+                <span className="font-bold text-blue-700">{sonuclar.kampanyaAdi}</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-6">
             {isCalculated ? (
@@ -503,10 +508,7 @@ const HesaplamaPage = () => {
                         </div>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Kampanya:</span>
-                      <span className="font-medium">{sonuclar.kampanyaAdi}</span>
-                    </div>
+                    {/* Kampanya bilgisini üst banner'a taşıdık */}
                     <div className="border-t border-neutral-100 pt-2">
                         <span className="text-neutral-800 font-medium block mb-2">Hediyeler:</span>
                         <ul className="list-disc list-inside space-y-1 text-neutral-600">
