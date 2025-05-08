@@ -12,6 +12,7 @@ const initialKampanya: Kampanya = {
   indirimOrani: 15,
   faizOrani: 12,
   kitapFiyati: 1000,
+  kitapSetSayisi: 1,
   maxKrediKartiTaksit: 8,
   maxSenetTaksit: 12,
   hediyeler: [
@@ -61,7 +62,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           const withTaksitFields = {
             ...kampanya,
             maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ?? 8,
-            maxSenetTaksit: kampanya.maxSenetTaksit ?? 12
+            maxSenetTaksit: kampanya.maxSenetTaksit ?? 12,
+            kitapSetSayisi: kampanya.kitapSetSayisi ?? 1
           };
 
           if (withTaksitFields.hediyeler && Array.isArray(withTaksitFields.hediyeler)) {
