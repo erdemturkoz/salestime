@@ -35,7 +35,7 @@ const HesaplamaPage = () => {
   const [selectedKurSayisi, setSelectedKurSayisi] = useState<number | null>(null);
   const [odemeTipi, setOdemeTipi] = useState<OdemeType>("");
   const [taksitSayisi, setTaksitSayisi] = useState<number>(1);
-  const [kitapDahil, setKitapDahil] = useState<boolean>(false);
+  const [kitapDahil, setKitapDahil] = useState<boolean>(true);
   const [hediyeEt, setHediyeEt] = useState<{[key: string]: boolean}>({});
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
   
