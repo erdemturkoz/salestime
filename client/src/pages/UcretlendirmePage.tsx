@@ -1,0 +1,538 @@
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { useAppContext } from "@/contexts/AppContext";
+import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
+import { calculateInstallments } from "@/utils/calculator";
+import { Kampanya } from "@/types";
+import HediyeTag from "@/components/HediyeTag";
+import { RefreshCwIcon } from "lucide-react";
+
+const UcretlendirmePage = () => {
+  const { kampanyalar, addKampanya, deleteKampanya } = useAppContext();
+  const { toast } = useToast();
+
+  const [formData, setFormData] = useState<Omit<Kampanya, "id">>({
+    kampanyaAdi: "",
+    kurSayisi: 1,
+    listeFiyati: 0,
+    nakitFiyati: 0,
+    indirimOrani: 0,
+    faizOrani: 12,
+    kitapFiyati: 0,
+    hediyeler: [],
+  });
+
+  const [hediyeInput, setHediyeInput] = useState("");
+  const [krediKartiTaksitler, setKrediKartiTaksitler] = useState<Array<{taksit: number, aylik: number, toplam: number}>>([]);
+  const [senetTaksitler, setSenetTaksitler] = useState<Array<{taksit: number, aylik: number, toplam: number}>>([]);
+
+  // Form değişikliklerini izle
+  useEffect(() => {
+    if (formData.nakitFiyati > 0 && formData.faizOrani > 0) {
+      const kartiTaksitler = calculateInstallments(formData.nakitFiyati, formData.faizOrani, [1, 3, 6, 8]);
+      const senetTaksitlerHesap = calculateInstallments(formData.nakitFiyati, formData.faizOrani, [3, 6, 9, 12]);
+      
+      setKrediKartiTaksitler(kartiTaksitler);
+      setSenetTaksitler(senetTaksitlerHesap);
+    }
+  }, [formData.nakitFiyati, formData.faizOrani]);
+
+  // Liste fiyatı veya nakit fiyatı değiştiğinde indirim oranını hesapla
+  useEffect(() => {
+    if (formData.listeFiyati > 0 && formData.nakitFiyati > 0) {
+      const discount = calculateDiscount(formData.listeFiyati, formData.nakitFiyati);
+      setFormData(prev => ({ ...prev, indirimOrani: parseFloat(discount.toFixed(1)) }));
+    }
+  }, [formData.listeFiyati, formData.nakitFiyati]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === "number" ? parseFloat(value) || 0 : value;
+    setFormData(prev => ({ ...prev, [name]: parsedValue }));
+  };
+
+  const handleAddHediye = () => {
+    if (hediyeInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        hediyeler: [...prev.hediyeler, hediyeInput.trim()]
+      }));
+      setHediyeInput("");
+    }
+  };
+
+  const handleRemoveHediye = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      hediyeler: prev.hediyeler.filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.kampanyaAdi) {
+      toast({
+        title: "Hata",
+        description: "Kampanya adı boş olamaz",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.kurSayisi <= 0) {
+      toast({
+        title: "Hata",
+        description: "Kur sayısı 0'dan büyük olmalıdır",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.listeFiyati <= 0) {
+      toast({
+        title: "Hata",
+        description: "Liste fiyatı 0'dan büyük olmalıdır",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.nakitFiyati <= 0) {
+      toast({
+        title: "Hata",
+        description: "Kampanyalı nakit fiyatı 0'dan büyük olmalıdır",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addKampanya(formData);
+    toast({
+      title: "Başarılı",
+      description: "Kampanya başarıyla kaydedildi",
+    });
+
+    // Form verilerini sıfırla
+    setFormData({
+      kampanyaAdi: "",
+      kurSayisi: 1,
+      listeFiyati: 0,
+      nakitFiyati: 0,
+      indirimOrani: 0,
+      faizOrani: 12,
+      kitapFiyati: 0,
+      hediyeler: [],
+    });
+  };
+
+  const handleDeleteKampanya = (id: string) => {
+    const kampanya = kampanyalar.find(k => k.id === id);
+    if (kampanya && window.confirm(`"${kampanya.kampanyaAdi}" kampanyasını silmek istediğinize emin misiniz?`)) {
+      deleteKampanya(id);
+      toast({
+        title: "Silindi",
+        description: "Kampanya başarıyla silindi",
+      });
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAddHediye();
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <div>
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-neutral-800">Ücretlendirme Şartları Yönetimi</h1>
+        <p className="text-neutral-500">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Kampanya Form */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>Yeni Kampanya Ekle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Label htmlFor="kampanya-adi">Kampanya Adı</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Kampanyanın pazarlama ismi</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Input
+                  id="kampanya-adi"
+                  name="kampanyaAdi"
+                  placeholder="Örn: Yaz Kampanyası 2023"
+                  value={formData.kampanyaAdi}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kur-sayisi">Kur Sayısı</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Eğitim programındaki kur sayısı</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="kur-sayisi"
+                    name="kurSayisi"
+                    type="number"
+                    min="1"
+                    max="10"
+                    placeholder="Örn: 3"
+                    value={formData.kurSayisi || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="indirim-orani">İndirim Oranı (%)</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Liste fiyatı üzerinden uygulanacak indirim yüzdesi</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="indirim-orani"
+                    name="indirimOrani"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="Örn: 15"
+                    value={formData.indirimOrani || ""}
+                    onChange={handleInputChange}
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="liste-fiyati">Liste Fiyatı (₺)</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>İndirimsiz normal fiyat</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="liste-fiyati"
+                    name="listeFiyati"
+                    type="number"
+                    min="0"
+                    placeholder="Örn: 15000"
+                    value={formData.listeFiyati || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="nakit-fiyati">Kampanyalı Nakit Fiyatı (₺)</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Tek seferde nakit ödemede geçerli olan indirimli fiyat</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="nakit-fiyati"
+                    name="nakitFiyati"
+                    type="number"
+                    min="0"
+                    placeholder="Örn: 12500"
+                    value={formData.nakitFiyati || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Label htmlFor="faiz-orani">Yıllık Faiz Oranı (%)</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Taksitli ödeme seçeneklerinde uygulanacak yıllık faiz oranı</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Input
+                  id="faiz-orani"
+                  name="faizOrani"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  placeholder="Örn: 12.5"
+                  value={formData.faizOrani || ""}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Label htmlFor="kitap-fiyati">Kitap Fiyatı (₺)</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Eğitim setinin kitap fiyatı</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Input
+                  id="kitap-fiyati"
+                  name="kitapFiyati"
+                  type="number"
+                  min="0"
+                  placeholder="Örn: 1200"
+                  value={formData.kitapFiyati || ""}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Label>Hediye/Ekstra Ürün veya Eğitim</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Kampanya ile birlikte verilen ekstra ürün veya hizmetler</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center">
+                    <Input
+                      id="hediye-input"
+                      placeholder="Hediye ekleyin..."
+                      value={hediyeInput}
+                      onChange={(e) => setHediyeInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                    />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      className="ml-2" 
+                      onClick={handleAddHediye}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                    </Button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.hediyeler.map((hediye, index) => (
+                      <HediyeTag 
+                        key={index} 
+                        text={hediye} 
+                        onRemove={() => handleRemoveHediye(index)} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full">
+                Kampanya Kaydet
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Dinamik Hesaplama */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>Ödeme Seçenekleri Hesaplama</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-neutral-50 p-4 rounded-md">
+                <h3 className="font-medium text-neutral-700 mb-2">Kredi Kartı Taksit Seçenekleri</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-neutral-200">
+                        <th className="text-left py-2 px-4">Taksit</th>
+                        <th className="text-right py-2 px-4">Aylık Tutar</th>
+                        <th className="text-right py-2 px-4">Toplam</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {krediKartiTaksitler.length > 0 ? (
+                        krediKartiTaksitler.map((option, index) => (
+                          <tr key={index} className="border-b border-neutral-100">
+                            <td className="py-2 px-4">
+                              {option.taksit === 1 ? "Tek Çekim" : `${option.taksit} Taksit`}
+                            </td>
+                            <td className="text-right py-2 px-4">
+                              {formatCurrency(option.aylik)}
+                            </td>
+                            <td className="text-right py-2 px-4">
+                              {formatCurrency(option.toplam)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="py-4 text-center text-neutral-500">
+                            Hesaplama için lütfen nakit fiyatı ve faiz oranı girin.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div className="bg-neutral-50 p-4 rounded-md">
+                <h3 className="font-medium text-neutral-700 mb-2">Senet Taksit Seçenekleri</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-neutral-200">
+                        <th className="text-left py-2 px-4">Taksit</th>
+                        <th className="text-right py-2 px-4">Aylık Tutar</th>
+                        <th className="text-right py-2 px-4">Toplam</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {senetTaksitler.length > 0 ? (
+                        senetTaksitler.map((option, index) => (
+                          <tr key={index} className="border-b border-neutral-100">
+                            <td className="py-2 px-4">{`${option.taksit} Taksit`}</td>
+                            <td className="text-right py-2 px-4">
+                              {formatCurrency(option.aylik)}
+                            </td>
+                            <td className="text-right py-2 px-4">
+                              {formatCurrency(option.toplam)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="py-4 text-center text-neutral-500">
+                            Hesaplama için lütfen nakit fiyatı ve faiz oranı girin.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Kayıtlı Kampanyalar */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle>Kayıtlı Kampanyalar</CardTitle>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 flex items-center gap-1">
+                <RefreshCwIcon className="h-4 w-4" />
+                <span>Yenile</span>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {kampanyalar.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-neutral-50 text-neutral-600">
+                      <th className="text-left p-3 rounded-tl-md">Kampanya Adı</th>
+                      <th className="text-center p-3">Kur Sayısı</th>
+                      <th className="text-center p-3">Liste Fiyatı</th>
+                      <th className="text-center p-3">Nakit Fiyatı</th>
+                      <th className="text-center p-3">İndirim %</th>
+                      <th className="text-center p-3">Kitap</th>
+                      <th className="text-right p-3 rounded-tr-md">İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kampanyalar.map((kampanya) => (
+                      <tr key={kampanya.id} className="border-b border-neutral-100">
+                        <td className="p-3">{kampanya.kampanyaAdi}</td>
+                        <td className="text-center p-3">{kampanya.kurSayisi}</td>
+                        <td className="text-center p-3">{formatCurrency(kampanya.listeFiyati)}</td>
+                        <td className="text-center p-3">{formatCurrency(kampanya.nakitFiyati)}</td>
+                        <td className="text-center p-3">{formatPercentage(kampanya.indirimOrani)}</td>
+                        <td className="text-center p-3">{formatCurrency(kampanya.kitapFiyati)}</td>
+                        <td className="text-right p-3">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-primary hover:text-primary/80 mr-2"
+                          >
+                            Düzenle
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteKampanya(kampanya.id)}
+                          >
+                            Sil
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-neutral-500">
+                Henüz kayıtlı kampanya bulunmuyor. Yukarıdaki formu kullanarak kampanya ekleyebilirsiniz.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default UcretlendirmePage;
