@@ -484,6 +484,21 @@ const HesaplamaPage = () => {
                         <span className="font-medium">{formatCurrency(sonuclar.aylikOdeme)}</span>
                       </div>
                     )}
+                    
+                    {/* Aylık Ödeme Planı */}
+                    {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
+                      <div className="border-t border-neutral-100 pt-2 mt-2">
+                        <span className="text-neutral-800 font-medium block mb-2">Aylık Ödeme Planı:</span>
+                        <div className="grid grid-cols-1 gap-2">
+                          {Array.from({ length: taksitSayisi }).map((_, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span className="text-neutral-600">{index + 1}. Taksit:</span>
+                              <span className="font-medium">{formatCurrency(sonuclar.aylikOdeme)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Kampanya:</span>
                       <span className="font-medium">{sonuclar.kampanyaAdi}</span>
