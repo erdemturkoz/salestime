@@ -523,6 +523,26 @@ const HesaplamaPage = () => {
                                   )}
                                 </span>
                               </div>
+                              <Button
+                                type="button"
+                                variant={hediyeEt["kitap"] ? "default" : "outline"}
+                                size="sm"
+                                className="ml-2 text-xs h-7 px-2"
+                                onClick={() => {
+                                  const newHediyeEt = { ...hediyeEt };
+                                  newHediyeEt["kitap"] = !newHediyeEt["kitap"];
+                                  setHediyeEt(newHediyeEt);
+                                  
+                                  // Toplam fiyatı güncelle
+                                  const yeniToplam = sonuclar.genelToplam + (newHediyeEt["kitap"] ? -sonuclar.kitapUcreti : sonuclar.kitapUcreti);
+                                  setSonuclar({
+                                    ...sonuclar,
+                                    genelToplam: yeniToplam
+                                  });
+                                }}
+                              >
+                                {hediyeEt["kitap"] ? "Hediye Edildi" : "Hediye Et"}
+                              </Button>
                             </li>
                           )}
                           {sonuclar.hediyeler.map((hediye, index) => (
