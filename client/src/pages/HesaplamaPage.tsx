@@ -54,6 +54,16 @@ const HesaplamaPage = () => {
   });
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
+  
+  // Kampanya seçildiğinde otomatik olarak kur sayısını 1 olarak ayarla
+  useEffect(() => {
+    if (selectedKampanyaId) {
+      const kampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
+      if (kampanya) {
+        setSelectedKurSayisi(1);
+      }
+    }
+  }, [selectedKampanyaId, kampanyalar]);
 
   const kurOptions = () => {
     if (!selectedKampanya) return [];
@@ -242,11 +252,6 @@ const HesaplamaPage = () => {
                   value={selectedKampanyaId}
                   onValueChange={(value) => {
                     setSelectedKampanyaId(value);
-                    // Kampanya seçildiğinde, otomatik olarak ilk kur sayısını seç
-                    const kampanya = kampanyalar.find(k => k.id === value);
-                    if (kampanya) {
-                      setSelectedKurSayisi(1); // Varsayılan olarak ilk kuru seç
-                    }
                   }}
                   disabled={!selectedEgitimTipi}
                 >
