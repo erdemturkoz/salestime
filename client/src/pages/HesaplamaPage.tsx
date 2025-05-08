@@ -452,17 +452,7 @@ const HesaplamaPage = () => {
                         )}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Kitap Ücreti:</span>
-                      <span className="font-medium">
-                        {formatCurrency(sonuclar.kitapUcreti)}
-                        {selectedKampanya && selectedKampanya.kitapSetSayisi > 1 && kitapDahil && (
-                          <span className="text-xs text-gray-500 block">
-                            ({selectedKampanya.kitapSetSayisi} set)
-                          </span>
-                        )}
-                      </span>
-                    </div>
+
                     <div className="border-t border-neutral-100 pt-2 flex justify-between">
                       <span className="text-neutral-800 font-medium">Genel Toplam:</span>
                       <span className="text-primary font-bold text-lg">
@@ -498,10 +488,22 @@ const HesaplamaPage = () => {
                       <span className="text-neutral-600">Kampanya:</span>
                       <span className="font-medium">{sonuclar.kampanyaAdi}</span>
                     </div>
-                    {sonuclar.hediyeler.length > 0 && (
-                      <div className="border-t border-neutral-100 pt-2">
+                    <div className="border-t border-neutral-100 pt-2">
                         <span className="text-neutral-800 font-medium block mb-2">Hediyeler:</span>
                         <ul className="list-disc list-inside space-y-1 text-neutral-600">
+                          {kitapDahil && (
+                            <li>
+                              Kitap Ücreti
+                              <span className="ml-1 text-gray-500">
+                                ({formatCurrency(sonuclar.kitapUcreti)})
+                                {selectedKampanya && selectedKampanya.kitapSetSayisi > 1 && kitapDahil && (
+                                  <span className="ml-1 text-gray-500">
+                                    ({selectedKampanya.kitapSetSayisi} set)
+                                  </span>
+                                )}
+                              </span>
+                            </li>
+                          )}
                           {sonuclar.hediyeler.map((hediye, index) => (
                             <li key={index}>
                               {hediye.isim}
@@ -514,7 +516,6 @@ const HesaplamaPage = () => {
                           ))}
                         </ul>
                       </div>
-                    )}
                   </div>
                 </div>
               </div>
