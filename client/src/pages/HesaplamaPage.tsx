@@ -449,7 +449,7 @@ const HesaplamaPage = () => {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
             <CardTitle>Hesaplama Sonucu</CardTitle>
-            {isCalculated && sonuclar.kampanyaAdi && (
+            {isCalculated && (
               <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md p-2 text-center">
                 <span className="font-bold text-blue-700">{sonuclar.kampanyaAdi}</span>
               </div>
