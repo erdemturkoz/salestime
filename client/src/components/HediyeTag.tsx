@@ -1,14 +1,18 @@
 import React from 'react';
+import { formatCurrency } from '@/lib/utils';
+import { Hediye } from '@/types';
 
 interface HediyeTagProps {
-  text: string;
+  hediye: Hediye;
   onRemove: () => void;
 }
 
-const HediyeTag: React.FC<HediyeTagProps> = ({ text, onRemove }) => {
+const HediyeTag: React.FC<HediyeTagProps> = ({ hediye, onRemove }) => {
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-800">
-      {text}
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-neutral-100 text-neutral-800">
+      <span>{hediye.isim}</span>
+      <span className="mx-1 text-xs text-neutral-500">|</span>
+      <span className="text-xs font-bold text-emerald-600">{formatCurrency(hediye.fiyat)}</span>
       <button 
         type="button" 
         onClick={onRemove}

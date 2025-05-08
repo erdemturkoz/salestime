@@ -11,7 +11,10 @@ const initialKampanya: Kampanya = {
   indirimOrani: 15,
   faizOrani: 12,
   kitapFiyati: 1000,
-  hediyeler: ['Online Dersler', 'Özel Konuşma Seansı']
+  hediyeler: [
+    { isim: 'Online Dersler', fiyat: 1500 },
+    { isim: 'Özel Konuşma Seansı', fiyat: 750 }
+  ]
 };
 
 interface AppContextType {
@@ -47,7 +50,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const savedKampanyalar = localStorage.getItem('kampanyalar');
     if (savedKampanyalar) {
       try {
-        setKampanyalar(JSON.parse(savedKampanyalar));
+        const parsedData = JSON.parse(savedKampanyalar);
+        
+        // Eski formattan yeni formata dönüştür (string[] -> Hediye[])
+        const updatedKampanyalar = parsedData.map((kampanya: any) => {
+          if (kampanya.hediyeler && Array.isArray(kampanya.hediyeler)) {
+            // Eğer hediyeler bir dizi string ise, onları Hediye nesnesine dönüştür
+            if (typeof kampanya.hediyeler[0] === 'string') {
+              return {
+                ...kampanya,
+                hediyeler: kampanya.hediyeler.map((h: string) => ({ isim: h, fiyat: 0 }))
+              };
+            }
+          }
+          return kampanya;
+        });
+        
+        setKampanyalar(updatedKampanyalar);
       } catch (error) {
         console.error('Kampanyalar yüklenirken hata oluştu:', error);
         localStorage.removeItem('kampanyalar');

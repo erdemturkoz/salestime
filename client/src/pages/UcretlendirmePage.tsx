@@ -33,6 +33,7 @@ const UcretlendirmePage = () => {
   });
 
   const [hediyeInput, setHediyeInput] = useState("");
+  const [hediyeFiyat, setHediyeFiyat] = useState<number>(0);
   const [krediKartiTaksitler, setKrediKartiTaksitler] = useState<Array<{taksit: number, aylik: number, toplam: number}>>([]);
   const [senetTaksitler, setSenetTaksitler] = useState<Array<{taksit: number, aylik: number, toplam: number}>>([]);
 
@@ -63,11 +64,16 @@ const UcretlendirmePage = () => {
 
   const handleAddHediye = () => {
     const trimmedInput = hediyeInput.trim();
-    console.log("Hediye ekleniyor:", trimmedInput);
+    console.log("Hediye ekleniyor:", trimmedInput, "Fiyat:", hediyeFiyat);
     
     if (trimmedInput) {
+      const yeniHediye = {
+        isim: trimmedInput,
+        fiyat: hediyeFiyat
+      };
+      
       setFormData(prevData => {
-        const updatedHediyeler = [...prevData.hediyeler, trimmedInput];
+        const updatedHediyeler = [...prevData.hediyeler, yeniHediye];
         console.log("Güncellenmiş hediyeler:", updatedHediyeler);
         
         return {
@@ -75,7 +81,10 @@ const UcretlendirmePage = () => {
           hediyeler: updatedHediyeler
         };
       });
+      
+      // Formu sıfırla
       setHediyeInput("");
+      setHediyeFiyat(0);
     }
   };
 
@@ -350,30 +359,43 @@ const UcretlendirmePage = () => {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex items-center">
-                    <Input
-                      id="hediye-input"
-                      placeholder="Hediye ekleyin..."
-                      value={hediyeInput}
-                      onChange={(e) => setHediyeInput(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                    />
-                    <Button 
-                      type="button" 
-                      variant="default"
-                      className="ml-2 px-3 py-2 h-10 w-10 flex items-center justify-center" 
-                      onClick={handleAddHediye}
-                    >
-                      <span className="text-xl font-bold">+</span>
-                    </Button>
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-5 gap-2">
+                    <div className="col-span-3">
+                      <Input
+                        id="hediye-input"
+                        placeholder="Hediye ürün/hizmet adı..."
+                        value={hediyeInput}
+                        onChange={(e) => setHediyeInput(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Input
+                        id="hediye-fiyat"
+                        type="number"
+                        placeholder="Fiyatı (₺)"
+                        value={hediyeFiyat || ""}
+                        onChange={(e) => setHediyeFiyat(parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Button 
+                        type="button" 
+                        variant="default"
+                        className="w-full h-10 flex items-center justify-center" 
+                        onClick={handleAddHediye}
+                      >
+                        <span className="text-lg font-bold">+</span>
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.hediyeler.map((hediye, index) => (
                       <HediyeTag 
                         key={index} 
-                        text={hediye} 
+                        hediye={hediye} 
                         onRemove={() => handleRemoveHediye(index)} 
                       />
                     ))}

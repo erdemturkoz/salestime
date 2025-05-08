@@ -1,3 +1,8 @@
+export interface Hediye {
+  isim: string;
+  fiyat: number;
+}
+
 export interface Kampanya {
   id: string;
   kampanyaAdi: string;
@@ -7,7 +12,7 @@ export interface Kampanya {
   indirimOrani: number;
   faizOrani: number;
   kitapFiyati: number;
-  hediyeler: string[];
+  hediyeler: Hediye[];
 }
 
 export interface TaksitOption {
