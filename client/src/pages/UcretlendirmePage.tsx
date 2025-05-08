@@ -790,7 +790,8 @@ const UcretlendirmePage = () => {
                             size="sm" 
                             className="text-primary hover:text-primary/80 mr-2"
                             onClick={() => {
-                              const kampanya = kampanyalar.find(k => k.id === kampanya.id);
+                              // kampanya parametresi zaten map döngüsündeki değişken olduğu için
+                              // aynı isimdeki değişkeni tekrar aramaya gerek yok
                               if (kampanya) {
                                 setFormData({
                                   kampanyaAdi: kampanya.kampanyaAdi,
