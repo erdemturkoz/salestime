@@ -1,0 +1,56 @@
+Projem bir yabancı dil kursunun satış danışmanları için kullanacağı bir eğitim ücretlendirme sistemidir. Modern ve kullanıcı dostu, sade bir arayüze sahip olmalıdır. İki ana sekme (Sidebar tab'ı) olacak: 
+
+---
+
+📁 1. Sekme: Ücretlendirme Şartları Yönetimi
+
+Amaç: Yönetici burada tüm kampanya bilgilerini tanımlayabilsin.
+
+Giriş Formunda şu alanlar olacak:
+- Kampanya Adı (text)
+- Kur Sayısı (number)
+- Liste Fiyatı (number)
+- Kampanyalı Nakit Fiyatı (number)
+- Kampanyalı Kredi Kartı Fiyatları (object): (max 8 taksit için)
+- Kampanyalı Senetli Fiyatları (object): (max 12 taksit için)
+- İndirim Oranı (number %)
+- Hediye/Ekstra Ürün veya Eğitim Bilgisi (multi-select veya tag input)
+- Kitap Fiyatı (number)
+
+💡 Ek Özellik: Nakit fiyatı girildiğinde, belirli bir *yıllık faiz oranına* göre taksitlendirme (8 taksit için kredi kartı, 12 taksit için senet) otomatik hesaplansın. (Formül: basit faiz kullanılabilir: `faizli_taksit = ana_para * (1 + oran * ay/12)` gibi.)
+
+Tüm kampanya verileri JSON formatında bir `kampanyalar.json` dosyasına ya da lokal veritabanına kaydedilsin. Şimdilik localStorage da olur.
+
+---
+
+💰 2. Sekme: Ücret Hesaplama Arayüzü (Danışmanlar için)
+
+Amaç: Danışman, müşteriye fiyat verirken hızlı seçim yapabilsin.
+
+Danışman şunları seçebilmeli:
+- Kampanya Seçimi (dropdown, `kampanyalar.json`'dan çekilecek)
+- Kur Sayısı
+- Ödeme Tipi → Nakit / Kredi Kartı / Senet
+- Taksit Sayısı (ödeme tipine göre dinamik şekilde 1-8 veya 1-12)
+- Kitap dahil mi? (checkbox)
+
+📊 Sistem seçilen verilere göre toplam fiyatı otomatik hesaplayıp gösterir:
+- Kampanyalı tutar (seçilen ödeme şekline göre)
+- Kitap fiyatı eklenmiş toplam
+- Taksit sayısı ve aylık ödeme tutarı
+- Toplam indirim yüzdesi (liste fiyatı üzerinden)
+
+🧠 UI-UX Özellikleri:
+- Apple tarzı sade tasarım
+- Her sekme grid düzeninde temiz layout
+- Tooltip ile her alanın kısa açıklaması
+- Mümkünse mobil uyumlu responsive tasarım
+- TailwindCSS ya da benzeri modern stil sistemi kullanılabilir
+
+Kod dosyaları:
+- `components/Sidebar.js` → Sekmeler arası geçiş
+- `pages/Ucretlendirme.js` → Kampanya yönetimi
+- `pages/Hesaplama.js` → Danışman arayüzü
+- `utils/hesaplama.js` → Taksit ve faiz hesaplama fonksiyonu
+
+Bu sistemi Replit’te çalışacak şekilde oluştur. Gerekirse placeholder veriyle test et.
