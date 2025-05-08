@@ -63,7 +63,9 @@ const UcretlendirmePage = () => {
       if (formData.maxSenetTaksit >= 10) senetOpsiyonlari.push(10);
       if (formData.maxSenetTaksit >= 12) senetOpsiyonlari.push(12);
 
-      const kartiTaksitler = calculateInstallments(formData.nakitFiyati, formData.faizOrani, krediKartiOpsiyonlari);
+      // Kredi kartı işlemlerinde %10 fatura bedeli ekleniyor
+      const krediKartiFiyat = formData.nakitFiyati * 1.1; // %10 fatura bedeli ekleniyor
+      const kartiTaksitler = calculateInstallments(krediKartiFiyat, formData.faizOrani, krediKartiOpsiyonlari);
       const senetTaksitlerHesap = calculateInstallments(formData.nakitFiyati, formData.faizOrani, senetOpsiyonlari);
       
       setKrediKartiTaksitler(kartiTaksitler);
@@ -575,7 +577,7 @@ const UcretlendirmePage = () => {
           <CardContent>
             <div className="space-y-4">
               <div className="bg-neutral-50 p-4 rounded-md">
-                <h3 className="font-medium text-neutral-700 mb-2">Kredi Kartı Taksit Seçenekleri</h3>
+                <h3 className="font-medium text-neutral-700 mb-2">Kredi Kartı Taksit Seçenekleri <span className="text-xs text-gray-500">(%10 fatura bedeli dahil)</span></h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
