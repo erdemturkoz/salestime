@@ -465,8 +465,8 @@ const HesaplamaPage = () => {
                     {/* Hediye ve Kitap bilgisi */}
                     <div className="p-2 bg-blue-50 border-dashed border border-blue-200 rounded-md my-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-blue-700">Eğitim Paketi Fiyatı</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                        <span className="text-blue-700 font-medium">HEDİYELER</span>
+                        <span></span>
                       </div>
                       {kitapDahil && !hediyeEt["kitap"] && (
                         <div className="flex justify-between text-sm">
