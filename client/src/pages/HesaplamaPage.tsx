@@ -167,7 +167,7 @@ const HesaplamaPage = () => {
       indirimYuzdesi: indirimY,
       kampanyaliFiyat: toplamFiyat,
       kitapUcreti: kitapF,
-      genelToplam: toplamFiyat + kitapF,
+      genelToplam: toplamFiyat + kitapF + selectedKampanya.hediyeler.reduce((toplam, hediye) => toplam + hediye.fiyat, 0),
       aylikOdeme: aylikOdeme,
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
