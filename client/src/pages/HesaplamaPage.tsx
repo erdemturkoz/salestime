@@ -664,6 +664,55 @@ const HesaplamaPage = () => {
                           ))}
                         </ul>
                       </div>
+                      
+                      {/* Özet bilgi bölümü */}
+                      <div className="border-t border-neutral-100 pt-4 mt-4">
+                        <h3 className="text-lg font-semibold text-neutral-800 mb-2">Özet Bilgi</h3>
+                        <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+                          <p className="text-neutral-700">
+                            Sayın Öğrencimiz,<br /><br />
+                            
+                            <span className="font-semibold">{sonuclar.kampanyaAdi}</span> kapsamında seçmiş olduğunuz eğitim aşağıdaki avantajlarla sunulmaktadır:
+                          </p>
+                          
+                          <ul className="list-disc list-inside mt-2 space-y-1 text-neutral-700 ml-2">
+                            <li>
+                              <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
+                            </li>
+                            <li>
+                              <span className="font-medium">Toplam Ders Saati:</span> {selectedKampanya?.toplamDersSaati} saat
+                            </li>
+                            <li>
+                              <span className="font-medium">İndirim:</span> %{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})
+                            </li>
+                            <li>
+                              <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
+                            </li>
+                            {Object.keys(hediyeEt).filter(key => hediyeEt[key]).length > 0 && (
+                              <li>
+                                <span className="font-medium">Hediye Edilen Ürünler:</span>
+                                <ul className="list-disc list-inside ml-4 text-green-600">
+                                  {hediyeEt["kitap"] && <li>Kitap Seti</li>}
+                                  {sonuclar.hediyeler.map(hediye => (
+                                    hediyeEt[hediye.isim] && <li key={hediye.isim}>{hediye.isim}</li>
+                                  ))}
+                                </ul>
+                              </li>
+                            )}
+                          </ul>
+                          
+                          <p className="mt-4 text-neutral-700">
+                            Toplam Eğitim Tutarı: <span className="font-bold text-blue-700">{formatCurrency(sonuclar.genelToplam)}</span>
+                            {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
+                              <span> ({taksitSayisi} x {formatCurrency(sonuclar.aylikOdeme)})</span>
+                            )}
+                          </p>
+                          
+                          <p className="mt-2 text-sm text-neutral-500">
+                            Bu belge eğitim kapsamını ve ödeme koşullarını gösterir. Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.
+                          </p>
+                        </div>
+                      </div>
                   </div>
                 </div>
               </div>
