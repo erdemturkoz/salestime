@@ -45,13 +45,30 @@ const UcretlendirmePage = () => {
   // Form değişikliklerini izle
   useEffect(() => {
     if (formData.nakitFiyati > 0 && formData.faizOrani > 0) {
-      const kartiTaksitler = calculateInstallments(formData.nakitFiyati, formData.faizOrani, [1, 3, 6, 8]);
-      const senetTaksitlerHesap = calculateInstallments(formData.nakitFiyati, formData.faizOrani, [3, 6, 9, 12]);
+      // Kredi kartı taksit seçeneklerini dinamik olarak oluştur
+      const krediKartiOpsiyonlari = [1]; // Tek çekim her zaman olsun
+      if (formData.maxKrediKartiTaksit >= 3) krediKartiOpsiyonlari.push(3);
+      if (formData.maxKrediKartiTaksit >= 6) krediKartiOpsiyonlari.push(6);
+      if (formData.maxKrediKartiTaksit >= 8) krediKartiOpsiyonlari.push(8);
+      if (formData.maxKrediKartiTaksit >= 10) krediKartiOpsiyonlari.push(10);
+      if (formData.maxKrediKartiTaksit >= 12) krediKartiOpsiyonlari.push(12);
+      
+      // Senet taksit seçeneklerini dinamik olarak oluştur
+      const senetOpsiyonlari = [];
+      if (formData.maxSenetTaksit >= 3) senetOpsiyonlari.push(3);
+      if (formData.maxSenetTaksit >= 6) senetOpsiyonlari.push(6);
+      if (formData.maxSenetTaksit >= 9) senetOpsiyonlari.push(9);
+      if (formData.maxSenetTaksit >= 12) senetOpsiyonlari.push(12);
+      if (formData.maxSenetTaksit >= 18) senetOpsiyonlari.push(18);
+      if (formData.maxSenetTaksit >= 24) senetOpsiyonlari.push(24);
+
+      const kartiTaksitler = calculateInstallments(formData.nakitFiyati, formData.faizOrani, krediKartiOpsiyonlari);
+      const senetTaksitlerHesap = calculateInstallments(formData.nakitFiyati, formData.faizOrani, senetOpsiyonlari);
       
       setKrediKartiTaksitler(kartiTaksitler);
       setSenetTaksitler(senetTaksitlerHesap);
     }
-  }, [formData.nakitFiyati, formData.faizOrani]);
+  }, [formData.nakitFiyati, formData.faizOrani, formData.maxKrediKartiTaksit, formData.maxSenetTaksit]);
 
   // Liste fiyatı veya nakit fiyatı değiştiğinde indirim oranını hesapla
   useEffect(() => {
