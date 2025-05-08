@@ -108,6 +108,15 @@ const UcretlendirmePage = () => {
       });
       return;
     }
+    
+    if (!formData.egitimTipi) {
+      toast({
+        title: "Hata",
+        description: "Lütfen bir eğitim tipi seçin",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (formData.kurSayisi <= 0) {
       toast({
@@ -550,8 +559,9 @@ const UcretlendirmePage = () => {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="bg-neutral-50 text-neutral-600">
-                      <th className="text-left p-3 rounded-tl-md">Kampanya Adı</th>
-                      <th className="text-center p-3">Kur Sayısı</th>
+                      <th className="text-left p-3 rounded-tl-md">Kampanya</th>
+                      <th className="text-left p-3">Eğitim Tipi</th>
+                      <th className="text-center p-3">Kur</th>
                       <th className="text-center p-3">Liste Fiyatı</th>
                       <th className="text-center p-3">Nakit Fiyatı</th>
                       <th className="text-center p-3">İndirim %</th>
@@ -563,6 +573,11 @@ const UcretlendirmePage = () => {
                     {kampanyalar.map((kampanya) => (
                       <tr key={kampanya.id} className="border-b border-neutral-100">
                         <td className="p-3">{kampanya.kampanyaAdi}</td>
+                        <td className="p-3">
+                          <span className="px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium">
+                            {kampanya.egitimTipi || "Belirtilmemiş"}
+                          </span>
+                        </td>
                         <td className="text-center p-3">{kampanya.kurSayisi}</td>
                         <td className="text-center p-3">{formatCurrency(kampanya.listeFiyati)}</td>
                         <td className="text-center p-3">{formatCurrency(kampanya.nakitFiyati)}</td>
