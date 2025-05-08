@@ -138,34 +138,44 @@ const HesaplamaPage = () => {
       
       // Kredi kartı işlemlerinde %10 fatura bedeli ekle
       const faturaBedeli = nakitF * 0.1;
-      // Kampanyalı fiyat sadece indirimli eğitim fiyatını + fatura bedelini kapsar
-      kampanyaFiyat = nakitF + faturaBedeli;
       
       if (taksitSayisi === 1) {
         taksitDetayi = "Tek Çekim";
+        // Tek çekimde faiz uygulanmıyor
+        kampanyaFiyat = nakitF + faturaBedeli;
         // Taksit hesaplamasında kitap ve hediyeler dahil edilecek
         toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
         aylikOdeme = toplamFiyat;
       } else {
         taksitDetayi = `${taksitSayisi} Taksit`;
-        // Taksit hesaplamasında kampanya fiyatı, kitap ve hediyeler hepsine faiz uygulanacak
-        const taksitHesapla = calculateInstallments(kampanyaFiyat + kitapF + hediyelerToplam, selectedKampanya.faizOrani, [taksitSayisi]);
+        
+        // Kredi kartı taksitli ödemede sadece kampanya fiyatına faiz uygulanır
+        const krediKartiTemelFiyat = nakitF + faturaBedeli;
+        const taksitHesapla = calculateInstallments(krediKartiTemelFiyat, selectedKampanya.faizOrani, [taksitSayisi]);
+        
         if (taksitHesapla.length > 0) {
-          toplamFiyat = taksitHesapla[0].toplam;
-          aylikOdeme = taksitHesapla[0].aylik;
+          // Kampanyalı fiyata faiz dahil
+          kampanyaFiyat = taksitHesapla[0].toplam;
+          // Toplam fiyata kitap ve hediyeler eklenir
+          toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
+          // Aylık ödeme tüm toplamı taksite böler
+          aylikOdeme = toplamFiyat / taksitSayisi;
         }
       }
     } else if (odemeTipi === "senet") {
       odemeSekli = "Senet";
       taksitDetayi = `${taksitSayisi} Taksit`;
-      // Kampanyalı fiyat sadece indirimli eğitim fiyatını kapsar
-      kampanyaFiyat = nakitF;
       
-      // Senetli ödemede tüm tutara faiz uygulanır
-      const taksitHesapla = calculateInstallments(nakitF + kitapF + hediyelerToplam, selectedKampanya.faizOrani, [taksitSayisi]);
+      // Senetli ödemede kampanyalı fiyata faiz uygulanır
+      const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [taksitSayisi]);
+      
       if (taksitHesapla.length > 0) {
-        toplamFiyat = taksitHesapla[0].toplam;
-        aylikOdeme = taksitHesapla[0].aylik;
+        // Kampanyalı fiyata faiz dahil
+        kampanyaFiyat = taksitHesapla[0].toplam;
+        // Toplam fiyata kitap ve hediyeler eklenir
+        toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
+        // Aylık ödeme tüm toplamı taksite böler
+        aylikOdeme = toplamFiyat / taksitSayisi;
       }
     }
     
