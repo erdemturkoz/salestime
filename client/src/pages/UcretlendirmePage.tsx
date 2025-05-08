@@ -458,26 +458,51 @@ const UcretlendirmePage = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor="kitap-fiyati">Kitap Fiyatı (₺)</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Eğitim setinin kitap fiyatı</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <Input
-                  id="kitap-fiyati"
-                  name="kitapFiyati"
-                  type="number"
-                  min="0"
-                  placeholder="Örn: 1200"
-                  value={formData.kitapFiyati || ""}
-                  onChange={handleInputChange}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kitap-fiyati">Kitap Fiyatı (₺)</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Bir adet kitap setinin fiyatı</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="kitap-fiyati"
+                    name="kitapFiyati"
+                    type="number"
+                    min="0"
+                    placeholder="Örn: 1200"
+                    value={formData.kitapFiyati || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kitap-set-sayisi">Kitap Seti Sayısı</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Alınacak kitap seti adedi</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="kitap-set-sayisi"
+                    name="kitapSetSayisi"
+                    type="number"
+                    min="1"
+                    max="10"
+                    placeholder="Örn: 1"
+                    value={formData.kitapSetSayisi || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -678,7 +703,14 @@ const UcretlendirmePage = () => {
                             {kampanya.maxSenetTaksit || 12}
                           </Badge>
                         </td>
-                        <td className="text-center p-3">{formatCurrency(kampanya.kitapFiyati)}</td>
+                        <td className="text-center p-3">
+                          {formatCurrency(kampanya.kitapFiyati * (kampanya.kitapSetSayisi || 1))}
+                          {kampanya.kitapSetSayisi > 1 && 
+                            <span className="text-xs text-gray-500 block">
+                              ({kampanya.kitapSetSayisi} set)
+                            </span>
+                          }
+                        </td>
                         <td className="text-right p-3">
                           <Button 
                             variant="ghost" 

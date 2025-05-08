@@ -49,7 +49,7 @@ const HesaplamaPage = () => {
     odemeTipiText: "",
     taksitDetay: "",
     kampanyaAdi: "",
-    hediyeler: [] as string[],
+    hediyeler: [] as {isim: string, fiyat: number}[],
   });
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
@@ -64,10 +64,23 @@ const HesaplamaPage = () => {
   };
 
   const taksitOptions = () => {
-    if (odemeTipi === "kredi-karti") {
-      return [1, 3, 6, 8];
-    } else if (odemeTipi === "senet") {
-      return [3, 6, 9, 12];
+    if (odemeTipi === "kredi-karti" && selectedKampanya) {
+      const options = [1]; // Tek çekim her zaman var
+      if (selectedKampanya.maxKrediKartiTaksit >= 2) options.push(2);
+      if (selectedKampanya.maxKrediKartiTaksit >= 4) options.push(4);
+      if (selectedKampanya.maxKrediKartiTaksit >= 6) options.push(6);
+      if (selectedKampanya.maxKrediKartiTaksit >= 8) options.push(8);
+      if (selectedKampanya.maxKrediKartiTaksit >= 10) options.push(10);
+      return options;
+    } else if (odemeTipi === "senet" && selectedKampanya) {
+      const options = [];
+      if (selectedKampanya.maxSenetTaksit >= 2) options.push(2);
+      if (selectedKampanya.maxSenetTaksit >= 4) options.push(4);
+      if (selectedKampanya.maxSenetTaksit >= 6) options.push(6); 
+      if (selectedKampanya.maxSenetTaksit >= 8) options.push(8);
+      if (selectedKampanya.maxSenetTaksit >= 10) options.push(10);
+      if (selectedKampanya.maxSenetTaksit >= 12) options.push(12);
+      return options;
     }
     return [];
   };
@@ -86,7 +99,7 @@ const HesaplamaPage = () => {
     const kurOrani = selectedKurSayisi / selectedKampanya.kurSayisi;
     const listeF = selectedKampanya.listeFiyati * kurOrani;
     const nakitF = selectedKampanya.nakitFiyati * kurOrani;
-    const kitapF = kitapDahil ? selectedKampanya.kitapFiyati : 0;
+    const kitapF = kitapDahil ? selectedKampanya.kitapFiyati * (selectedKampanya.kitapSetSayisi || 1) : 0;
     
     // İndirim hesaplamaları
     const indirimT = listeF - nakitF;
@@ -376,7 +389,14 @@ const HesaplamaPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Kitap Ücreti:</span>
-                      <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
+                      <span className="font-medium">
+                        {formatCurrency(sonuclar.kitapUcreti)}
+                        {selectedKampanya && selectedKampanya.kitapSetSayisi > 1 && kitapDahil && (
+                          <span className="text-xs text-gray-500 block">
+                            ({selectedKampanya.kitapSetSayisi} set)
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="border-t border-neutral-100 pt-2 flex justify-between">
                       <span className="text-neutral-800 font-medium">Genel Toplam:</span>
@@ -414,7 +434,14 @@ const HesaplamaPage = () => {
                         <span className="text-neutral-800 font-medium block mb-2">Hediyeler:</span>
                         <ul className="list-disc list-inside space-y-1 text-neutral-600">
                           {sonuclar.hediyeler.map((hediye, index) => (
-                            <li key={index}>{hediye}</li>
+                            <li key={index}>
+                              {hediye.isim}
+                              {hediye.fiyat > 0 && (
+                                <span className="ml-1 text-gray-500">
+                                  ({formatCurrency(hediye.fiyat)})
+                                </span>
+                              )}
+                            </li>
                           ))}
                         </ul>
                       </div>
