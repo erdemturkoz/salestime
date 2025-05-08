@@ -535,11 +535,19 @@ const HesaplamaPage = () => {
                                   newHediyeEt["kitap"] = !newHediyeEt["kitap"];
                                   setHediyeEt(newHediyeEt);
                                   
-                                  // Toplam fiyatı güncelle
+                                  // Toplam fiyatı ve aylık ödeme tutarını güncelle
                                   const yeniToplam = sonuclar.genelToplam + (newHediyeEt["kitap"] ? -sonuclar.kitapUcreti : sonuclar.kitapUcreti);
+                                  
+                                  // Eğer taksit varsa aylık ödemeyi yeniden hesapla
+                                  let yeniAylikOdeme = sonuclar.aylikOdeme;
+                                  if (taksitSayisi > 1) {
+                                    yeniAylikOdeme = yeniToplam / taksitSayisi;
+                                  }
+                                  
                                   setSonuclar({
                                     ...sonuclar,
-                                    genelToplam: yeniToplam
+                                    genelToplam: yeniToplam,
+                                    aylikOdeme: yeniAylikOdeme
                                   });
                                 }}
                               >
@@ -568,11 +576,19 @@ const HesaplamaPage = () => {
                                     newHediyeEt[hediye.isim] = !newHediyeEt[hediye.isim];
                                     setHediyeEt(newHediyeEt);
                                     
-                                    // Toplam fiyatı güncelle
+                                    // Toplam fiyatı ve aylık ödeme tutarını güncelle
                                     const yeniToplam = sonuclar.genelToplam + (newHediyeEt[hediye.isim] ? -hediye.fiyat : hediye.fiyat);
+                                    
+                                    // Eğer taksit varsa aylık ödemeyi yeniden hesapla
+                                    let yeniAylikOdeme = sonuclar.aylikOdeme;
+                                    if (taksitSayisi > 1) {
+                                      yeniAylikOdeme = yeniToplam / taksitSayisi;
+                                    }
+                                    
                                     setSonuclar({
                                       ...sonuclar,
-                                      genelToplam: yeniToplam
+                                      genelToplam: yeniToplam,
+                                      aylikOdeme: yeniAylikOdeme
                                     });
                                   }}
                                 >
