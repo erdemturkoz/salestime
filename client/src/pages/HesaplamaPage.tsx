@@ -766,6 +766,100 @@ const HesaplamaPage = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Yeni eklenen Özet Bilgi Kartı (Hesaplama Sonuç kartından bağımsız) */}
+      {isCalculated && (
+        <Card className="mt-6">
+          <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
+            <CardTitle>Özet Bilgi</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {/* Özet bilgi kartı - Ekran görüntüsündeki gibi */}
+            <div className="w-full bg-blue-50 p-6 rounded-md border border-blue-100">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Sol alan - Başlık ve içerik */}
+                <div className="md:col-span-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="mb-2">
+                      <h3 className="font-bold text-xl text-blue-700">
+                        <span dangerouslySetInnerHTML={{ __html: sonuclar.kampanyaAdi ? sonuclar.kampanyaAdi.replace(' ', '<br/>') : '1+1<br/>KAMPANYASI' }}></span>
+                      </h3>
+                    </div>
+                    <div className="text-neutral-600 text-sm">
+                      Teklif Tarihi:<br/>{new Date().toLocaleDateString('tr-TR')}
+                    </div>
+                  </div>
+                  
+                  <p className="text-neutral-700">Sayın Öğrencimiz,</p>
+                  
+                  <p className="text-neutral-700 my-2">
+                    <span className="text-blue-600 font-semibold">SINIRLI SÜRE</span> için geçerli olan bu özel kampanya kapsamında seçmiş olduğunuz eğitim aşağıdaki <span className="text-blue-600 font-semibold">ÖZEL AVANTAJLARLA</span> sunulmaktadır:
+                  </p>
+                  
+                  <ul className="list-disc list-inside space-y-1 text-neutral-700 ml-2">
+                    <li>
+                      <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
+                    </li>
+                    <li>
+                      <span className="font-medium">Toplam Ders Saati:</span> {selectedKampanya?.toplamDersSaati} saat
+                    </li>
+                    <li>
+                      <span className="font-medium">İndirim:</span> <span className="text-green-600 font-medium">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
+                    </li>
+                    <li>
+                      <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
+                    </li>
+                  </ul>
+                </div>
+                
+                {/* Ortadaki yeşil bölüm */}
+                <div className="md:col-span-4">
+                  <div className="bg-green-50 p-3 rounded-md border border-green-100 h-full">
+                    <h4 className="font-semibold text-green-700 mb-2">BEDAVA HEDİYELER!</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>
+                        Kitap Seti ({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)
+                      </li>
+                      {sonuclar.hediyeler.map(hediye => (
+                        <li key={hediye.isim}>
+                          {hediye.isim} ({formatCurrency(hediye.fiyat)} değerinde)
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                
+                {/* En sağdaki bölüm */}
+                <div className="md:col-span-3">
+                  <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 mb-4">
+                    <p className="text-orange-700 font-medium text-sm">
+                      ⚠️ BU ÖZEL TEKLİF YALNIZCA BUGÜN GEÇERLİDİR!
+                    </p>
+                  </div>
+                  
+                  <div className="bg-blue-100 p-3 rounded-md">
+                    <p className="font-bold text-blue-800 mb-1">
+                      Toplam Eğitim Tutarı:
+                    </p>
+                    <p className="font-bold text-blue-800 text-lg">
+                      {formatCurrency(sonuclar.genelToplam)}
+                    </p>
+                    {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
+                      <p className="text-blue-600 text-sm mt-1">
+                        Aylık sadece {formatCurrency(sonuclar.aylikOdeme)} x {taksitSayisi} taksit
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <p className="mt-4 text-sm text-neutral-600 border-t border-blue-100 pt-3">
+                Bu belge eğitim kapsamını ve ödeme koşullarını gösterir. Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
