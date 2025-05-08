@@ -55,12 +55,12 @@ const UcretlendirmePage = () => {
       
       // Senet taksit seçeneklerini dinamik olarak oluştur
       const senetOpsiyonlari = [];
-      if (formData.maxSenetTaksit >= 3) senetOpsiyonlari.push(3);
+      if (formData.maxSenetTaksit >= 2) senetOpsiyonlari.push(2);
+      if (formData.maxSenetTaksit >= 4) senetOpsiyonlari.push(4);
       if (formData.maxSenetTaksit >= 6) senetOpsiyonlari.push(6);
-      if (formData.maxSenetTaksit >= 9) senetOpsiyonlari.push(9);
+      if (formData.maxSenetTaksit >= 8) senetOpsiyonlari.push(8);
+      if (formData.maxSenetTaksit >= 10) senetOpsiyonlari.push(10);
       if (formData.maxSenetTaksit >= 12) senetOpsiyonlari.push(12);
-      if (formData.maxSenetTaksit >= 18) senetOpsiyonlari.push(18);
-      if (formData.maxSenetTaksit >= 24) senetOpsiyonlari.push(24);
 
       const kartiTaksitler = calculateInstallments(formData.nakitFiyati, formData.faizOrani, krediKartiOpsiyonlari);
       const senetTaksitlerHesap = calculateInstallments(formData.nakitFiyati, formData.faizOrani, senetOpsiyonlari);
@@ -445,12 +445,12 @@ const UcretlendirmePage = () => {
                       <SelectValue placeholder="Maks. taksit sayısı" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3">3 Taksit</SelectItem>
+                      <SelectItem value="2">2 Taksit</SelectItem>
+                      <SelectItem value="4">4 Taksit</SelectItem>
                       <SelectItem value="6">6 Taksit</SelectItem>
-                      <SelectItem value="9">9 Taksit</SelectItem>
+                      <SelectItem value="8">8 Taksit</SelectItem>
+                      <SelectItem value="10">10 Taksit</SelectItem>
                       <SelectItem value="12">12 Taksit</SelectItem>
-                      <SelectItem value="18">18 Taksit</SelectItem>
-                      <SelectItem value="24">24 Taksit</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
