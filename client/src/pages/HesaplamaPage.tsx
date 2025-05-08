@@ -30,6 +30,7 @@ const HesaplamaPage = () => {
   const { kampanyalar } = useAppContext();
   const { toast } = useToast();
 
+  const [selectedEgitimTipi, setSelectedEgitimTipi] = useState<string>("");
   const [selectedKampanyaId, setSelectedKampanyaId] = useState<string>("");
   const [selectedKurSayisi, setSelectedKurSayisi] = useState<number | null>(null);
   const [odemeTipi, setOdemeTipi] = useState<OdemeType>("");
@@ -86,7 +87,7 @@ const HesaplamaPage = () => {
   };
 
   const calculatePayment = () => {
-    if (!selectedKampanya || !selectedKurSayisi || !odemeTipi) {
+    if (!selectedEgitimTipi || !selectedKampanya || !selectedKurSayisi || !odemeTipi) {
       toast({
         title: "Hata",
         description: "Lütfen tüm alanları doldurun",
@@ -192,6 +193,43 @@ const HesaplamaPage = () => {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
+                      <Label htmlFor="egitim-tipi">Eğitim Tipi</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Eğitim tipini seçin</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <Select
+                  value={selectedEgitimTipi}
+                  onValueChange={(value) => {
+                    setSelectedEgitimTipi(value);
+                    setSelectedKampanyaId(""); // Eğitim tipi değiştiğinde kampanya seçimini sıfırla
+                    setSelectedKurSayisi(null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Eğitim tipi seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
+                    <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
+                    <SelectItem value="Junior">Junior</SelectItem>
+                    <SelectItem value="Teenage">Teenage</SelectItem>
+                    <SelectItem value="Yds">Yds</SelectItem>
+                    <SelectItem value="Toefl">Toefl</SelectItem>
+                    <SelectItem value="Ielts">Ielts</SelectItem>
+                    <SelectItem value="Ydt">Ydt</SelectItem>
+                    <SelectItem value="Özel Ders">Özel Ders</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Label htmlFor="kampanya-secim">Kampanya Seçimi</Label>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -202,17 +240,28 @@ const HesaplamaPage = () => {
 
                 <Select
                   value={selectedKampanyaId}
-                  onValueChange={setSelectedKampanyaId}
+                  onValueChange={(value) => {
+                    setSelectedKampanyaId(value);
+                    // Kampanya seçildiğinde, otomatik olarak ilk kur sayısını seç
+                    const kampanya = kampanyalar.find(k => k.id === value);
+                    if (kampanya) {
+                      setSelectedKurSayisi(1); // Varsayılan olarak ilk kuru seç
+                    }
+                  }}
+                  disabled={!selectedEgitimTipi}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Kampanya seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    {kampanyalar.map((kampanya) => (
-                      <SelectItem key={kampanya.id} value={kampanya.id}>
-                        {kampanya.kampanyaAdi}
-                      </SelectItem>
-                    ))}
+                    {kampanyalar
+                      .filter(kampanya => !selectedEgitimTipi || kampanya.egitimTipi === selectedEgitimTipi)
+                      .map((kampanya) => (
+                        <SelectItem key={kampanya.id} value={kampanya.id}>
+                          {kampanya.kampanyaAdi}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
               </div>
@@ -358,7 +407,7 @@ const HesaplamaPage = () => {
                 </TooltipProvider>
               </div>
 
-              <Button type="submit" className="w-full" disabled={!selectedKampanya || !selectedKurSayisi || !odemeTipi}>
+              <Button type="submit" className="w-full" disabled={!selectedEgitimTipi || !selectedKampanya || !selectedKurSayisi || !odemeTipi}>
                 Hesapla
               </Button>
             </form>
@@ -422,6 +471,10 @@ const HesaplamaPage = () => {
                 <div>
                   <h3 className="text-neutral-500 font-medium mb-4">Ödeme Detayları</h3>
                   <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Eğitim Tipi:</span>
+                      <span className="font-medium">{selectedEgitimTipi}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Ödeme Şekli:</span>
                       <span className="font-medium">{sonuclar.odemeTipiText}</span>
