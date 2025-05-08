@@ -119,13 +119,17 @@ const HesaplamaPage = () => {
     } else if (odemeTipi === "kredi-karti") {
       odemeSekli = "Kredi Kartı";
       
+      // Kredi kartı işlemlerinde %10 fatura bedeli ekle
+      const faturaBedeli = nakitF * 0.1;
+      const krediKartiFiyat = nakitF + faturaBedeli;
+      
       if (taksitSayisi === 1) {
         taksitDetayi = "Tek Çekim";
-        toplamFiyat = nakitF;
-        aylikOdeme = nakitF;
+        toplamFiyat = krediKartiFiyat;
+        aylikOdeme = krediKartiFiyat;
       } else {
         taksitDetayi = `${taksitSayisi} Taksit`;
-        const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [taksitSayisi]);
+        const taksitHesapla = calculateInstallments(krediKartiFiyat, selectedKampanya.faizOrani, [taksitSayisi]);
         if (taksitHesapla.length > 0) {
           toplamFiyat = taksitHesapla[0].toplam;
           aylikOdeme = taksitHesapla[0].aylik;
@@ -385,7 +389,14 @@ const HesaplamaPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Kampanyalı Fiyat:</span>
-                      <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      <span className="font-medium">
+                        {formatCurrency(sonuclar.kampanyaliFiyat)}
+                        {odemeTipi === "kredi-karti" && (
+                          <span className="text-xs text-gray-500 block">
+                            (Fatura bedeli %10 dahil)
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Kitap Ücreti:</span>
