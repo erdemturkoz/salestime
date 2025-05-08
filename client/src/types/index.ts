@@ -8,6 +8,7 @@ export interface Kampanya {
   kampanyaAdi: string;
   egitimTipi: string;
   kurSayisi: number;
+  toplamDersSaati: number;
   listeFiyati: number;
   nakitFiyati: number;
   indirimOrani: number;

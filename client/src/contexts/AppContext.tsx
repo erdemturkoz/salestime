@@ -7,6 +7,7 @@ const initialKampanya: Kampanya = {
   kampanyaAdi: 'Demo Kampanya',
   egitimTipi: 'Genel İngilizce',
   kurSayisi: 3,
+  toplamDersSaati: 120,
   listeFiyati: 10000,
   nakitFiyati: 8500,
   indirimOrani: 15,

@@ -280,7 +280,7 @@ const UcretlendirmePage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <TooltipProvider>
                     <Tooltip>
@@ -300,6 +300,28 @@ const UcretlendirmePage = () => {
                     max="10"
                     placeholder="Örn: 3"
                     value={formData.kurSayisi || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="toplam-ders-saati">Toplam Ders Saati</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Toplam eğitim süresi (saat olarak)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="toplam-ders-saati"
+                    name="toplamDersSaati"
+                    type="number"
+                    min="1"
+                    placeholder="Örn: 120"
+                    value={formData.toplamDersSaati || ""}
                     onChange={handleInputChange}
                   />
                 </div>
