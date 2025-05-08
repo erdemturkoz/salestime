@@ -47,11 +47,11 @@ const UcretlendirmePage = () => {
     if (formData.nakitFiyati > 0 && formData.faizOrani > 0) {
       // Kredi kartı taksit seçeneklerini dinamik olarak oluştur
       const krediKartiOpsiyonlari = [1]; // Tek çekim her zaman olsun
-      if (formData.maxKrediKartiTaksit >= 3) krediKartiOpsiyonlari.push(3);
+      if (formData.maxKrediKartiTaksit >= 2) krediKartiOpsiyonlari.push(2);
+      if (formData.maxKrediKartiTaksit >= 4) krediKartiOpsiyonlari.push(4);
       if (formData.maxKrediKartiTaksit >= 6) krediKartiOpsiyonlari.push(6);
       if (formData.maxKrediKartiTaksit >= 8) krediKartiOpsiyonlari.push(8);
       if (formData.maxKrediKartiTaksit >= 10) krediKartiOpsiyonlari.push(10);
-      if (formData.maxKrediKartiTaksit >= 12) krediKartiOpsiyonlari.push(12);
       
       // Senet taksit seçeneklerini dinamik olarak oluştur
       const senetOpsiyonlari = [];
@@ -417,11 +417,11 @@ const UcretlendirmePage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">Tek Çekim</SelectItem>
-                      <SelectItem value="3">3 Taksit</SelectItem>
+                      <SelectItem value="2">2 Taksit</SelectItem>
+                      <SelectItem value="4">4 Taksit</SelectItem>
                       <SelectItem value="6">6 Taksit</SelectItem>
                       <SelectItem value="8">8 Taksit</SelectItem>
                       <SelectItem value="10">10 Taksit</SelectItem>
-                      <SelectItem value="12">12 Taksit</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
