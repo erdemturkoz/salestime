@@ -36,6 +36,7 @@ const HesaplamaPage = () => {
   const [odemeTipi, setOdemeTipi] = useState<OdemeType>("");
   const [taksitSayisi, setTaksitSayisi] = useState<number>(1);
   const [kitapDahil, setKitapDahil] = useState<boolean>(false);
+  const [hediyeEt, setHediyeEt] = useState<{[key: string]: boolean}>({});
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
   
   // Sonuçlar
@@ -155,6 +156,9 @@ const HesaplamaPage = () => {
         aylikOdeme = taksitHesapla[0].aylik;
       }
     }
+    
+    // Hediye etme durumunu sıfırla
+    setHediyeEt({});
     
     // Sonuçları güncelle
     setSonuclar({
@@ -507,25 +511,51 @@ const HesaplamaPage = () => {
                         <span className="text-neutral-800 font-medium block mb-2">Hediyeler:</span>
                         <ul className="list-disc list-inside space-y-1 text-neutral-600">
                           {kitapDahil && (
-                            <li>
-                              Kitap Ücreti
-                              <span className="ml-1 text-gray-500">
-                                ({formatCurrency(sonuclar.kitapUcreti)})
-                                {selectedKampanya && selectedKampanya.kitapSetSayisi > 1 && kitapDahil && (
-                                  <span className="ml-1 text-gray-500">
-                                    ({selectedKampanya.kitapSetSayisi} set)
-                                  </span>
-                                )}
-                              </span>
+                            <li className="flex items-center justify-between">
+                              <div>
+                                Kitap Ücreti
+                                <span className="ml-1 text-gray-500">
+                                  ({formatCurrency(sonuclar.kitapUcreti)})
+                                  {selectedKampanya && selectedKampanya.kitapSetSayisi > 1 && kitapDahil && (
+                                    <span className="ml-1 text-gray-500">
+                                      ({selectedKampanya.kitapSetSayisi} set)
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
                             </li>
                           )}
                           {sonuclar.hediyeler.map((hediye, index) => (
-                            <li key={index}>
-                              {hediye.isim}
+                            <li key={index} className="flex items-center justify-between">
+                              <div>
+                                {hediye.isim}
+                                {hediye.fiyat > 0 && (
+                                  <span className="ml-1 text-gray-500">
+                                    ({formatCurrency(hediye.fiyat)})
+                                  </span>
+                                )}
+                              </div>
                               {hediye.fiyat > 0 && (
-                                <span className="ml-1 text-gray-500">
-                                  ({formatCurrency(hediye.fiyat)})
-                                </span>
+                                <Button
+                                  type="button"
+                                  variant={hediyeEt[hediye.isim] ? "default" : "outline"}
+                                  size="sm"
+                                  className="ml-2 text-xs h-7 px-2"
+                                  onClick={() => {
+                                    const newHediyeEt = { ...hediyeEt };
+                                    newHediyeEt[hediye.isim] = !newHediyeEt[hediye.isim];
+                                    setHediyeEt(newHediyeEt);
+                                    
+                                    // Toplam fiyatı güncelle
+                                    const yeniToplam = sonuclar.genelToplam + (newHediyeEt[hediye.isim] ? -hediye.fiyat : hediye.fiyat);
+                                    setSonuclar({
+                                      ...sonuclar,
+                                      genelToplam: yeniToplam
+                                    });
+                                  }}
+                                >
+                                  {hediyeEt[hediye.isim] ? "Hediye Edildi" : "Hediye Et"}
+                                </Button>
                               )}
                             </li>
                           ))}
