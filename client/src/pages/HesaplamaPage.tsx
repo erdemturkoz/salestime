@@ -461,6 +461,43 @@ const HesaplamaPage = () => {
                         )}
                       </span>
                     </div>
+                    
+                    {/* Hediye ve Kitap bilgisi */}
+                    <div className="p-2 bg-blue-50 border-dashed border border-blue-200 rounded-md my-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-700">Eğitim Paketi Fiyatı</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      </div>
+                      {kitapDahil && !hediyeEt["kitap"] && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-blue-700">+ Kitap Ücreti</span>
+                          <span className="font-medium">+{formatCurrency(sonuclar.kitapUcreti)}</span>
+                        </div>
+                      )}
+                      {kitapDahil && hediyeEt["kitap"] && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-blue-700">- Hediye Edilen Kitap</span>
+                          <span className="font-medium text-green-600">-{formatCurrency(sonuclar.kitapUcreti)}</span>
+                        </div>
+                      )}
+                      {sonuclar.hediyeler.map((hediye, idx) => (
+                        hediye.fiyat > 0 && (
+                          <div key={idx} className="flex justify-between text-sm">
+                            {hediyeEt[hediye.isim] ? (
+                              <>
+                                <span className="text-blue-700">- Hediye Edilen {hediye.isim}</span>
+                                <span className="font-medium text-green-600">-{formatCurrency(hediye.fiyat)}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-blue-700">+ {hediye.isim}</span>
+                                <span className="font-medium">+{formatCurrency(hediye.fiyat)}</span>
+                              </>
+                            )}
+                          </div>
+                        )
+                      ))}
+                    </div>
 
                     <div className="border-t border-neutral-100 pt-2 flex justify-between">
                       <span className="text-neutral-800 font-medium">Genel Toplam:</span>
