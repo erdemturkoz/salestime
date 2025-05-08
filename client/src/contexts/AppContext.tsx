@@ -12,6 +12,8 @@ const initialKampanya: Kampanya = {
   indirimOrani: 15,
   faizOrani: 12,
   kitapFiyati: 1000,
+  maxKrediKartiTaksit: 8,
+  maxSenetTaksit: 12,
   hediyeler: [
     { isim: 'Online Dersler', fiyat: 1500 },
     { isim: 'Özel Konuşma Seansı', fiyat: 750 }
@@ -55,16 +57,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         
         // Eski formattan yeni formata dönüştür (string[] -> Hediye[])
         const updatedKampanyalar = parsedData.map((kampanya: any) => {
-          if (kampanya.hediyeler && Array.isArray(kampanya.hediyeler)) {
+          // Taksit alanları eski versiyonda yoksa ekle
+          const withTaksitFields = {
+            ...kampanya,
+            maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ?? 8,
+            maxSenetTaksit: kampanya.maxSenetTaksit ?? 12
+          };
+
+          if (withTaksitFields.hediyeler && Array.isArray(withTaksitFields.hediyeler)) {
             // Eğer hediyeler bir dizi string ise, onları Hediye nesnesine dönüştür
-            if (typeof kampanya.hediyeler[0] === 'string') {
+            if (typeof withTaksitFields.hediyeler[0] === 'string') {
               return {
-                ...kampanya,
-                hediyeler: kampanya.hediyeler.map((h: string) => ({ isim: h, fiyat: 0 }))
+                ...withTaksitFields,
+                hediyeler: withTaksitFields.hediyeler.map((h: string) => ({ isim: h, fiyat: 0 }))
               };
             }
           }
-          return kampanya;
+          
+          return withTaksitFields;
         });
         
         setKampanyalar(updatedKampanyalar);

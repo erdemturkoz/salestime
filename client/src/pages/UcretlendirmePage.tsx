@@ -8,6 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,8 @@ const UcretlendirmePage = () => {
     indirimOrani: 0,
     faizOrani: 12,
     kitapFiyati: 0,
+    maxKrediKartiTaksit: 8,
+    maxSenetTaksit: 12,
     hediyeler: [],
   });
 
@@ -161,6 +164,8 @@ const UcretlendirmePage = () => {
       indirimOrani: 0,
       faizOrani: 12,
       kitapFiyati: 0,
+      maxKrediKartiTaksit: 8,
+      maxSenetTaksit: 12,
       hediyeler: [],
     });
   };
@@ -374,6 +379,66 @@ const UcretlendirmePage = () => {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kredi-karti-taksit">Maks. Kredi Kartı Taksiti</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Kredi kartı ile yapılabilecek maksimum taksit sayısı</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Select
+                    value={formData.maxKrediKartiTaksit?.toString() || "8"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, maxKrediKartiTaksit: parseInt(value) }))}
+                  >
+                    <SelectTrigger id="kredi-karti-taksit">
+                      <SelectValue placeholder="Maks. taksit sayısı" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Tek Çekim</SelectItem>
+                      <SelectItem value="3">3 Taksit</SelectItem>
+                      <SelectItem value="6">6 Taksit</SelectItem>
+                      <SelectItem value="8">8 Taksit</SelectItem>
+                      <SelectItem value="10">10 Taksit</SelectItem>
+                      <SelectItem value="12">12 Taksit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="senet-taksit">Maks. Senet Taksiti</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Senet ile yapılabilecek maksimum taksit sayısı</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Select
+                    value={formData.maxSenetTaksit?.toString() || "12"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, maxSenetTaksit: parseInt(value) }))}
+                  >
+                    <SelectTrigger id="senet-taksit">
+                      <SelectValue placeholder="Maks. taksit sayısı" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 Taksit</SelectItem>
+                      <SelectItem value="6">6 Taksit</SelectItem>
+                      <SelectItem value="9">9 Taksit</SelectItem>
+                      <SelectItem value="12">12 Taksit</SelectItem>
+                      <SelectItem value="18">18 Taksit</SelectItem>
+                      <SelectItem value="24">24 Taksit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <TooltipProvider>
                   <Tooltip>
@@ -565,6 +630,8 @@ const UcretlendirmePage = () => {
                       <th className="text-center p-3">Liste Fiyatı</th>
                       <th className="text-center p-3">Nakit Fiyatı</th>
                       <th className="text-center p-3">İndirim %</th>
+                      <th className="text-center p-3">K.K. Taksit</th>
+                      <th className="text-center p-3">Senet Taksit</th>
                       <th className="text-center p-3">Kitap</th>
                       <th className="text-right p-3 rounded-tr-md">İşlemler</th>
                     </tr>
@@ -582,6 +649,16 @@ const UcretlendirmePage = () => {
                         <td className="text-center p-3">{formatCurrency(kampanya.listeFiyati)}</td>
                         <td className="text-center p-3">{formatCurrency(kampanya.nakitFiyati)}</td>
                         <td className="text-center p-3">{formatPercentage(kampanya.indirimOrani)}</td>
+                        <td className="text-center p-3">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-50">
+                            {kampanya.maxKrediKartiTaksit || 8}
+                          </Badge>
+                        </td>
+                        <td className="text-center p-3">
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 hover:bg-purple-50">
+                            {kampanya.maxSenetTaksit || 12}
+                          </Badge>
+                        </td>
                         <td className="text-center p-3">{formatCurrency(kampanya.kitapFiyati)}</td>
                         <td className="text-right p-3">
                           <Button 
