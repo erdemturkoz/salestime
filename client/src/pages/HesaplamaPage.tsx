@@ -669,14 +669,16 @@ const HesaplamaPage = () => {
                       <div className="border-t border-neutral-100 pt-4 mt-6">
                         <h3 className="text-lg font-semibold text-neutral-800 mb-2">Özet Bilgi</h3>
                         
-                        {/* Tam genişlikte özet bilgi kartı */}
-                        <div className="w-full bg-blue-50 p-4 rounded-md border border-blue-100">
-                          <div className="flex flex-col md:flex-row md:justify-between items-start mb-3">
-                            <div className="mb-2 md:mb-0">
-                              <h3 className="font-bold text-xl text-blue-700">{sonuclar.kampanyaAdi}</h3>
+                        {/* Özet bilgi kartı - Ekran görüntüsündeki gibi 300-350px genişlikte */}
+                        <div className="mx-auto md:w-[380px] bg-blue-50 p-5 rounded-md border border-blue-100">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="font-bold text-xl text-blue-700">
+                                <span dangerouslySetInnerHTML={{ __html: sonuclar.kampanyaAdi ? sonuclar.kampanyaAdi.replace(' ', '<br/>') : '1+1<br/>KAMPANYASI' }}></span>
+                              </h3>
                             </div>
-                            <div className="text-neutral-600">
-                              Teklif Tarihi: {new Date().toLocaleDateString('tr-TR')}
+                            <div className="text-neutral-600 text-sm">
+                              Teklif Tarihi:<br/>{new Date().toLocaleDateString('tr-TR')}
                             </div>
                           </div>
                           
@@ -686,48 +688,38 @@ const HesaplamaPage = () => {
                             <span className="text-blue-600 font-semibold">SINIRLI SÜRE</span> için geçerli olan bu özel kampanya kapsamında seçmiş olduğunuz eğitim aşağıdaki <span className="text-blue-600 font-semibold">ÖZEL AVANTAJLARLA</span> sunulmaktadır:
                           </p>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-1">
-                              <ul className="list-disc list-inside space-y-1 text-neutral-700">
+                          <ul className="list-disc list-inside space-y-1 text-neutral-700 ml-2">
+                            <li>
+                              <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
+                            </li>
+                            <li>
+                              <span className="font-medium">Toplam Ders Saati:</span> {selectedKampanya?.toplamDersSaati} saat
+                            </li>
+                            <li>
+                              <span className="font-medium">İndirim:</span> <span className="text-green-600 font-medium">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
+                            </li>
+                            <li>
+                              <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
+                            </li>
+                          </ul>
+                          
+                          <div className="mt-4">
+                            <div className="bg-green-50 p-3 rounded-md border border-green-100 mb-3">
+                              <h4 className="font-semibold text-green-700 mb-2">BEDAVA HEDİYELER!</h4>
+                              <ul className="list-disc list-inside space-y-1">
                                 <li>
-                                  <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
+                                  Kitap Seti ({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)
                                 </li>
-                                <li>
-                                  <span className="font-medium">Toplam Ders Saati:</span> {selectedKampanya?.toplamDersSaati} saat
-                                </li>
-                                <li>
-                                  <span className="font-medium">İndirim:</span> <span className="text-green-600 font-bold">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
-                                </li>
-                                <li>
-                                  <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
-                                </li>
+                                {sonuclar.hediyeler.map(hediye => (
+                                  <li key={hediye.isim}>
+                                    {hediye.isim} ({formatCurrency(hediye.fiyat)} değerinde)
+                                  </li>
+                                ))}
                               </ul>
                             </div>
                             
-                            <div className="md:col-span-1">
-                              <div className="bg-green-50 p-2 h-full rounded-md border border-green-100">
-                                <h4 className="font-semibold text-green-700 mb-1">BEDAVA HEDİYELER!</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                  <li>
-                                    Kitap Seti ({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)
-                                  </li>
-                                  {sonuclar.hediyeler.map(hediye => (
-                                    <li key={hediye.isim}>
-                                      {hediye.isim} ({formatCurrency(hediye.fiyat)} değerinde)
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                            
-                            <div className="md:col-span-1">
-                              <div className="bg-yellow-50 p-2 rounded-md border border-yellow-200 mb-3">
-                                <p className="text-orange-700 font-medium">
-                                  ⚠️ BU ÖZEL TEKLİF YALNIZCA BUGÜN GEÇERLİDİR!
-                                </p>
-                              </div>
-                              
-                              <div className="bg-blue-100 p-2 rounded-md">
+                            <div className="flex gap-2 mb-3">
+                              <div className="flex-1 bg-blue-100 p-3 rounded-md">
                                 <p className="font-bold text-blue-800">
                                   Toplam Eğitim Tutarı: {formatCurrency(sonuclar.genelToplam)}
                                 </p>
@@ -738,9 +730,15 @@ const HesaplamaPage = () => {
                                 )}
                               </div>
                             </div>
+
+                            <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                              <p className="text-orange-700 font-medium text-sm">
+                                ⚠️ BU ÖZEL TEKLİF YALNIZCA BUGÜN GEÇERLİDİR!
+                              </p>
+                            </div>
                           </div>
                           
-                          <p className="mt-3 text-sm text-neutral-600 border-t border-blue-100 pt-2">
+                          <p className="mt-4 text-sm text-neutral-600 border-t border-blue-100 pt-3">
                             Bu belge eğitim kapsamını ve ödeme koşullarını gösterir. Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.
                           </p>
                         </div>
