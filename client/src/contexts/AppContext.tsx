@@ -5,6 +5,7 @@ import { Kampanya } from '@/types';
 const initialKampanya: Kampanya = {
   id: 'initial-kampanya',
   kampanyaAdi: 'Demo Kampanya',
+  egitimTipi: 'Genel İngilizce',
   kurSayisi: 3,
   listeFiyati: 10000,
   nakitFiyati: 8500,

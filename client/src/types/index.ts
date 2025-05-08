@@ -6,6 +6,7 @@ export interface Hediye {
 export interface Kampanya {
   id: string;
   kampanyaAdi: string;
+  egitimTipi: string;
   kurSayisi: number;
   listeFiyati: number;
   nakitFiyati: number;

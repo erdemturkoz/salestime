@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
@@ -23,6 +24,7 @@ const UcretlendirmePage = () => {
 
   const [formData, setFormData] = useState<Omit<Kampanya, "id">>({
     kampanyaAdi: "",
+    egitimTipi: "",
     kurSayisi: 1,
     listeFiyati: 0,
     nakitFiyati: 0,
@@ -143,6 +145,7 @@ const UcretlendirmePage = () => {
     // Form verilerini sıfırla
     setFormData({
       kampanyaAdi: "",
+      egitimTipi: "",
       kurSayisi: 1,
       listeFiyati: 0,
       nakitFiyati: 0,
@@ -186,24 +189,60 @@ const UcretlendirmePage = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor="kampanya-adi">Kampanya Adı</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Kampanyanın pazarlama ismi</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <Input
-                  id="kampanya-adi"
-                  name="kampanyaAdi"
-                  placeholder="Örn: Yaz Kampanyası 2023"
-                  value={formData.kampanyaAdi}
-                  onChange={handleInputChange}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kampanya-adi">Kampanya Adı</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Kampanyanın kısa ismi</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Input
+                    id="kampanya-adi"
+                    name="kampanyaAdi"
+                    placeholder="Örn: 1+1"
+                    value={formData.kampanyaAdi}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="egitim-tipi">Eğitim Tipi</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Verilecek eğitimin türü</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Select
+                    value={formData.egitimTipi}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, egitimTipi: value }))}
+                  >
+                    <SelectTrigger id="egitim-tipi">
+                      <SelectValue placeholder="Eğitim tipini seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
+                        <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
+                        <SelectItem value="Junior">Junior</SelectItem>
+                        <SelectItem value="Teenage">Teenage</SelectItem>
+                        <SelectItem value="Yds">Yds</SelectItem>
+                        <SelectItem value="Toefl">Toefl</SelectItem>
+                        <SelectItem value="Ielts">Ielts</SelectItem>
+                        <SelectItem value="Ydt">Ydt</SelectItem>
+                        <SelectItem value="Özel Ders">Özel Ders</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
