@@ -112,7 +112,6 @@ const HesaplamaPage = () => {
     const listeF = selectedKampanya.listeFiyati * kurOrani;
     const nakitF = selectedKampanya.nakitFiyati * kurOrani;
     const kitapF = kitapDahil ? selectedKampanya.kitapFiyati * (selectedKampanya.kitapSetSayisi || 1) : 0;
-    // Hesaplamaya tüm hediye fiyatlarını dahil et
     const hediyelerToplam = selectedKampanya.hediyeler.reduce((toplam, hediye) => toplam + hediye.fiyat, 0);
     
     // İndirim hesaplamaları
@@ -121,14 +120,17 @@ const HesaplamaPage = () => {
     
     let odemeSekli = "";
     let taksitDetayi = "Tek Çekim";
-    let toplamFiyat = nakitF;
-    let aylikOdeme = nakitF;
+    let kampanyaFiyat = nakitF;
+    let toplamFiyat = 0;
+    let aylikOdeme = 0;
     
     // Ödeme tipi hesaplamaları
     if (odemeTipi === "nakit") {
       odemeSekli = "Nakit";
       taksitDetayi = "Tek Çekim";
-      // Toplam fiyata kitap ve hediye fiyatlarını ekle
+      // Kampanyalı fiyat sadece indirimli eğitim fiyatını kapsar, kitap ve hediye dahil değil
+      kampanyaFiyat = nakitF;
+      // Toplam hesaplanırken kitap ve hediyeler eklenecek
       toplamFiyat = nakitF + kitapF + hediyelerToplam;
       aylikOdeme = toplamFiyat; // Tek ödeme olduğu için aynı
     } else if (odemeTipi === "kredi-karti") {
@@ -136,16 +138,18 @@ const HesaplamaPage = () => {
       
       // Kredi kartı işlemlerinde %10 fatura bedeli ekle
       const faturaBedeli = nakitF * 0.1;
-      // Kitap ve hediyeleri faiz hesaplamasına dahil et - tümünün faizi olacak
-      const krediKartiFiyat = nakitF + faturaBedeli + kitapF + hediyelerToplam;
+      // Kampanyalı fiyat sadece indirimli eğitim fiyatını + fatura bedelini kapsar
+      kampanyaFiyat = nakitF + faturaBedeli;
       
       if (taksitSayisi === 1) {
         taksitDetayi = "Tek Çekim";
-        toplamFiyat = krediKartiFiyat;
-        aylikOdeme = krediKartiFiyat;
+        // Taksit hesaplamasında kitap ve hediyeler dahil edilecek
+        toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
+        aylikOdeme = toplamFiyat;
       } else {
         taksitDetayi = `${taksitSayisi} Taksit`;
-        const taksitHesapla = calculateInstallments(krediKartiFiyat, selectedKampanya.faizOrani, [taksitSayisi]);
+        // Taksit hesaplamasında kampanya fiyatı, kitap ve hediyeler hepsine faiz uygulanacak
+        const taksitHesapla = calculateInstallments(kampanyaFiyat + kitapF + hediyelerToplam, selectedKampanya.faizOrani, [taksitSayisi]);
         if (taksitHesapla.length > 0) {
           toplamFiyat = taksitHesapla[0].toplam;
           aylikOdeme = taksitHesapla[0].aylik;
@@ -154,9 +158,11 @@ const HesaplamaPage = () => {
     } else if (odemeTipi === "senet") {
       odemeSekli = "Senet";
       taksitDetayi = `${taksitSayisi} Taksit`;
-      // Kitap ve hediyeleri faiz hesaplamasına dahil et - tümünün faizi olacak
-      const senetFiyat = nakitF + kitapF + hediyelerToplam;
-      const taksitHesapla = calculateInstallments(senetFiyat, selectedKampanya.faizOrani, [taksitSayisi]);
+      // Kampanyalı fiyat sadece indirimli eğitim fiyatını kapsar
+      kampanyaFiyat = nakitF;
+      
+      // Senetli ödemede tüm tutara faiz uygulanır
+      const taksitHesapla = calculateInstallments(nakitF + kitapF + hediyelerToplam, selectedKampanya.faizOrani, [taksitSayisi]);
       if (taksitHesapla.length > 0) {
         toplamFiyat = taksitHesapla[0].toplam;
         aylikOdeme = taksitHesapla[0].aylik;
@@ -171,9 +177,9 @@ const HesaplamaPage = () => {
       listeFiyati: listeF,
       indirimTutari: indirimT,
       indirimYuzdesi: indirimY,
-      kampanyaliFiyat: toplamFiyat,
+      kampanyaliFiyat: kampanyaFiyat,
       kitapUcreti: kitapF,
-      genelToplam: toplamFiyat, // toplamFiyat içinde artık tüm değerler vardır
+      genelToplam: toplamFiyat,
       aylikOdeme: aylikOdeme,
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
