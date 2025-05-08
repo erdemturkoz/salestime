@@ -665,72 +665,81 @@ const HesaplamaPage = () => {
                         </ul>
                       </div>
                       
-                      {/* Özet bilgi bölümü - Daha geniş, tam genişlikte kartı */}
+                      {/* Özet bilgi bölümü */}
                       <div className="border-t border-neutral-100 pt-4 mt-6">
                         <h3 className="text-lg font-semibold text-neutral-800 mb-2">Özet Bilgi</h3>
-                        <div className="bg-blue-50 p-6 rounded-md border border-blue-100">
-                          <div className="flex justify-between items-center mb-4">
-                            <span className="font-bold text-2xl text-blue-700">{sonuclar.kampanyaAdi}</span>
-                            <span className="text-neutral-600">Teklif Tarihi: {new Date().toLocaleDateString('tr-TR')}</span>
-                          </div>
-                          
-                          <div className="text-neutral-700 mb-4">
-                            <p className="mb-2">Sayın Öğrencimiz,</p>
-                            
-                            <p>
-                              <span className="text-blue-600 font-semibold">SINIRLI SÜRE</span> için geçerli olan bu özel kampanya kapsamında seçmiş olduğunuz eğitim aşağıdaki <span className="text-blue-600 font-semibold">ÖZEL AVANTAJLARLA</span> sunulmaktadır:
-                            </p>
-                          </div>
-                          
-                          {/* İki sütunlu düzen - masaüstü, tek sütun - mobil */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-blue-50 p-5 rounded-md border border-blue-100">
+                          {/* Başlık kısmı */}
+                          <div className="flex justify-between items-start mb-3">
                             <div>
-                              <ul className="list-disc list-inside space-y-2 text-neutral-700 ml-2">
+                              <h2 className="font-bold text-2xl text-blue-700">{sonuclar.kampanyaAdi}</h2>
+                            </div>
+                            <div className="text-neutral-600">
+                              <p>Teklif Tarihi: {new Date().toLocaleDateString('tr-TR')}</p>
+                            </div>
+                          </div>
+                          
+                          <p className="text-neutral-700 mb-1">Sayın Öğrencimiz,</p>
+                          
+                          <p className="text-neutral-700 mb-4">
+                            <span className="text-blue-600 font-semibold">SINIRLI SÜRE</span> için geçerli olan bu özel kampanya kapsamında seçmiş olduğunuz eğitim aşağıdaki <span className="text-blue-600 font-semibold">ÖZEL AVANTAJLARLA</span> sunulmaktadır:
+                          </p>
+                          
+                          {/* Ana içerik - 3 sütunlu grid */}
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            {/* Sol sütun - detaylar */}
+                            <div className="md:col-span-5">
+                              <ul className="list-disc list-inside space-y-2 text-neutral-700">
                                 <li>
-                                  <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
+                                  <span className="font-medium">Eğitim Tipi:</span><br className="md:hidden" /> {selectedEgitimTipi}
                                 </li>
                                 <li>
-                                  <span className="font-medium">Toplam Ders Saati:</span> {selectedKampanya?.toplamDersSaati} saat
+                                  <span className="font-medium">Toplam Ders Saati:</span><br className="md:hidden" /> {selectedKampanya?.toplamDersSaati} saat
                                 </li>
                                 <li>
                                   <span className="font-medium">İndirim:</span> <span className="text-green-600 font-bold">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
                                 </li>
                                 <li>
-                                  <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
+                                  <span className="font-medium">Ödeme Şekli:</span><br className="md:hidden" /> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
                                 </li>
                               </ul>
                               
-                              <div className="mt-5 bg-blue-100 p-4 rounded-md">
-                                <p className="font-bold text-blue-800 text-lg">
+                              {/* Toplam tutar kutusu */}
+                              <div className="mt-4 mb-2 md:mb-0 bg-blue-100 p-3 rounded-md">
+                                <p className="font-bold text-blue-800">
                                   Toplam Eğitim Tutarı: {formatCurrency(sonuclar.genelToplam)}
-                                  {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
-                                    <span className="block text-base font-normal mt-1">
-                                      Aylık sadece {formatCurrency(sonuclar.aylikOdeme)} x {taksitSayisi} taksit
-                                    </span>
-                                  )}
                                 </p>
+                                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
+                                  <p className="text-blue-800 mt-1">
+                                    Aylık sadece {formatCurrency(sonuclar.aylikOdeme)} x {taksitSayisi} taksit
+                                  </p>
+                                )}
                               </div>
                             </div>
                             
-                            <div>
-                              <div className="p-3 bg-green-50 border border-green-100 rounded">
-                                <h4 className="font-semibold text-green-700 text-lg">BEDAVA HEDİYELER!</h4>
-                                <ul className="list-disc list-inside mt-2 ml-2 space-y-2">
-                                  <li className="font-medium">
+                            {/* Orta sütun - hediyeler */}
+                            <div className="md:col-span-4">
+                              <div className="bg-green-50 p-3 rounded-md h-full border border-green-100">
+                                <h4 className="font-semibold text-green-700 mb-2">BEDAVA HEDİYELER!</h4>
+                                <ul className="list-disc list-inside space-y-2">
+                                  <li>
                                     Kitap Seti ({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)
-                                    {hediyeEt["kitap"] && <span className="ml-2 bg-green-600 text-white text-xs px-2 py-0.5 rounded">Hediye Edildi</span>}
+                                    {hediyeEt["kitap"] && <span className="ml-1 bg-green-600 text-white text-xs px-1 py-0.5 rounded">Hediye Edildi</span>}
                                   </li>
                                   {sonuclar.hediyeler.map(hediye => (
-                                    <li key={hediye.isim} className="font-medium">
+                                    <li key={hediye.isim}>
                                       {hediye.isim} ({formatCurrency(hediye.fiyat)} değerinde)
-                                      {hediyeEt[hediye.isim] && <span className="ml-2 bg-green-600 text-white text-xs px-2 py-0.5 rounded">Hediye Edildi</span>}
+                                      {hediyeEt[hediye.isim] && <span className="ml-1 bg-green-600 text-white text-xs px-1 py-0.5 rounded">Hediye Edildi</span>}
                                     </li>
                                   ))}
                                 </ul>
                               </div>
-                              
-                              <div className="mt-5 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                                <p className="text-orange-700 font-medium">
+                            </div>
+                            
+                            {/* Sağ sütun - uyarı mesajı */}
+                            <div className="md:col-span-3">
+                              <div className="bg-yellow-50 p-3 rounded-md h-full border border-yellow-200">
+                                <p className="text-orange-700 font-medium text-sm">
                                   ⚠️ BU ÖZEL TEKLİF YALNIZCA BUGÜN GEÇERLİDİR! Hemen kaydınızı yaptırarak bu avantajlardan yararlanabilirsiniz.
                                 </p>
                               </div>
