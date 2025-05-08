@@ -112,6 +112,8 @@ const HesaplamaPage = () => {
     const listeF = selectedKampanya.listeFiyati * kurOrani;
     const nakitF = selectedKampanya.nakitFiyati * kurOrani;
     const kitapF = kitapDahil ? selectedKampanya.kitapFiyati * (selectedKampanya.kitapSetSayisi || 1) : 0;
+    // Hesaplamaya tüm hediye fiyatlarını dahil et
+    const hediyelerToplam = selectedKampanya.hediyeler.reduce((toplam, hediye) => toplam + hediye.fiyat, 0);
     
     // İndirim hesaplamaları
     const indirimT = listeF - nakitF;
@@ -126,14 +128,16 @@ const HesaplamaPage = () => {
     if (odemeTipi === "nakit") {
       odemeSekli = "Nakit";
       taksitDetayi = "Tek Çekim";
-      toplamFiyat = nakitF;
-      aylikOdeme = nakitF;
+      // Toplam fiyata kitap ve hediye fiyatlarını ekle
+      toplamFiyat = nakitF + kitapF + hediyelerToplam;
+      aylikOdeme = toplamFiyat; // Tek ödeme olduğu için aynı
     } else if (odemeTipi === "kredi-karti") {
       odemeSekli = "Kredi Kartı";
       
       // Kredi kartı işlemlerinde %10 fatura bedeli ekle
       const faturaBedeli = nakitF * 0.1;
-      const krediKartiFiyat = nakitF + faturaBedeli;
+      // Kitap ve hediyeleri faiz hesaplamasına dahil et - tümünün faizi olacak
+      const krediKartiFiyat = nakitF + faturaBedeli + kitapF + hediyelerToplam;
       
       if (taksitSayisi === 1) {
         taksitDetayi = "Tek Çekim";
@@ -150,7 +154,9 @@ const HesaplamaPage = () => {
     } else if (odemeTipi === "senet") {
       odemeSekli = "Senet";
       taksitDetayi = `${taksitSayisi} Taksit`;
-      const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [taksitSayisi]);
+      // Kitap ve hediyeleri faiz hesaplamasına dahil et - tümünün faizi olacak
+      const senetFiyat = nakitF + kitapF + hediyelerToplam;
+      const taksitHesapla = calculateInstallments(senetFiyat, selectedKampanya.faizOrani, [taksitSayisi]);
       if (taksitHesapla.length > 0) {
         toplamFiyat = taksitHesapla[0].toplam;
         aylikOdeme = taksitHesapla[0].aylik;
@@ -167,7 +173,7 @@ const HesaplamaPage = () => {
       indirimYuzdesi: indirimY,
       kampanyaliFiyat: toplamFiyat,
       kitapUcreti: kitapF,
-      genelToplam: toplamFiyat + kitapF + selectedKampanya.hediyeler.reduce((toplam, hediye) => toplam + hediye.fiyat, 0),
+      genelToplam: toplamFiyat, // toplamFiyat içinde artık tüm değerler vardır
       aylikOdeme: aylikOdeme,
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
