@@ -9,6 +9,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -596,6 +597,14 @@ const HesaplamaPage = () => {
                     <h3 className="text-xl font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
                     <p className="text-blue-600">{sonuclar.egitimTipi} - {sonuclar.kurSayisi} Kur</p>
                   </div>
+                  
+                  {/* Nakit ödeme tavsiyesi banneri */}
+                  {odemeTipi !== "nakit" && (
+                    <div className="mt-3 bg-amber-50 border border-amber-100 rounded-md p-3 text-center">
+                      <h3 className="text-lg font-bold text-amber-800">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</h3>
+                      <p className="text-amber-600">Nakit Fiyat: {formatCurrency(sonuclar.kampanyaliFiyat)} (-{formatPercentage(sonuclar.indirimYuzdesi)} indirim)</p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardHeader>
@@ -641,9 +650,21 @@ const HesaplamaPage = () => {
                           <div className="mt-2 pt-2 border-t border-neutral-100">
                             <p className="text-sm font-medium mb-1">Kampanya Hediyeleri:</p>
                             {sonuclar.hediyeler.map((hediye, index) => (
-                              <div key={index} className="flex justify-between text-sm">
-                                <span className="text-neutral-600">{hediye.isim}</span>
-                                <span>{formatCurrency(hediye.fiyat)}</span>
+                              <div key={index} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center">
+                                  <span className="text-neutral-600">{hediye.isim}</span>
+                                  <Badge variant="outline" className="ml-2 text-xs">
+                                    {formatCurrency(hediye.fiyat)}
+                                  </Badge>
+                                </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-xs h-7 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
+                                  onClick={() => {}}
+                                >
+                                  Hediye Edildi
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -752,9 +773,23 @@ const HesaplamaPage = () => {
                       <p className="text-neutral-700">Plan: <span className="font-medium">{sonuclar.taksitDetay}</span></p>
                       
                       {taksitSayisi > 1 && (
-                        <div className="mt-3 p-2 bg-white rounded border border-green-200">
-                          <p className="text-green-700 font-medium text-center">Aylık Ödeme Tutarı</p>
-                          <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                        <div className="mt-3">
+                          <div className="p-2 bg-white rounded border border-green-200 mb-2">
+                            <p className="text-green-700 font-medium text-center">Aylık Ödeme Tutarı</p>
+                            <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                          </div>
+                          
+                          <div className="p-2 bg-white rounded border border-green-100">
+                            <p className="text-green-700 text-sm font-medium mb-1">Aylık Ödeme Planı:</p>
+                            <div className="divide-y divide-green-100">
+                              {Array.from({length: taksitSayisi}).map((_, i) => (
+                                <div key={i} className="py-1 flex justify-between text-sm">
+                                  <span className="text-neutral-600">{i+1}. Taksit:</span>
+                                  <span className="font-medium">{formatCurrency(sonuclar.aylikOdeme)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
