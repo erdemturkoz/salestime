@@ -1,15 +1,11 @@
 import React from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
-import { UserRole } from '@shared/schema';
-import { useAuth } from '@/contexts/AuthContext';
 import { 
   Calculator, 
-  Settings, 
   DollarSign, 
-  Building2, 
-  LogOut, 
-  Menu, 
   User,
+  LogOut,
+  Menu, 
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,37 +16,18 @@ const NAV_ITEMS = [
     label: 'Ücret Hesaplama',
     href: '/hesaplama',
     icon: <Calculator className="h-5 w-5" />,
-    roles: [UserRole.ADMIN, UserRole.KURUCU, UserRole.SUBE_MUDURU, UserRole.SATIS_DANISMANI],
   },
   {
     label: 'Fiyat Yönetimi',
     href: '/ucretlendirme',
     icon: <DollarSign className="h-5 w-5" />,
-    roles: [UserRole.ADMIN, UserRole.KURUCU],
-  },
-  {
-    label: 'Şube & Kullanıcı Yönetimi',
-    href: '/subeler',
-    icon: <Building2 className="h-5 w-5" />,
-    roles: [UserRole.ADMIN, UserRole.KURUCU],
-  },
-  {
-    label: 'Ayarlar',
-    href: '/ayarlar',
-    icon: <Settings className="h-5 w-5" />,
-    roles: [UserRole.ADMIN, UserRole.KURUCU],
   },
 ];
 
 const Sidebar = () => {
-  const { userRole, userName, userBranch, logout } = useAuth();
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = React.useState(false);
   const [_, setLocation] = useLocation();
-
-  const authorizedNavItems = NAV_ITEMS.filter(
-    item => item.roles.includes(userRole as UserRole)
-  );
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   
@@ -77,14 +54,11 @@ const Sidebar = () => {
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <h2 className="text-lg font-bold">Dil Kursu Yönetim</h2>
-        {userBranch && (
-          <p className="text-sm text-muted-foreground">{userBranch.name}</p>
-        )}
       </div>
 
       <div className="flex-grow p-4">
         <nav className="space-y-2">
-          {authorizedNavItems.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const [isActive] = useRoute(item.href);
             return (
               <Button
@@ -100,21 +74,20 @@ const Sidebar = () => {
           })}
         </nav>
       </div>
-
+      
       <div className="p-4 border-t">
         <div className="flex items-center mb-4">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="h-5 w-5" />
           </div>
           <div className="ml-3">
-            <p className="text-sm font-medium">{userName || 'Kullanıcı'}</p>
-            <p className="text-xs text-muted-foreground">{userRole || 'Rol Yok'}</p>
+            <p className="text-sm font-medium">Kullanıcı</p>
+            <p className="text-xs text-muted-foreground">Rol Yok</p>
           </div>
         </div>
         <Button 
           variant="outline" 
-          className="w-full justify-start" 
-          onClick={logout}
+          className="w-full justify-start"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Çıkış Yap
