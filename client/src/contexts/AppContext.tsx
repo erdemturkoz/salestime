@@ -101,16 +101,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
+      // Veri doğrulama kontrolü yap ve varsayılan değerleri ekle
+      const kampanyaData = {
+        kampanyaAdi: kampanya.kampanyaAdi,
+        egitimTipi: kampanya.egitimTipi,
+        kurSayisi: kampanya.kurSayisi || 1,
+        toplamDersSaati: kampanya.toplamDersSaati || 0,
+        listeFiyati: kampanya.listeFiyati || 0,
+        nakitFiyati: kampanya.nakitFiyati || 0,
+        indirimOrani: kampanya.indirimOrani || 0,
+        faizOrani: kampanya.faizOrani || 12,
+        kitapFiyati: kampanya.kitapFiyati || 0,
+        kitapSetSayisi: kampanya.kitapSetSayisi || 1,
+        maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
+        maxSenetTaksit: kampanya.maxSenetTaksit || 12,
+        hediyeler: kampanya.hediyeler || []
+      };
+      
       // API çağrısı ile veritabanına kampanya ekle
       const response = await fetch('/api/kampanyalar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(kampanya)
+        body: JSON.stringify(kampanyaData)
       });
       
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API hatası:', errorData);
         throw new Error('Kampanya eklenirken bir hata oluştu');
       }
       
@@ -165,16 +184,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
+      // Veri doğrulama kontrolü yap ve varsayılan değerleri ekle
+      const kampanyaData = {
+        kampanyaAdi: updatedKampanya.kampanyaAdi,
+        egitimTipi: updatedKampanya.egitimTipi,
+        kurSayisi: updatedKampanya.kurSayisi || 1,
+        toplamDersSaati: updatedKampanya.toplamDersSaati || 0,
+        listeFiyati: updatedKampanya.listeFiyati || 0,
+        nakitFiyati: updatedKampanya.nakitFiyati || 0,
+        indirimOrani: updatedKampanya.indirimOrani || 0,
+        faizOrani: updatedKampanya.faizOrani || 12,
+        kitapFiyati: updatedKampanya.kitapFiyati || 0,
+        kitapSetSayisi: updatedKampanya.kitapSetSayisi || 1,
+        maxKrediKartiTaksit: updatedKampanya.maxKrediKartiTaksit || 8,
+        maxSenetTaksit: updatedKampanya.maxSenetTaksit || 12,
+        hediyeler: updatedKampanya.hediyeler || []
+      };
+      
       // API çağrısı ile veritabanında kampanya güncelle
       const response = await fetch(`/api/kampanyalar/${updatedKampanya.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updatedKampanya)
+        body: JSON.stringify(kampanyaData)
       });
       
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API hatası:', errorData);
         throw new Error('Kampanya güncellenirken bir hata oluştu');
       }
       
