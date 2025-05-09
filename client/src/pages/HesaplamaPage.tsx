@@ -605,7 +605,7 @@ const HesaplamaPage = () => {
                   {odemeTipi !== "nakit" && (
                     <div className="mt-3 bg-amber-50 border border-amber-100 rounded-md p-3 text-center">
                       <h3 className="text-lg font-bold text-amber-800">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</h3>
-                      <p className="text-amber-600">Nakit Fiyat: {formatCurrency(sonuclar.kampanyaliFiyat)} (-{formatPercentage(sonuclar.indirimYuzdesi)} indirim)</p>
+                      <p className="text-amber-600">Nakit Fiyat: {formatCurrency(sonuclar.nakitFiyati || selectedKampanya?.nakitFiyati || 0)} (-{formatPercentage(sonuclar.indirimYuzdesi)} indirim)</p>
                     </div>
                   )}
                 </div>
