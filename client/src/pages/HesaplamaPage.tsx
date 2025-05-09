@@ -24,9 +24,6 @@ import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
 import { Download } from "lucide-react";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import autoTable from 'jspdf-autotable';
-import 'jspdf-autotable';
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
 
@@ -204,157 +201,147 @@ const HesaplamaPage = () => {
     setIsCalculated(true);
   };
 
-  // PDF oluşturup indirme fonksiyonu - jsPDF destekli fontlar kullanarak
+  // PDF oluşturup indirme fonksiyonu - Türkçe karakter desteği ile
   const handleGeneratePDF = () => {
-    // Türkçe karakter desteği için encoding ayarıyla oluştur
+    // PDF oluştur
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4',
-      putOnlyUsedFonts: true,
-      floatPrecision: 16
+      format: 'a4'
     });
     
     // Sayfa bilgileri
     const today = new Date().toLocaleDateString('tr-TR');
     const margin = 15;
-    const pageWidth = 210; // A4
-    const lineSpacing = 10; // Satır aralığı
+    const pageWidth = 210; // A4 genişliği
     
-    // ---- ÜST BAŞLIK ----
-    doc.setFontSize(18);
-    doc.setTextColor(20, 60, 180);
+    // ----- BAŞLIK -----
+    doc.setFillColor(50, 80, 180);
+    doc.rect(margin, margin, pageWidth - (margin * 2), 10, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text('Ö Z E T   B İ L G İ', margin, 30);
+    doc.text('ÖZET BİLGİ', pageWidth / 2, margin + 7, { align: 'center' });
     
-    // Tarih
-    doc.setFontSize(10);
+    // ----- KAMPANYA ADI -----
+    let yPos = margin + 20;
+    
+    doc.setTextColor(50, 80, 180);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(sonuclar.kampanyaAdi.split(' ')[0] || '1+1', margin, yPos);
+    
     doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Teklif Tarihi: ${today}`, pageWidth - 60, 30);
+    doc.text(`Teklif Tarihi: ${today}`, pageWidth - margin, yPos, { align: 'right' });
     
-    // ---- KAMPANYA ADI ----
-    doc.setFontSize(18);
-    doc.setTextColor(20, 50, 180);
+    yPos += 7;
+    doc.setTextColor(50, 80, 180);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
+    doc.text(sonuclar.kampanyaAdi.split(' ')[1] || 'KAMPANYASI', margin, yPos);
     
-    if (sonuclar.kampanyaAdi.includes(' ')) {
-      const parts = sonuclar.kampanyaAdi.split(' ');
-      doc.text(parts[0], margin, 50);
-      doc.text(parts[1], margin, 60);
-    } else {
-      doc.text(sonuclar.kampanyaAdi, margin, 50);
-    }
+    // ----- GİRİŞ METNİ -----
+    yPos += 15;
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text('Sayın Öğrencimiz,', margin, yPos);
     
-    // ---- EĞİTİM BİLGİLERİ ----
-    let yPos = 80; // Eğitim bilgilerinin y pozisyonu
+    yPos += 7;
+    doc.text('SINIRLI SÜRE için geçerli olan bu özel kampanya kapsamında seçmiş', margin, yPos);
+    yPos += 5;
+    doc.text('olduğunuz eğitim aşağıdaki ÖZEL AVANTAJLARLA sunulmaktadır:', margin, yPos);
     
-    doc.setFontSize(14); // BAŞLIK: 14 PUNTO
-    doc.setTextColor(80, 80, 80);
+    // ----- EĞİTİM BİLGİLERİ -----
+    yPos += 15;
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text('Eğitim Bilgileri:', margin, yPos);
-    yPos += lineSpacing;
     
-    // Eğitim Bilgileri Liste
-    doc.setFontSize(12); // AÇIKLAMALAR: 12 PUNTO
-    doc.setTextColor(60, 60, 60);
+    yPos += 10;
+    doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    
-    // Eğitim Tipi
     doc.text(`• Eğitim Tipi: ${selectedEgitimTipi}`, margin, yPos);
-    yPos += lineSpacing;
     
-    // 1+1 Kampanyası ise Toplam Eğitim ekle
     if (sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1")) {
+      yPos += 7;
       doc.text(`• Toplam Eğitim: 2 Kur`, margin, yPos);
-      yPos += lineSpacing;
+      
+      yPos += 7;
       doc.text(`• Toplam Ders Saati: 240 saat`, margin, yPos);
     } else {
+      yPos += 7;
       doc.text(`• Toplam Ders Saati: ${selectedKampanya?.toplamDersSaati} saat`, margin, yPos);
     }
-    yPos += lineSpacing;
     
-    // İndirim
-    doc.text(`• İndirim:`, margin, yPos);
+    yPos += 7;
     doc.setTextColor(40, 160, 70);
     doc.setFont("helvetica", "bold");
-    doc.text(`%${sonuclar.indirimYuzdesi.toFixed(1)} (${formatCurrency(sonuclar.indirimTutari)})`, margin + 35, yPos);
-    yPos += lineSpacing;
+    doc.text(`• İndirim: %${sonuclar.indirimYuzdesi.toFixed(1)} (${formatCurrency(sonuclar.indirimTutari)})`, margin, yPos);
     
-    // Ödeme Şekli
+    yPos += 7;
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "normal");
     doc.text(`• Ödeme Şekli: ${sonuclar.odemeTipiText} ${sonuclar.taksitDetay}`, margin, yPos);
-    yPos += lineSpacing * 1.5;
     
-    // ---- HEDİYELER VE AVANTAJLAR ----
-    doc.setTextColor(40, 150, 80);
+    // ----- HEDİYELER VE AVANTAJLAR -----
+    yPos += 15;
+    doc.setTextColor(40, 140, 60);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14); // BAŞLIK: 14 PUNTO
+    doc.setFontSize(14);
     doc.text('HEDİYELER ve AVANTAJLAR:', margin, yPos);
-    yPos += lineSpacing * 1.2;
     
-    // Hediyeler Listesi
-    doc.setFontSize(12); // AÇIKLAMALAR: 12 PUNTO
+    yPos += 10;
     doc.setTextColor(60, 60, 60);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
+    doc.text(`• Kitap Seti (${selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? `${selectedKampanya.kitapSetSayisi} set - ` : ''}${formatCurrency(sonuclar.kitapUcreti)} değerinde)`, margin, yPos);
     
-    // Kitap Seti
-    doc.text(`• Kitap Seti`, margin, yPos);
-    doc.setFont("helvetica", "bold");
-    doc.text(`(${selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? `${selectedKampanya.kitapSetSayisi} set - ` : ''}${formatCurrency(sonuclar.kitapUcreti)} değerinde)`, margin + 45, yPos);
-    yPos += lineSpacing;
-    
-    // Diğer hediyeler
+    // Diğer hediyeleri ekle
     sonuclar.hediyeler.forEach(hediye => {
-      doc.setFont("helvetica", "normal");
-      doc.text(`• ${hediye.isim}`, margin, yPos);
-      doc.setFont("helvetica", "bold");
-      doc.text(`(${formatCurrency(hediye.fiyat)} değerinde)`, margin + 45, yPos);
-      yPos += lineSpacing;
+      yPos += 7;
+      doc.text(`• ${hediye.isim} (${formatCurrency(hediye.fiyat)} değerinde)`, margin, yPos);
     });
     
-    yPos += lineSpacing;
-    
-    // ---- UYARI ----
+    // ----- UYARI KUTUSU -----
+    yPos += 15;
     doc.setFillColor(255, 245, 220);
-    doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F');
     
     doc.setTextColor(200, 80, 30);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text('BU ÖZEL TEKLİF YALNIZCA 2 GÜN GEÇERLİDİR!', margin + 15, yPos + 9);
+    doc.text('BU ÖZEL TEKLİF YALNIZCA 2 GÜN GEÇERLİDİR!', pageWidth / 2, yPos + 7, { align: 'center' });
     
-    yPos += 25;
-    
-    // ---- FİYAT BİLGİLERİ ----
+    // ----- FİYAT BİLGİLERİ -----
+    yPos += 20;
     doc.setFillColor(235, 245, 255);
-    doc.rect(margin, yPos, pageWidth - (margin * 2), 30, 'F');
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 25, 'F');
     
-    // Toplam Tutarı
     doc.setTextColor(20, 60, 180);
     doc.setFontSize(14);
-    doc.text('Toplam Eğitim Tutarı:', margin + 10, yPos + 12);
-    
     doc.setFont("helvetica", "bold");
+    doc.text('Toplam Eğitim Tutarı:', margin + 10, yPos + 10);
+    
     doc.setFontSize(16);
-    doc.text(formatCurrency(sonuclar.genelToplam), margin + 10, yPos + 22);
+    doc.text(formatCurrency(sonuclar.genelToplam), margin + 10, yPos + 20);
     
     // Taksit bilgisi
     if ((odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1) {
       doc.setFontSize(12);
-      doc.setTextColor(40, 80, 180);
-      doc.text(`Aylık sadece ${formatCurrency(sonuclar.aylikOdeme)} x ${taksitSayisi} taksit`, pageWidth - 110, yPos + 22);
+      doc.setTextColor(60, 100, 200);
+      doc.text(`Aylık sadece ${formatCurrency(sonuclar.aylikOdeme)} x ${taksitSayisi} taksit`, pageWidth - margin - 10, yPos + 20, { align: 'right' });
     }
     
-    yPos += 40;
-    
-    // ---- ALT BİLGİ ----
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    // ----- ALT BİLGİ -----
+    yPos += 35;
     doc.setTextColor(120, 120, 120);
-    doc.text('Bu belge eğitim kapsamını ve ödeme koşullarını gösterir.', margin, yPos);
-    doc.text('Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.', margin, yPos + 5);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text('Bu belge eğitim kapsamını ve ödeme koşullarını gösterir. Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.', margin, yPos);
     
     // PDF'i indir
     doc.save(`${sonuclar.kampanyaAdi}_Teklif_${today.replace(/\//g, '.')}.pdf`);
