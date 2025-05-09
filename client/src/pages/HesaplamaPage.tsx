@@ -870,9 +870,40 @@ const HesaplamaPage = () => {
                         <span className="font-medium text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
                       </div>
                       
-                      <div className="flex justify-between">
+                      <div className="flex justify-between mb-4">
                         <span className="text-neutral-600">Eğitim Fiyatı:</span>
                         <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      </div>
+                      
+                      <div className="mt-2">
+                        <p className="text-blue-700 font-medium mb-2">Bu teklif için hediyeler:</p>
+                        {kitapDahil && (
+                          <div className="flex items-center justify-between mb-1 pl-2">
+                            <div className="flex items-center">
+                              <span className="mr-2 text-blue-500">•</span>
+                              <span className="text-neutral-700">Kitap Seti</span>
+                            </div>
+                            <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(sonuclar.kitapUcreti)}</span>
+                          </div>
+                        )}
+                        
+                        {sonuclar.hediyeler.length > 0 ? (
+                          <ul className="text-sm pl-2">
+                            {sonuclar.hediyeler.map((hediye, index) => (
+                              <li key={index} className="flex items-center justify-between mb-1">
+                                <div className="flex items-center">
+                                  <span className="mr-2 text-blue-500">•</span>
+                                  <span className="text-neutral-700">{hediye.isim}</span>
+                                </div>
+                                <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(hediye.fiyat)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : kitapDahil ? null : (
+                          <div className="text-center text-neutral-500 text-sm my-1">
+                            <p>Hediye bulunmuyor</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
