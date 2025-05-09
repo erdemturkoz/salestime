@@ -709,11 +709,13 @@ const HesaplamaPage = () => {
                       ))}
                     </div>
 
-                    <div className="border-t border-neutral-100 pt-2 flex justify-between">
-                      <span className="text-neutral-800 font-medium">Genel Toplam:</span>
-                      <span className="text-primary font-bold text-lg w-32 text-right">
-                        {formatCurrency(sonuclar.genelToplam)}
-                      </span>
+                    <div className="border-t border-neutral-100 pt-4 mt-2">
+                      <div className="bg-blue-50 p-3 rounded-md border border-blue-200 flex justify-between items-center">
+                        <span className="text-blue-800 font-semibold text-base">Genel Toplam:</span>
+                        <span className="text-blue-700 font-bold text-xl w-32 text-right">
+                          {formatCurrency(sonuclar.genelToplam)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
