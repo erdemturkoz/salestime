@@ -656,7 +656,7 @@ const HesaplamaPage = () => {
                                   <Button 
                                     variant="secondary" 
                                     size="xs" 
-                                    className={kitapHediyeEdildi ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3 min-w-20" : "bg-green-600 text-white hover:bg-green-700 h-7 px-3 min-w-20"}
+                                    className={kitapHediyeEdildi ? "bg-rose-500 text-white hover:bg-rose-600 h-7 px-3 min-w-20" : "bg-green-600 text-white hover:bg-green-700 h-7 px-3 min-w-20"}
                                     onClick={() => {
                                       // Kitap hediye edildi durumunu değiştir
                                       const yeniDurum = !kitapHediyeEdildi;
@@ -688,7 +688,7 @@ const HesaplamaPage = () => {
                                       });
                                     }}
                                   >
-                                    Hediye Et
+                                    {kitapHediyeEdildi ? "Hediye Edildi" : "Hediye Et"}
                                   </Button>
                                 </div>
                               </div>
@@ -706,7 +706,7 @@ const HesaplamaPage = () => {
                                   <Button 
                                     variant="secondary" 
                                     size="xs" 
-                                    className={hediyeEdildi[hediye.isim] ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3 min-w-20" : "bg-green-600 text-white hover:bg-green-700 h-7 px-3 min-w-20"}
+                                    className={hediyeEdildi[hediye.isim] ? "bg-rose-500 text-white hover:bg-rose-600 h-7 px-3 min-w-20" : "bg-green-600 text-white hover:bg-green-700 h-7 px-3 min-w-20"}
                                     onClick={() => {
                                       // Hediye edildi durumunu değiştir
                                       const yeniHediyeEdildi = {...hediyeEdildi};
@@ -739,7 +739,7 @@ const HesaplamaPage = () => {
                                       });
                                     }}
                                   >
-                                    Hediye Et
+                                    {hediyeEdildi[hediye.isim] ? "Hediye Edildi" : "Hediye Et"}
                                   </Button>
                                 </div>
                               </div>
