@@ -426,9 +426,7 @@ const HesaplamaPage = () => {
                     className="py-2 px-3 text-sm font-medium"
                     onClick={() => {
                       setOdemeTipi("senet");
-                      // Senet seçildiğinde varsayılan olarak ilk taksit seçeneğini belirle
-                      const senetSeçenekleri = taksitOptions();
-                      setTaksitSayisi(senetSeçenekleri.length > 0 ? senetSeçenekleri[0] : 1);
+                      setTaksitSayisi(3);
                     }}
                     disabled={!selectedKampanya}
                   >
@@ -442,16 +440,16 @@ const HesaplamaPage = () => {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Label htmlFor="taksit-secim">Taksit Sayısı</Label>
+                        <Label htmlFor="taksit-sayisi">Taksit Sayısı</Label>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Ödemeyi kaç taksite bölmek istediğinizi seçin</p>
+                        <p>Ödemenin kaç taksite bölüneceğini seçin</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
                   <Select
-                    value={taksitSayisi?.toString() || ""}
+                    value={taksitSayisi.toString()}
                     onValueChange={(value) => setTaksitSayisi(parseInt(value))}
                   >
                     <SelectTrigger>
@@ -469,17 +467,36 @@ const HesaplamaPage = () => {
               )}
 
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="kitap-dahil" 
-                  checked={kitapDahil}
-                  onCheckedChange={(checked) => {
-                    setKitapDahil(!!checked);
-                  }}
-                />
-                <Label htmlFor="kitap-dahil">Kitap dahil</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center">
+                        <Checkbox
+                          id="kitap-dahil"
+                          checked={kitapDahil}
+                          onCheckedChange={(checked) => {
+                            setKitapDahil(checked as boolean);
+                          }}
+                          disabled={!selectedKampanya}
+                        />
+                        <Label
+                          htmlFor="kitap-dahil"
+                          className="ml-2 text-sm text-neutral-700"
+                        >
+                          Kitap dahil
+                        </Label>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Eğitim kitapları ücrete dahil edilsin mi?</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
-              <Button type="submit" className="w-full">Hesapla</Button>
+              <Button type="submit" className="w-full" disabled={!selectedEgitimTipi || !selectedKampanya || !selectedKurSayisi || !odemeTipi}>
+                Hesapla
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -769,6 +786,215 @@ const HesaplamaPage = () => {
                       </div>
                     )}
                     {/* Hediyeler bölümü fiyat detaylarında gösteriliyor */}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-neutral-500">
+                Hesaplama sonuçları burada görüntülenecek.
+                <br />
+                Lütfen sol taraftaki formu doldurup "Hesapla" düğmesine tıklayın.
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="p-4 bg-neutral-50 border-t border-neutral-100 flex justify-end">
+            <Button 
+              onClick={handleGeneratePDF}
+              className="flex items-center gap-2"
+              disabled={!isCalculated}
+            >
+              <Download className="h-5 w-5" />
+              PDF İndir
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      {/* Yeni eklenen Özet Bilgi Kartı (Hesaplama Sonuç kartından bağımsız) */}
+      {isCalculated && (
+        <Card className="mt-6">
+          <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
+            <CardTitle>Özet Bilgi</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {/* Özet bilgi kartı - Ekran görüntüsündeki gibi */}
+            <div className="w-full bg-blue-50 p-6 rounded-md border border-blue-100">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Sol alan - Başlık ve içerik */}
+                <div className="md:col-span-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="mb-2">
+                      <h3 className="font-bold text-xl text-blue-700">
+                        <span dangerouslySetInnerHTML={{ __html: sonuclar.kampanyaAdi ? sonuclar.kampanyaAdi.replace(' ', '<br/>') : '1+1<br/>KAMPANYASI' }}></span>
+                      </h3>
+                    </div>
+                    <div className="text-neutral-600 text-sm">
+                      Teklif Tarihi:<br/>{new Date().toLocaleDateString('tr-TR')}
+                    </div>
+                  </div>
+                  
+                  <p className="text-neutral-700">Sayın Öğrencimiz,</p>
+                  
+                  <p className="text-neutral-700 my-2">
+                    <span className="text-blue-600 font-semibold">SINIRLI SÜRE</span> için geçerli olan bu özel kampanya kapsamında seçmiş olduğunuz eğitim aşağıdaki <span className="text-blue-600 font-semibold">ÖZEL AVANTAJLARLA</span> sunulmaktadır:
+                  </p>
+                  
+                  <ul className="list-disc list-inside space-y-1 text-neutral-700 ml-2">
+                    <li>
+                      <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
+                    </li>
+                    {sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1") && (
+                      <li>
+                        <span className="font-medium">Toplam Eğitim:</span> <span className="font-medium">2 Kur</span>
+                      </li>
+                    )}
+                    <li>
+                      <span className="font-medium">Toplam Ders Saati:</span> {sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1") ? 240 : selectedKampanya?.toplamDersSaati} saat
+                    </li>
+                    <li>
+                      <span className="font-medium">İndirim:</span> <span className="text-green-600 font-medium">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
+                    </li>
+                    <li>
+                      <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
+                    </li>
+                  </ul>
+                </div>
+                                  newHediyeEt["kitap"] = !newHediyeEt["kitap"];
+                                  setHediyeEt(newHediyeEt);
+                                  
+                                  // Toplam fiyatı ve aylık ödeme tutarını güncelle
+                                  const yeniToplam = sonuclar.genelToplam + (newHediyeEt["kitap"] ? -sonuclar.kitapUcreti : sonuclar.kitapUcreti);
+                                  
+                                  // Eğer taksit varsa aylık ödemeyi yeniden hesapla
+                                  let yeniAylikOdeme = sonuclar.aylikOdeme;
+                                  if (taksitSayisi > 1) {
+                                    yeniAylikOdeme = yeniToplam / taksitSayisi;
+                                  }
+                                  
+                                  // Yeni taksit planı hesaplaması
+                                  let yeniTaksitPlani = [];
+                                  if (odemeTipi === "senet" && taksitSayisi > 1) {
+                                    // Taksitleri yeniden oluştur
+                                    for (let i = 0; i < taksitSayisi; i++) {
+                                      yeniTaksitPlani.push({
+                                        taksitNo: i + 1,
+                                        tutar: Math.round(yeniToplam / taksitSayisi)
+                                      });
+                                    }
+                                  }
+                                  
+                                  // Yeni sonuçları hazırla
+                                  const yeniSonuclar = {
+                                    ...sonuclar,
+                                    genelToplam: yeniToplam,
+                                    aylikOdeme: yeniAylikOdeme,
+                                    taksitPlanı: odemeTipi === "senet" && taksitSayisi > 1 ? yeniTaksitPlani : sonuclar.taksitPlanı
+                                  };
+                                  
+                                  // Sonuçları state'e kaydet
+                                  setSonuclar(yeniSonuclar);
+                                  
+                                  // Hediye etme durumunu localStorage'a kaydet (PDF için)
+                                  try {
+                                    // Önce mevcut hesaplama verilerini al
+                                    const storeData = localStorage.getItem('hesaplamaData');
+                                    if (storeData) {
+                                      const data = JSON.parse(storeData);
+                                      // Verileri güncelle
+                                      data.genelToplam = yeniToplam;
+                                      data.aylikOdeme = yeniAylikOdeme;
+                                      data.hediyeEdilenKalemler = JSON.stringify(newHediyeEt);
+                                      // Kaydet
+                                      localStorage.setItem('hesaplamaData', JSON.stringify(data));
+                                    }
+                                  } catch (error) {
+                                    console.error("Kitap hediye bilgisi localStorage'a kaydedilemedi:", error);
+                                  }
+                                }}
+                              >
+                                {hediyeEt["kitap"] ? "Hediye Edildi" : "Hediye Et"}
+                              </Button>
+                            </li>
+                          )}
+                          {sonuclar.hediyeler.map((hediye, index) => (
+                            <li key={index} className="flex items-center justify-between">
+                              <div>
+                                {hediye.isim}
+                                {hediye.fiyat > 0 && (
+                                  <span className="ml-1 text-gray-500">
+                                    ({formatCurrency(hediye.fiyat)})
+                                  </span>
+                                )}
+                              </div>
+                              {hediye.fiyat > 0 && (
+                                <Button
+                                  type="button"
+                                  variant={hediyeEt[hediye.isim] ? "default" : "outline"}
+                                  size="sm"
+                                  className="ml-2 text-xs h-7 px-2"
+                                  onClick={() => {
+                                    const newHediyeEt = { ...hediyeEt };
+                                    newHediyeEt[hediye.isim] = !newHediyeEt[hediye.isim];
+                                    setHediyeEt(newHediyeEt);
+                                    
+                                    // Toplam fiyatı ve aylık ödeme tutarını güncelle
+                                    const yeniToplam = sonuclar.genelToplam + (newHediyeEt[hediye.isim] ? -hediye.fiyat : hediye.fiyat);
+                                    
+                                    // Eğer taksit varsa aylık ödemeyi yeniden hesapla
+                                    let yeniAylikOdeme = sonuclar.aylikOdeme;
+                                    if (taksitSayisi > 1) {
+                                      yeniAylikOdeme = yeniToplam / taksitSayisi;
+                                    }
+                                    
+                                    // Yeni taksit planı hesaplaması
+                                    let yeniTaksitPlani = [];
+                                    if (odemeTipi === "senet" && taksitSayisi > 1) {
+                                      // Taksitleri yeniden oluştur
+                                      for (let i = 0; i < taksitSayisi; i++) {
+                                        yeniTaksitPlani.push({
+                                          taksitNo: i + 1,
+                                          tutar: Math.round(yeniToplam / taksitSayisi)
+                                        });
+                                      }
+                                    }
+                                    
+                                    // Yeni sonuçları hazırla
+                                    const yeniSonuclar = {
+                                      ...sonuclar,
+                                      genelToplam: yeniToplam,
+                                      aylikOdeme: yeniAylikOdeme,
+                                      taksitPlanı: odemeTipi === "senet" && taksitSayisi > 1 ? yeniTaksitPlani : sonuclar.taksitPlanı
+                                    };
+                                    
+                                    // Sonuçları state'e kaydet
+                                    setSonuclar(yeniSonuclar);
+                                    
+                                    // Hediye etme durumunu localStorage'a kaydet (PDF için)
+                                    try {
+                                      // Önce mevcut hesaplama verilerini al
+                                      const storeData = localStorage.getItem('hesaplamaData');
+                                      if (storeData) {
+                                        const data = JSON.parse(storeData);
+                                        // Verileri güncelle
+                                        data.genelToplam = yeniToplam;
+                                        data.aylikOdeme = yeniAylikOdeme;
+                                        data.hediyeEdilenKalemler = JSON.stringify(newHediyeEt);
+                                        // Kaydet
+                                        localStorage.setItem('hesaplamaData', JSON.stringify(data));
+                                      }
+                                    } catch (error) {
+                                      console.error("Hediye bilgisi localStorage'a kaydedilemedi:", error);
+                                    }
+                                  }}
+                                >
+                                  {hediyeEt[hediye.isim] ? "Hediye Edildi" : "Hediye Et"}
+                                </Button>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
                   </div>
                 </div>
               </div>
