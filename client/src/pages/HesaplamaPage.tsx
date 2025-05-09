@@ -910,19 +910,17 @@ const HesaplamaPage = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {Array.from({ length: Math.min(taksitSayisi, 3) }, (_, i) => (
+                                {Array.from({ length: taksitSayisi }, (_, i) => (
                                   <tr key={i} className={i % 2 === 0 ? "bg-green-50" : ""}>
                                     <td className="py-1 px-2">{i + 1}. Taksit</td>
                                     <td className="py-1 px-2 text-right font-medium">{formatCurrency(sonuclar.aylikOdeme)}</td>
                                   </tr>
                                 ))}
-                                {taksitSayisi > 3 && (
-                                  <tr>
-                                    <td colSpan={2} className="py-1 px-2 text-center text-neutral-500 text-xs">
-                                      ... {taksitSayisi} taksit boyunca her ay {formatCurrency(sonuclar.aylikOdeme)}
-                                    </td>
-                                  </tr>
-                                )}
+                                <tr>
+                                  <td colSpan={2} className="py-1 px-2 text-center text-neutral-500 text-xs border-t border-green-100">
+                                    ... {taksitSayisi} taksit boyunca her ay {formatCurrency(sonuclar.aylikOdeme)}
+                                  </td>
+                                </tr>
                               </tbody>
                             </table>
                           </div>
