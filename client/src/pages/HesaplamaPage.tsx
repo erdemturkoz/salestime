@@ -54,6 +54,7 @@ const HesaplamaPage = () => {
     taksitDetay: "",
     kampanyaAdi: "",
     hediyeler: [] as {isim: string, fiyat: number}[],
+    taksitPlanı: [] as {taksitNo: number, tutar: number}[],
   });
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
