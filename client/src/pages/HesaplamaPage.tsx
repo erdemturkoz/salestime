@@ -477,6 +477,19 @@ const HesaplamaPage = () => {
             {isCalculated && (
               <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md p-2 text-center">
                 <span className="font-bold text-blue-700">{sonuclar.kampanyaAdi}</span>
+                
+                {/* Nakit tavsiyesi (kredi kartı ve senet seçildiğinde) */}
+                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && (
+                  <div className="mt-2 bg-yellow-50 border-2 border-yellow-300 rounded-md p-2 text-sm">
+                    <div className="font-bold text-orange-800 text-base">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</div>
+                    <div className="text-neutral-700 mt-1">
+                      Nakit Fiyat: <span className="font-bold">{formatCurrency(selectedKampanya.nakitFiyati * (selectedKurSayisi || 1))}</span> 
+                      <span className="ml-2 text-green-600 font-semibold">
+                        ({Math.round(((sonuclar.listeFiyati - selectedKampanya.nakitFiyati * (selectedKurSayisi || 1)) / sonuclar.listeFiyati) * 100)}% indirim)
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardHeader>
