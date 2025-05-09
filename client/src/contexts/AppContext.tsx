@@ -135,6 +135,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
+      // Eğer demo kampanyasıysa (initial-kampanya), sadece state'den kaldır
+      if (id === 'initial-kampanya') {
+        setKampanyalar(prev => prev.filter(kampanya => kampanya.id !== id));
+        return;
+      }
+      
       // API çağrısı ile veritabanından kampanya sil
       const response = await fetch(`/api/kampanyalar/${id}`, {
         method: 'DELETE'
