@@ -300,7 +300,7 @@ const UcretlendirmePage = () => {
         <p className="text-neutral-500">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
       </header>
 
-      <div className="flex flex-col space-y-4 w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
         {/* Kampanya Form */}
         <Card>
           <CardHeader className="pb-3">
@@ -783,66 +783,8 @@ const UcretlendirmePage = () => {
           </CardContent>
         </Card>
 
-        {/* Kampanya ve Hesaplama Kartları - Side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
-        
-          {/* Ödeme Seçenekleri Hesaplama - Sağ tarafta */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Ödeme Seçenekleri Hesaplama</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Kredi Kartı Taksit Seçenekleri <span className="text-xs text-muted-foreground">(%10 fatura bedeli dahil)</span></h3>
-                  <div className="bg-neutral-50 rounded-md p-4">
-                    <div className="grid grid-cols-3 text-sm font-medium border-b pb-2 mb-2">
-                      <div>Taksit</div>
-                      <div>Aylık Tutar</div>
-                      <div>Toplam</div>
-                    </div>
-                    {krediKartiTaksitler.length > 0 ? (
-                      krediKartiTaksitler.map((taksit) => (
-                        <div key={taksit.taksit} className="grid grid-cols-3 text-sm py-1">
-                          <div>{taksit.taksit === 1 ? 'Tek Çekim' : `${taksit.taksit} Taksit`}</div>
-                          <div>{formatCurrency(taksit.aylik)}</div>
-                          <div>{formatCurrency(taksit.toplam)}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground py-2">Hesaplama için lütfen nakit fiyatı ve faiz oranı girin.</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Senet Taksit Seçenekleri</h3>
-                  <div className="bg-neutral-50 rounded-md p-4">
-                    <div className="grid grid-cols-3 text-sm font-medium border-b pb-2 mb-2">
-                      <div>Taksit</div>
-                      <div>Aylık Tutar</div>
-                      <div>Toplam</div>
-                    </div>
-                    {senetTaksitler.length > 0 ? (
-                      senetTaksitler.map((taksit) => (
-                        <div key={taksit.taksit} className="grid grid-cols-3 text-sm py-1">
-                          <div>{taksit.taksit} Taksit</div>
-                          <div>{formatCurrency(taksit.aylik)}</div>
-                          <div>{formatCurrency(taksit.toplam)}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground py-2">Hesaplama için lütfen nakit fiyatı ve faiz oranı girin.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Kayıtlı Kampanyalar */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>Kayıtlı Kampanyalar</CardTitle>
