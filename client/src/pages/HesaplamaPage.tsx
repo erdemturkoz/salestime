@@ -630,18 +630,18 @@ const HesaplamaPage = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-neutral-600">İndirim:</span>
-                          <span className="text-success font-medium">-{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})</span>
+                          <span className="text-green-600 font-bold">-{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-neutral-600">Kampanyalı Fiyat:</span>
-                          <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                          <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
                         </div>
                       </div>
 
                       {/* Hediyeler Alanı */}
                       {(sonuclar.hediyeler.length > 0 || sonuclar.kitapUcreti > 0) && (
-                        <div className="mt-6 border rounded-md p-4 bg-blue-50 border-blue-100">
-                          <h4 className="text-blue-700 font-bold mb-4 uppercase text-center">HEDİYELER</h4>
+                        <div className="mt-6 border rounded-md p-4 bg-green-50 border-green-100">
+                          <h4 className="text-green-700 font-bold mb-4 uppercase text-center">HEDİYELER</h4>
                           
                           <div className="space-y-3">
                             {sonuclar.kitapUcreti > 0 && (
@@ -656,7 +656,7 @@ const HesaplamaPage = () => {
                                   <Button 
                                     variant="secondary" 
                                     size="xs" 
-                                    className={kitapHediyeEdildi ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3 min-w-20" : "bg-blue-500 text-white hover:bg-blue-600 h-7 px-3 min-w-20"}
+                                    className={kitapHediyeEdildi ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3 min-w-20" : "bg-green-600 text-white hover:bg-green-700 h-7 px-3 min-w-20"}
                                     onClick={() => {
                                       // Kitap hediye edildi durumunu değiştir
                                       const yeniDurum = !kitapHediyeEdildi;
@@ -706,7 +706,7 @@ const HesaplamaPage = () => {
                                   <Button 
                                     variant="secondary" 
                                     size="xs" 
-                                    className={hediyeEdildi[hediye.isim] ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3 min-w-20" : "bg-blue-500 text-white hover:bg-blue-600 h-7 px-3 min-w-20"}
+                                    className={hediyeEdildi[hediye.isim] ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3 min-w-20" : "bg-green-600 text-white hover:bg-green-700 h-7 px-3 min-w-20"}
                                     onClick={() => {
                                       // Hediye edildi durumunu değiştir
                                       const yeniHediyeEdildi = {...hediyeEdildi};
