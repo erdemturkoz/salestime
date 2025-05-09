@@ -23,8 +23,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
 import { Download } from "lucide-react";
-import { jsPDF } from "jspdf";
-import { downloadSimplePDF } from "@/utils/simple-pdf";
+import { createAndDownloadTeklif, createSampleTeklif } from "@/utils/teklif";
 
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
@@ -203,15 +202,44 @@ const HesaplamaPage = () => {
     setIsCalculated(true);
   };
 
-  // PDF oluşturup indirme fonksiyonu - Basitleştirilmiş sürüm
+  // PDF oluşturup indirme fonksiyonu - İyileştirilmiş Roboto fontlu sürüm
   const handleGeneratePDF = () => {
     try {
-      // En basit PDF oluşturma metodunu kullan - Türkçe karakterler yerine basitleştirme
-      downloadSimplePDF(`Teklif_Ozeti.pdf`);
+      if (!selectedKampanya) {
+        toast({
+          title: "Hata",
+          description: "Kampanya bilgisi bulunamadı.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Hesaplanan verilerle PDF oluştur
+      const pdfData = {
+        kampanyaAdi: sonuclar.kampanyaAdi,
+        egitimTipi: selectedEgitimTipi,
+        kurSayisi: selectedKurSayisi || 0,
+        dersSaati: selectedKampanya.toplamDersSaati,
+        indirimOrani: sonuclar.indirimYuzdesi,
+        indirimTutari: sonuclar.indirimTutari,
+        odemeSekli: sonuclar.odemeTipiText,
+        taksitBilgisi: sonuclar.taksitDetay,
+        kitapBilgisi: `Kitap Seti (${selectedKampanya.kitapSetSayisi > 1 ? `${selectedKampanya.kitapSetSayisi} set - ` : ''}${sonuclar.kitapUcreti.toLocaleString('tr-TR')} TL değerinde)`,
+        toplamTutar: sonuclar.genelToplam,
+        aylikTutar: sonuclar.aylikOdeme,
+        taksitSayisi: taksitSayisi,
+        hediyeler: sonuclar.hediyeler.map(hediye => ({
+          isim: hediye.isim,
+          deger: hediye.fiyat
+        }))
+      };
+      
+      // PDF oluştur ve indir
+      createAndDownloadTeklif(pdfData);
       
       toast({
         title: "PDF oluşturuldu",
-        description: "Belge başarıyla indirildi.",
+        description: "Teklif belgesi başarıyla indirildi.",
         variant: "default",
       });
     } catch (error) {
