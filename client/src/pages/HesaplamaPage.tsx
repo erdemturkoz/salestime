@@ -190,8 +190,8 @@ const HesaplamaPage = () => {
     indirimT = listeF - kampanyaFiyat;
     indirimY = Math.round((indirimT / listeF) * 100);
     
-    // Sonuçları güncelle
-    setSonuclar({
+    // Sonuçların tamamını oluştur
+    const yeniSonuclar = {
       listeFiyati: listeF,
       indirimTutari: indirimT,
       indirimYuzdesi: indirimY,
@@ -203,7 +203,21 @@ const HesaplamaPage = () => {
       taksitDetay: taksitDetayi,
       kampanyaAdi: selectedKampanya.kampanyaAdi,
       hediyeler: selectedKampanya.hediyeler,
-    });
+      egitimTipi: selectedEgitimTipi,
+      kurSayisi: selectedKurSayisi,
+      dersSaati: selectedKampanya.toplamDersSaati,
+      taksitSayisi: taksitSayisi
+    };
+    
+    // Sonuçları state'e kaydet
+    setSonuclar(yeniSonuclar);
+    
+    // Sonuçları localStorage'a kaydet (PDF için)
+    try {
+      localStorage.setItem('hesaplamaData', JSON.stringify(yeniSonuclar));
+    } catch (error) {
+      console.error("Sonuçlar localStorage'a kaydedilemedi:", error);
+    }
     
     setIsCalculated(true);
   };

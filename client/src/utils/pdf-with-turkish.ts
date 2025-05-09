@@ -5,6 +5,35 @@ import { jsPDF } from "jspdf";
  * jsPDF'e ek değişiklikler uygulanır
  */
 export function createPDFWithTurkishSupport(): jsPDF {
+  // Sonuçları global olarak alalım (normalde bir fonksiyon parametresi olmalı,
+  // ancak bu hızlı çözüm için uygundur)
+  let sonuclar: any = {};
+  
+  // Global state'ten data almaya çalış
+  try {
+    // localStorage'dan son hesaplama verilerini almaya çalış
+    const storeData = localStorage.getItem('hesaplamaData');
+    if (storeData) {
+      sonuclar = JSON.parse(storeData);
+    }
+  } catch (error) {
+    console.error("Hesaplama verileri alınamadı:", error);
+  }
+  
+  const egitimTipi = sonuclar.egitimTipi || "Genel Ingilizce"; 
+  const kampanyaAdi = sonuclar.kampanyaAdi || "1+1 KAMPANYASI";
+  const kurSayisi = sonuclar.kurSayisi || 2;
+  const dersSaati = sonuclar.dersSaati || 240;
+  const indirimYuzdesi = sonuclar.indirimYuzdesi || 40;
+  const indirimTutari = sonuclar.indirimTutari || 24000;
+  const odemeTipi = sonuclar.odemeTipiText || "Kredi Karti";
+  const taksitDetay = sonuclar.taksitDetay || "4 Taksit";
+  const kitapUcreti = sonuclar.kitapUcreti || 6000;
+  const genelToplam = sonuclar.genelToplam || 63840;
+  const aylikOdeme = sonuclar.aylikOdeme || 15960;
+  const taksitSayisi = sonuclar.taksitSayisi || 4;
+  const nakitFiyat = sonuclar.kampanyaliFiyat || 55000;
+  
   // PDF oluştur
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -53,8 +82,15 @@ export function createPDFWithTurkishSupport(): jsPDF {
   let yPos = margin + 20;
   doc.setTextColor(46, 76, 170);
   doc.setFontSize(14);
-  doc.text("1+1", margin, yPos);
-  doc.text("KAMPANYASI", margin, yPos + 7);
+  
+  // Kampanya adını boşluktan böl (eğer 1+1 KAMPANYASI gibi bir formatta ise)
+  const kampanyaParts = kampanyaAdi.split(' ');
+  if (kampanyaParts.length > 1) {
+    doc.text(kampanyaParts[0], margin, yPos);
+    doc.text(kampanyaParts.slice(1).join(' '), margin, yPos + 7);
+  } else {
+    doc.text(kampanyaAdi, margin, yPos);
+  }
   
   // TARİH
   doc.setTextColor(100, 100, 100);
@@ -86,21 +122,21 @@ export function createPDFWithTurkishSupport(): jsPDF {
   
   yPos += 10;
   doc.setFontSize(12);
-  doc.text("• Egitim Tipi: Genel Ingilizce", margin, yPos);
+  doc.text(`• Egitim Tipi: ${egitimTipi}`, margin, yPos);
   
   yPos += 6;
-  doc.text("• Toplam Egitim: 2 Kur", margin, yPos);
+  doc.text(`• Toplam Egitim: ${kurSayisi} Kur`, margin, yPos);
   
   yPos += 6;
-  doc.text("• Toplam Ders Saati: 240 saat", margin, yPos);
+  doc.text(`• Toplam Ders Saati: ${dersSaati} saat`, margin, yPos);
   
   yPos += 6;
   doc.setTextColor(76, 175, 80);
-  doc.text("• Indirim: %40.0 (24.000 TL)", margin, yPos);
+  doc.text(`• Indirim: %${indirimYuzdesi.toFixed(1)} (${indirimTutari.toLocaleString('tr-TR')} TL)`, margin, yPos);
   
   yPos += 6;
   doc.setTextColor(60, 60, 60);
-  doc.text("• Odeme Sekli: Kredi Karti 4 Taksit", margin, yPos);
+  doc.text(`• Odeme Sekli: ${odemeTipi} ${taksitDetay}`, margin, yPos);
   
   // HEDİYELER
   yPos += 15;
@@ -111,32 +147,43 @@ export function createPDFWithTurkishSupport(): jsPDF {
   yPos += 10;
   doc.setTextColor(60, 60, 60);
   doc.setFontSize(12);
-  doc.text("• Kitap Seti (2 set - 6.000 TL degerinde)", margin, yPos);
+  doc.text(`• Kitap Seti (${kitapUcreti.toLocaleString('tr-TR')} TL degerinde)`, margin, yPos);
   
-  yPos += 6;
-  doc.text("• 3 AYLIK ETOPYA ONLINE (9.000 TL degerinde)", margin, yPos);
+  // Hediyeler varsa
+  if (sonuclar.hediyeler && sonuclar.hediyeler.length > 0) {
+    for (const hediye of sonuclar.hediyeler) {
+      yPos += 6;
+      doc.text(`• ${hediye.isim} (${hediye.fiyat.toLocaleString('tr-TR')} TL degerinde)`, margin, yPos);
+    }
+  } else {
+    // Varsayılan hediye
+    yPos += 6;
+    doc.text("• 3 AYLIK ETOPYA ONLINE (9.000 TL degerinde)", margin, yPos);
+  }
   
-  // NAKİT ÖDEME AVANTAJI
-  yPos += 15;
-  // Nakit fiyat 55.000 TL olarak varsayalım ve kredi kartı veya senet taksitlendirmesi olduğunda gösterelim
-  const nakitFiyat = 55000;
-  const genelToplam = 63840;
-  const fark = genelToplam - nakitFiyat;
-  const indirimOrani = Math.round((fark / genelToplam) * 100);
-  
-  doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
-  doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
-  
-  doc.setTextColor(46, 125, 50); // Koyu yeşil
-  doc.setFontSize(12);
-  doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
-  
-  doc.setFontSize(10);
-  doc.text(`Bu egitimi nakit olarak alirsaniz ${fark.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
-    pageWidth / 2, yPos + 13, { align: 'center' });
+  // NAKİT ÖDEME AVANTAJI - sadece nakit dışındaki ödeme tiplerinde göster
+  if (odemeTipi.toLowerCase() !== "nakit" && nakitFiyat < genelToplam) {
+    yPos += 15;
+    const fark = genelToplam - nakitFiyat;
+    const indirimOrani = Math.round((fark / genelToplam) * 100);
+    
+    doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
+    
+    doc.setTextColor(46, 125, 50); // Koyu yeşil
+    doc.setFontSize(12);
+    doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(`Bu egitimi nakit olarak alirsaniz ${fark.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
+      pageWidth / 2, yPos + 13, { align: 'center' });
+    
+    yPos += 20;
+  } else {
+    yPos += 15;
+  }
   
   // UYARI
-  yPos += 20;
   doc.setFillColor(255, 243, 224);
   doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F');
   
@@ -153,11 +200,15 @@ export function createPDFWithTurkishSupport(): jsPDF {
   doc.text("Toplam Egitim Tutari:", margin + 5, yPos + 8);
   
   doc.setFontSize(16);
-  doc.text("63.840 TL", margin + 5, yPos + 16);
+  doc.text(`${genelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 16);
   
-  doc.setFontSize(12);
-  doc.setTextColor(63, 81, 181);
-  doc.text("Aylik sadece 15.960 TL x 4 taksit", pageWidth - margin - 5, yPos + 12, { align: 'right' });
+  // Taksitli ödeme ise taksit bilgisini göster
+  if (taksitSayisi > 1) {
+    doc.setFontSize(12);
+    doc.setTextColor(63, 81, 181);
+    doc.text(`Aylik sadece ${aylikOdeme.toLocaleString('tr-TR')} TL x ${taksitSayisi} taksit`, 
+      pageWidth - margin - 5, yPos + 12, { align: 'right' });
+  }
   
   // ALT BİLGİ
   yPos += 30;
@@ -173,10 +224,28 @@ export function createPDFWithTurkishSupport(): jsPDF {
 export function downloadPDFWithTurkishSupport(): void {
   try {
     const doc = createPDFWithTurkishSupport();
+    
+    // Kampanya adını localStorage'dan al
+    let kampanyaAdi = "KAMPANYA";
+    try {
+      const storeData = localStorage.getItem('hesaplamaData');
+      if (storeData) {
+        const data = JSON.parse(storeData);
+        if (data.kampanyaAdi) {
+          kampanyaAdi = data.kampanyaAdi
+            .replace(/\s+/g, '_')   // Boşlukları alt çizgiye çevir
+            .replace(/[^\w-]/g, ''); // Sadece alfanumerik karakterler, tire ve alt çizgi kalsın
+        }
+      }
+    } catch (error) {
+      console.error("Kampanya adı okunamadı:", error);
+    }
+    
     // Bugünün tarihini dosya adına ekle
     const today = new Date();
     const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-    doc.save(`1+1_KAMPANYASI_Teklif_${dateStr}.pdf`);
+    
+    doc.save(`${kampanyaAdi}_Teklif_${dateStr}.pdf`);
   } catch (error) {
     console.error("PDF indirme hatası:", error);
     throw error;
