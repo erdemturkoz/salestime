@@ -758,9 +758,9 @@ const HesaplamaPage = () => {
                 
                 {/* En sağdaki bölüm */}
                 <div className="md:col-span-3">
-                  <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 mb-4">
-                    <p className="text-orange-700 font-medium text-sm">
-                      ⚠️ BU ÖZEL TEKLİF YALNIZCA BUGÜN GEÇERLİDİR!
+                  <div className="bg-yellow-50 p-3 rounded-md border-2 border-yellow-400 mb-4 shadow-md">
+                    <p className="text-orange-700 font-bold text-sm">
+                      ⚠️ BU ÖZEL TEKLİF YALNIZCA 2 GÜN GEÇERLİDİR!
                     </p>
                   </div>
                   
