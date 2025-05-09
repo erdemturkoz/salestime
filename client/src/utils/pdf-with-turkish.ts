@@ -207,21 +207,59 @@ export function createPDFWithTurkishSupport(): jsPDF {
   }
   
   // NAKİT ÖDEME AVANTAJI - sadece nakit dışındaki ödeme tiplerinde göster
-  if (odemeTipi.toLowerCase() !== "nakit" && nakitFiyat < genelToplam) {
+  if (odemeTipi.toLowerCase() !== "nakit") {
     yPos += 15;
-    const fark = genelToplam - nakitFiyat;
-    const indirimOrani = Math.round((fark / genelToplam) * 100);
     
-    doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
-    doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
+    // Kredi kartı veya senet ödeme seçeneklerinde, nakit fiyat ile karşılaştır
+    // Nakit fiyat kampanyalı fiyattır, taksitlendirme farkı eklendiğinde toplam tutar artar
+    // Bu fark tasarruf olarak gösterilir
     
-    doc.setTextColor(46, 125, 50); // Koyu yeşil
-    doc.setFontSize(12);
-    doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
+    let nakitOdemeTutari = nakitFiyat;
     
-    doc.setFontSize(10);
-    doc.text(`Bu egitimi nakit olarak alirsaniz ${fark.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
-      pageWidth / 2, yPos + 13, { align: 'center' });
+    // Toplam tutarı kitap ve hediyeler olmadan bul
+    let taksitliOdemeTutari = genelToplam;
+    
+    // Eğer kitap hediye edildiyse
+    if (kitapHediye) {
+      nakitOdemeTutari += 0; // Nakit ödemeye kitap eklenmez
+      // taksitliOdemeTutari += 0; // Taksitli ödemeye de eklenmez, zaten genel toplamda yok
+    } else {
+      nakitOdemeTutari += kitapUcreti; // Nakit ödemeye kitap ücretini ekle
+      // taksitliOdemeTutari -= 0; // Zaten genel toplamda var
+    }
+    
+    // Eğer hediyeler hediye edildiyse
+    if (sonuclar.hediyeler && sonuclar.hediyeler.length > 0) {
+      for (const hediye of sonuclar.hediyeler) {
+        const hediyeKey = hediye.isim;
+        const hediyeEdildi = hediyeEdilenKalemler && hediyeKey in hediyeEdilenKalemler && hediyeEdilenKalemler[hediyeKey] === true;
+        
+        if (!hediyeEdildi) { 
+          // Hediye edilmediyse nakit ödemede ücreti ekle
+          nakitOdemeTutari += hediye.fiyat;
+          // taksitliOdemeTutari -= 0; // Zaten genel toplamda var
+        }
+      }
+    }
+    
+    // Taksit farkını hesapla
+    const fark = taksitliOdemeTutari - nakitOdemeTutari;
+    
+    // Eğer bir tasarruf varsa göster
+    if (fark > 0) {
+      const indirimOrani = Math.round((fark / taksitliOdemeTutari) * 100);
+      
+      doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
+      doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
+      
+      doc.setTextColor(46, 125, 50); // Koyu yeşil
+      doc.setFontSize(12);
+      doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.text(`Bu egitimi nakit olarak alirsaniz ${fark.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
+        pageWidth / 2, yPos + 13, { align: 'center' });
+    }
     
     yPos += 20;
   } else {
