@@ -181,6 +181,20 @@ const HesaplamaPage = () => {
         toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
         // Aylık ödeme tüm toplamı taksite böler
         aylikOdeme = Math.round(toplamFiyat / taksitSayisi);
+        
+        // Taksit planını oluşturalım - şimdilik aynı değerler, daha sonra farklılaştırılabilir
+        const taksitPlanı = [];
+        
+        // Taksitleri oluştur
+        for (let i = 0; i < taksitSayisi; i++) {
+          taksitPlanı.push({
+            taksitNo: i + 1,
+            tutar: Math.round(toplamFiyat / taksitSayisi)
+          });
+        }
+        
+        // Taksit planını sonuçlara ekleyelim
+        sonuclar.taksitPlanı = taksitPlanı;
       }
     }
     
@@ -208,7 +222,8 @@ const HesaplamaPage = () => {
       kurSayisi: selectedKurSayisi,
       dersSaati: selectedKampanya.toplamDersSaati,
       taksitSayisi: taksitSayisi,
-      hediyeEdilenKalemler: JSON.stringify({}) // Başlangıçta boş bir hediye listesi
+      hediyeEdilenKalemler: JSON.stringify({}), // Başlangıçta boş bir hediye listesi
+      taksitPlanı: sonuclar.taksitPlanı || [] // Varsa, oluşturulan taksit planını ekleyelim
     };
     
     // Sonuçları state'e kaydet
@@ -617,12 +632,19 @@ const HesaplamaPage = () => {
                       <div className="border-t border-neutral-100 pt-2 mt-2">
                         <span className="text-neutral-800 font-medium block mb-2">Aylık Ödeme Planı:</span>
                         <div className="grid grid-cols-1 gap-2">
-                          {Array.from({ length: taksitSayisi }).map((_, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span className="text-neutral-600">{index + 1}. Taksit:</span>
-                              <span className="font-medium w-32 text-right">{formatCurrency(sonuclar.aylikOdeme)}</span>
-                            </div>
-                          ))}
+                          {Array.from({ length: taksitSayisi }).map((_, index) => {
+                            // Her taksit için tutar
+                            const tutarDisplay = sonuclar.taksitPlanı && sonuclar.taksitPlanı.length > index 
+                              ? sonuclar.taksitPlanı[index].tutar
+                              : sonuclar.aylikOdeme;
+                              
+                            return (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span className="text-neutral-600">{index + 1}. Taksit:</span>
+                                <span className="font-medium w-32 text-right">{formatCurrency(tutarDisplay)}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
