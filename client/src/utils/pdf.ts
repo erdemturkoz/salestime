@@ -35,7 +35,8 @@ export function createPDF(data: {
   hediyeler: Array<{isim: string, deger: number}>,
   toplamTutar: number,
   aylikTutar: number,
-  taksitSayisi: number
+  taksitSayisi: number,
+  nakitFiyat?: number
 }): jsPDF {
   // Yeni PDF oluştur
   const doc = new jsPDF({
@@ -133,8 +134,27 @@ export function createPDF(data: {
     doc.text(`• ${hediye.isim} (${hediye.deger.toLocaleString('tr-TR')} TL değerinde)`, margin, yPos);
   }
   
-  // ----- UYARI KUTUSU -----
+  // ----- NAKİT AVANTAJ KUTUSU -----
   yPos += 15;
+  if (data.nakitFiyat && data.odemeSekli !== 'Nakit') {
+    const nakitTasarruf = data.toplamTutar - data.nakitFiyat;
+    const nakitIndirimOrani = Math.round((nakitTasarruf / data.toplamTutar) * 100);
+    
+    doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
+    doc.rect(margin, yPos, contentWidth, 20, 'F');
+    
+    doc.setTextColor(46, 125, 50); // Koyu yeşil metin
+    doc.setFontSize(12);
+    doc.text('NAKİT ÖDEME AVANTAJI', pageWidth / 2, yPos + 7, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(`Bu eğitimi nakit olarak alırsanız ${nakitTasarruf.toLocaleString('tr-TR')} TL (%${nakitIndirimOrani}) tasarruf edersiniz.`, 
+      pageWidth / 2, yPos + 16, { align: 'center' });
+    
+    yPos += 25;
+  }
+  
+  // ----- UYARI KUTUSU -----
   doc.setFillColor(255, 243, 224); // Açık turuncu arka plan
   doc.rect(margin, yPos, contentWidth, 10, 'F');
   
