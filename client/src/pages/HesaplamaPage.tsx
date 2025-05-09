@@ -40,6 +40,9 @@ const HesaplamaPage = () => {
   const [kitapDahil, setKitapDahil] = useState<boolean>(true);
   const [hediyeEt, setHediyeEt] = useState<{[key: string]: boolean}>({});
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
+  const [mudurIndirimTipi, setMudurIndirimTipi] = useState<"miktar" | "yuzde">("miktar");
+  const [mudurIndirimDegeri, setMudurIndirimDegeri] = useState<number>(0);
+  const [mudurIndirimUygulandi, setMudurIndirimUygulandi] = useState<boolean>(false);
   
   // Sonuçlar
   const [sonuclar, setSonuclar] = useState({
@@ -55,6 +58,8 @@ const HesaplamaPage = () => {
     kampanyaAdi: "",
     hediyeler: [] as {isim: string, fiyat: number}[],
     taksitPlanı: [] as {taksitNo: number, tutar: number}[],
+    mudurIndirimTutari: 0,
+    mudurIndirimTipi: "",
   });
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
@@ -205,6 +210,43 @@ const HesaplamaPage = () => {
     indirimT = listeF - kampanyaFiyat;
     indirimY = Math.round((indirimT / listeF) * 100);
     
+    // Müdür İnisiyatifi indirimini uygula
+    let mudurIndirimTutari = 0;
+    let toplamFiyatSonHali = toplamFiyat;
+    
+    if (mudurIndirimDegeri > 0) {
+      if (mudurIndirimTipi === "miktar") {
+        // Miktar olarak indirim (TL)
+        mudurIndirimTutari = Math.min(mudurIndirimDegeri, toplamFiyat); // Toplam tutardan fazla indirim yapılamaz
+        toplamFiyatSonHali = toplamFiyat - mudurIndirimTutari;
+      } else {
+        // Yüzde olarak indirim (%)
+        const yuzde = Math.min(mudurIndirimDegeri, 100); // Maksimum %100 indirim
+        mudurIndirimTutari = Math.round((toplamFiyat * yuzde) / 100);
+        toplamFiyatSonHali = toplamFiyat - mudurIndirimTutari;
+      }
+      
+      // Taksit varsa aylık ödemeyi yeniden hesapla
+      if (taksitSayisi > 1) {
+        aylikOdeme = Math.round(toplamFiyatSonHali / taksitSayisi);
+        
+        // Taksit planını güncelle
+        if (odemeTipi === "senet" && taksitSayisi > 1) {
+          sonuclar.taksitPlanı = [];
+          for (let i = 0; i < taksitSayisi; i++) {
+            sonuclar.taksitPlanı.push({
+              taksitNo: i + 1,
+              tutar: Math.round(toplamFiyatSonHali / taksitSayisi)
+            });
+          }
+        }
+      }
+      
+      setMudurIndirimUygulandi(true);
+    } else {
+      setMudurIndirimUygulandi(false);
+    }
+    
     // Sonuçların tamamını oluştur
     const yeniSonuclar = {
       listeFiyati: listeF,
@@ -212,7 +254,7 @@ const HesaplamaPage = () => {
       indirimYuzdesi: indirimY,
       kampanyaliFiyat: kampanyaFiyat,
       kitapUcreti: kitapF,
-      genelToplam: toplamFiyat,
+      genelToplam: toplamFiyatSonHali,
       aylikOdeme: aylikOdeme,
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
@@ -223,7 +265,9 @@ const HesaplamaPage = () => {
       dersSaati: selectedKampanya.toplamDersSaati,
       taksitSayisi: taksitSayisi,
       hediyeEdilenKalemler: JSON.stringify({}), // Başlangıçta boş bir hediye listesi
-      taksitPlanı: sonuclar.taksitPlanı || [] // Varsa, oluşturulan taksit planını ekleyelim
+      taksitPlanı: sonuclar.taksitPlanı || [], // Varsa, oluşturulan taksit planını ekleyelim
+      mudurIndirimTutari: mudurIndirimTutari,
+      mudurIndirimTipi: mudurIndirimDegeri > 0 ? mudurIndirimTipi : "",
     };
     
     // Sonuçları state'e kaydet
@@ -479,6 +523,44 @@ const HesaplamaPage = () => {
                 <Label htmlFor="kitap-dahil">Kitap dahil</Label>
               </div>
 
+              {/* Müdür İnisiyatifi Bölümü */}
+              <div className="border-t border-gray-200 pt-4 mt-2">
+                <p className="text-sm font-medium text-gray-700 mb-2">Müdür İnisiyatifi</p>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <Button
+                    type="button"
+                    variant={mudurIndirimTipi === "miktar" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMudurIndirimTipi("miktar")}
+                  >
+                    Miktar (₺)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={mudurIndirimTipi === "yuzde" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMudurIndirimTipi("yuzde")}
+                  >
+                    Yüzde (%)
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input 
+                    type="number" 
+                    placeholder={mudurIndirimTipi === "miktar" ? "İndirim tutarı" : "İndirim yüzdesi"}
+                    value={mudurIndirimDegeri || ""}
+                    onChange={(e) => setMudurIndirimDegeri(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max={mudurIndirimTipi === "yuzde" ? "100" : undefined}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {mudurIndirimTipi === "miktar" 
+                    ? "Toplam tutardan düşülecek sabit indirim miktarı" 
+                    : "Toplam tutara uygulanacak indirim yüzdesi"}
+                </p>
+              </div>
+
               <Button type="submit" className="w-full">Hesapla</Button>
             </form>
           </CardContent>
@@ -709,6 +791,22 @@ const HesaplamaPage = () => {
                       ))}
                     </div>
 
+                    {/* Müdür İnisiyatifi İndirim Gösterimi */}
+                    {mudurIndirimUygulandi && sonuclar.mudurIndirimTutari > 0 && (
+                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-green-700 font-medium">Müdür İnisiyatifi İndirimi:</span>
+                          <span className="text-green-700 font-semibold">
+                            -{formatCurrency(sonuclar.mudurIndirimTutari)}
+                            {sonuclar.mudurIndirimTipi === "yuzde" && ` (${mudurIndirimDegeri}%)`}
+                          </span>
+                        </div>
+                        <div className="text-xs text-green-600 italic">
+                          Özel yetkilendirme ile uygulanan ek indirim
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="border-t border-neutral-100 pt-4 mt-2">
                       <div className="bg-blue-50 p-3 rounded-md border border-blue-200 flex justify-between items-center">
                         <span className="text-blue-800 font-semibold text-base">Genel Toplam:</span>
