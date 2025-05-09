@@ -36,6 +36,7 @@ const HesaplamaPage = () => {
   const [selectedEgitimTipi, setSelectedEgitimTipi] = useState<string>("");
   const [selectedKampanyaId, setSelectedKampanyaId] = useState<string>("");
   const [selectedKurSayisi, setSelectedKurSayisi] = useState<number | null>(null);
+  const [toplamDersSaati, setToplamDersSaati] = useState<number | null>(null);
   const [odemeTipi, setOdemeTipi] = useState<OdemeType>("");
   const [taksitSayisi, setTaksitSayisi] = useState<number>(1);
   const [kitapDahil, setKitapDahil] = useState<boolean>(true);
@@ -71,12 +72,13 @@ const HesaplamaPage = () => {
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
   
-  // Kampanya seçildiğinde otomatik olarak kampanyada tanımlı kur sayısını seç
+  // Kampanya seçildiğinde otomatik olarak kampanyada tanımlı kur sayısını ve toplam ders saatini seç
   useEffect(() => {
     if (selectedKampanyaId) {
       const kampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
       if (kampanya) {
         setSelectedKurSayisi(kampanya.kurSayisi); // Kampanyada tanımlı kur sayısını ata
+        setToplamDersSaati(kampanya.toplamDersSaati); // Kampanyada tanımlı toplam ders saatini ata
       }
     }
   }, [selectedKampanyaId, kampanyalar]);
@@ -406,35 +408,60 @@ const HesaplamaPage = () => {
                   </Select>
                 </div>
 
-                {/* Kur Sayısı */}
-                <div className="space-y-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Label htmlFor="kur-secim">Kur Sayısı</Label>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Alınacak kur sayısını seçin</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                {/* Kur Sayısı ve Toplam Ders Saati - 2 sütun */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Kur Sayısı */}
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="kur-secim">Kur Sayısı</Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Alınacak kur sayısını seçin</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-                  <Select
-                    value={selectedKurSayisi?.toString() || ""}
-                    onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
-                    disabled={true}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Kur sayısı seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {kurOptions().map((kur) => (
-                        <SelectItem key={kur} value={kur.toString()}>
-                          {kur} Kur
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Select
+                      value={selectedKurSayisi?.toString() || ""}
+                      onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
+                      disabled={true}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kur sayısı seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {kurOptions().map((kur) => (
+                          <SelectItem key={kur} value={kur.toString()}>
+                            {kur} Kur
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Toplam Ders Saati */}
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="ders-saati">Toplam Ders Saati</Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Toplam ders saati</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <Input
+                      id="ders-saati"
+                      value={toplamDersSaati ? toplamDersSaati.toString() : ""}
+                      type="text"
+                      disabled={true}
+                      className="bg-gray-100"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
