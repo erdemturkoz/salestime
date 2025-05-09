@@ -23,7 +23,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
 import { Download } from "lucide-react";
-import { downloadCustomPDF } from "@/utils/custom-pdf";
+import { downloadPDFWithTurkishSupport } from "@/utils/pdf-with-turkish";
 
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
@@ -206,7 +206,7 @@ const HesaplamaPage = () => {
   const handleGeneratePDF = () => {
     try {
       // Türkçe karakterleri destekleyen PDF oluşturma metodunu kullan
-      downloadCustomPDF();
+      downloadPDFWithTurkishSupport();
       
       toast({
         title: "PDF oluşturuldu",
