@@ -896,34 +896,10 @@ const HesaplamaPage = () => {
                     </div>
                     
                     {taksitSayisi > 1 && (
-                      <div className="mt-4">
-                        <div className="p-3 bg-white rounded border border-green-200 mb-3">
+                      <div className="mt-auto pt-4">
+                        <div className="p-3 bg-white rounded border border-green-200">
                           <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
                           <p className="text-xl font-bold text-center text-green-800 mt-1">{formatCurrency(sonuclar.aylikOdeme)}</p>
-                        </div>
-                        
-                        <div className="bg-white rounded border border-green-200 overflow-hidden">
-                          <p className="text-green-700 font-medium text-center p-2 bg-green-50 border-b border-green-200">
-                            Ödeme Planı
-                          </p>
-                          <div className="p-2">
-                            <table className="w-full text-sm">
-                              <thead className="border-b border-green-100">
-                                <tr>
-                                  <th className="text-left py-1 px-2 font-medium text-neutral-600">Taksit</th>
-                                  <th className="text-right py-1 px-2 font-medium text-neutral-600">Tutar</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {Array.from({ length: taksitSayisi }, (_, i) => (
-                                  <tr key={i} className={i % 2 === 0 ? "bg-green-50" : ""}>
-                                    <td className="py-1 px-2">{i + 1}. Taksit</td>
-                                    <td className="py-1 px-2 text-right font-medium">{formatCurrency(sonuclar.aylikOdeme)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
                         </div>
                       </div>
                     )}
