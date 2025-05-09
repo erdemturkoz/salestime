@@ -645,14 +645,14 @@ const HesaplamaPage = () => {
                           <div className="space-y-2">
                             {sonuclar.kitapUcreti > 0 && (
                               <div className="flex justify-between items-center">
-                                <div>
+                                <div className="flex-1">
                                   <span className="text-neutral-700">Kitap Seti</span>
-                                  <span className="ml-2 text-neutral-500">({formatCurrency(sonuclar.kitapUcreti)})</span>
+                                  <span className="float-right text-xs text-neutral-500 mr-4">({formatCurrency(sonuclar.kitapUcreti)})</span>
                                 </div>
                                 <Button 
                                   variant="secondary" 
-                                  size="sm" 
-                                  className={kitapHediyeEdildi ? "bg-green-500 text-white hover:bg-green-600" : "bg-blue-500 text-white hover:bg-blue-600"}
+                                  size="xs" 
+                                  className={kitapHediyeEdildi ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3" : "bg-blue-500 text-white hover:bg-blue-600 h-7 px-3"}
                                   onClick={() => {
                                     // Kitap hediye edildi durumunu değiştir
                                     const yeniDurum = !kitapHediyeEdildi;
@@ -684,21 +684,21 @@ const HesaplamaPage = () => {
                                     });
                                   }}
                                 >
-                                  Hediye Edildi
+                                  Hediye Et
                                 </Button>
                               </div>
                             )}
                             
                             {sonuclar.hediyeler.map((hediye, index) => (
                               <div key={index} className="flex justify-between items-center">
-                                <div>
+                                <div className="flex-1">
                                   <span className="text-neutral-700">{hediye.isim}</span>
-                                  <span className="ml-2 text-neutral-500">({formatCurrency(hediye.fiyat)})</span>
+                                  <span className="float-right text-xs text-neutral-500 mr-4">({formatCurrency(hediye.fiyat)})</span>
                                 </div>
                                 <Button 
                                   variant="secondary" 
-                                  size="sm" 
-                                  className={hediyeEdildi[hediye.isim] ? "bg-green-500 text-white hover:bg-green-600" : "bg-blue-500 text-white hover:bg-blue-600"}
+                                  size="xs" 
+                                  className={hediyeEdildi[hediye.isim] ? "bg-green-500 text-white hover:bg-green-600 h-7 px-3" : "bg-blue-500 text-white hover:bg-blue-600 h-7 px-3"}
                                   onClick={() => {
                                     // Hediye edildi durumunu değiştir
                                     const yeniHediyeEdildi = {...hediyeEdildi};
@@ -731,7 +731,7 @@ const HesaplamaPage = () => {
                                     });
                                   }}
                                 >
-                                  Hediye Edildi
+                                  Hediye Et
                                 </Button>
                               </div>
                             ))}
