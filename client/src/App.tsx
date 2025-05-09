@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,11 +7,7 @@ import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/Sidebar";
 import UcretlendirmePage from "@/pages/UcretlendirmePage";
 import HesaplamaPage from "@/pages/HesaplamaPage";
-import SubelerPage from "@/pages/SubelerPage";
 import { AppProvider } from "./contexts/AppContext";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { UserRole } from "@shared/schema";
 
 // Yetki gerektiren rota bileşeni
 function ProtectedRoute({ component: Component, path }: { component: React.ComponentType, path: string }) {
