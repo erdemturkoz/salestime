@@ -118,7 +118,7 @@ const HesaplamaPage = () => {
     
     // İndirim hesaplamaları
     const indirimT = listeF - nakitF;
-    const indirimY = (indirimT / listeF) * 100;
+    const indirimY = Math.round((indirimT / listeF) * 100);
     
     let odemeSekli = "";
     let taksitDetayi = "Tek Çekim";
@@ -131,9 +131,9 @@ const HesaplamaPage = () => {
       odemeSekli = "Nakit";
       taksitDetayi = "Tek Çekim";
       // Kampanyalı fiyat sadece indirimli eğitim fiyatını kapsar, kitap ve hediye dahil değil
-      kampanyaFiyat = nakitF;
+      kampanyaFiyat = Math.round(nakitF);
       // Toplam hesaplanırken kitap ve hediyeler eklenecek
-      toplamFiyat = nakitF + kitapF + hediyelerToplam;
+      toplamFiyat = Math.round(nakitF + kitapF + hediyelerToplam);
       aylikOdeme = toplamFiyat; // Tek ödeme olduğu için aynı
     } else if (odemeTipi === "kredi-karti") {
       odemeSekli = "Kredi Kartı";
@@ -145,8 +145,10 @@ const HesaplamaPage = () => {
         taksitDetayi = "Tek Çekim";
         // Tek çekimde faiz uygulanmıyor
         kampanyaFiyat = nakitF + faturaBedeli;
+        // Kampanyalı fiyat için açıklama ekleyelim
+        kampanyaFiyat = Math.round(kampanyaFiyat); // Yuvarlama yapalım
         // Taksit hesaplamasında kitap ve hediyeler dahil edilecek
-        toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
+        toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
         aylikOdeme = toplamFiyat;
       } else {
         taksitDetayi = `${taksitSayisi} Taksit`;
@@ -157,11 +159,11 @@ const HesaplamaPage = () => {
         
         if (taksitHesapla.length > 0) {
           // Kampanyalı fiyata faiz dahil
-          kampanyaFiyat = taksitHesapla[0].toplam;
+          kampanyaFiyat = Math.round(taksitHesapla[0].toplam); // Yuvarlama yapalım
           // Toplam fiyata kitap ve hediyeler eklenir
-          toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
+          toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
           // Aylık ödeme tüm toplamı taksite böler
-          aylikOdeme = toplamFiyat / taksitSayisi;
+          aylikOdeme = Math.round(toplamFiyat / taksitSayisi);
         }
       }
     } else if (odemeTipi === "senet") {
@@ -173,11 +175,11 @@ const HesaplamaPage = () => {
       
       if (taksitHesapla.length > 0) {
         // Kampanyalı fiyata faiz dahil
-        kampanyaFiyat = taksitHesapla[0].toplam;
+        kampanyaFiyat = Math.round(taksitHesapla[0].toplam); // Yuvarlama yapalım
         // Toplam fiyata kitap ve hediyeler eklenir
-        toplamFiyat = kampanyaFiyat + kitapF + hediyelerToplam;
+        toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
         // Aylık ödeme tüm toplamı taksite böler
-        aylikOdeme = toplamFiyat / taksitSayisi;
+        aylikOdeme = Math.round(toplamFiyat / taksitSayisi);
       }
     }
     
