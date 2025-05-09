@@ -21,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
-import { formatCurrency, formatPercentage } from "@/lib/utils";
+import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
 import { Download } from "lucide-react";
 import { downloadPDFWithTurkishSupport } from "@/utils/pdf-with-turkish";
@@ -867,7 +867,9 @@ const HesaplamaPage = () => {
                       
                       <div className="flex justify-between items-center">
                         <span className="text-neutral-600 font-normal text-md">İndirim Oranı:</span>
-                        <span className="font-medium text-md text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
+                        <span className="font-medium text-md text-green-600">
+                          {formatPercentage(sonuclar.indirimYuzdesi)}
+                        </span>
                       </div>
                       
                       <div className="flex justify-between items-center">
@@ -984,7 +986,9 @@ const HesaplamaPage = () => {
                         
                         <div className="flex justify-between items-center">
                           <span className="text-blue-800 font-medium">İndirim Oranı:</span>
-                          <span className="font-bold text-lg text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
+                          <span className="font-bold text-lg text-green-600">
+                            {formatPercentage(sonuclar.indirimYuzdesi)}
+                          </span>
                         </div>
                         
                         <div className="py-2 border-t border-blue-200 mt-2">
