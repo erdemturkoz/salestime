@@ -24,8 +24,7 @@ import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
 import { Download } from "lucide-react";
 import { jsPDF } from "jspdf";
-import 'jspdf-autotable';
-import { downloadTestPDF } from "@/utils/create-test-pdf";
+import { downloadSimplePDF } from "@/utils/simple-pdf";
 
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
@@ -204,11 +203,11 @@ const HesaplamaPage = () => {
     setIsCalculated(true);
   };
 
-  // PDF oluşturup indirme fonksiyonu - Doğrudan test PDF'ini kullanarak
+  // PDF oluşturup indirme fonksiyonu - Basitleştirilmiş sürüm
   const handleGeneratePDF = () => {
     try {
-      // Yeni yöntem: Türkçe karakter sorunlarını çözmek için test PDF fonksiyonunu kullan
-      downloadTestPDF(`${sonuclar.kampanyaAdi}_Teklif_${new Date().toLocaleDateString('tr-TR').replace(/\//g, '.')}.pdf`);
+      // En basit PDF oluşturma metodunu kullan - Türkçe karakterler yerine basitleştirme
+      downloadSimplePDF(`Teklif_Ozeti.pdf`);
       
       toast({
         title: "PDF oluşturuldu",
