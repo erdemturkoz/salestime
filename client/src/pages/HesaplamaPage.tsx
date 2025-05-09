@@ -722,8 +722,13 @@ const HesaplamaPage = () => {
                     <li>
                       <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
                     </li>
+                    {sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1") && (
+                      <li>
+                        <span className="font-medium">Toplam Eğitim:</span> <span className="font-medium">2 Kur</span>
+                      </li>
+                    )}
                     <li>
-                      <span className="font-medium">Toplam Ders Saati:</span> {selectedKampanya?.toplamDersSaati} saat
+                      <span className="font-medium">Toplam Ders Saati:</span> {sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1") ? 240 : selectedKampanya?.toplamDersSaati} saat
                     </li>
                     <li>
                       <span className="font-medium">İndirim:</span> <span className="text-green-600 font-medium">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
