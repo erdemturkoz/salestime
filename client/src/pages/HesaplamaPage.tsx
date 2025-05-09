@@ -897,21 +897,35 @@ const HesaplamaPage = () => {
                     
                     {taksitSayisi > 1 && (
                       <div className="pt-4">
-                        <div className="py-3 px-2 bg-white rounded border border-green-200">
-                          <table className="w-full">
-                            <tbody>
-                              <tr>
-                                <td colSpan={2} className="pb-2">
-                                  <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td colSpan={2}>
-                                  <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div className="bg-white rounded border border-green-200 overflow-hidden">
+                          <p className="text-green-700 font-medium text-center p-2 bg-green-50 border-b border-green-200">
+                            Aylık Ödeme Planı
+                          </p>
+                          <div className="p-2">
+                            <table className="w-full text-sm">
+                              <thead className="border-b border-green-100">
+                                <tr>
+                                  <th className="text-left py-1 px-2 font-medium text-neutral-600">Taksit</th>
+                                  <th className="text-right py-1 px-2 font-medium text-neutral-600">Tutar</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Array.from({ length: Math.min(taksitSayisi, 3) }, (_, i) => (
+                                  <tr key={i} className={i % 2 === 0 ? "bg-green-50" : ""}>
+                                    <td className="py-1 px-2">{i + 1}. Taksit</td>
+                                    <td className="py-1 px-2 text-right font-medium">{formatCurrency(sonuclar.aylikOdeme)}</td>
+                                  </tr>
+                                ))}
+                                {taksitSayisi > 3 && (
+                                  <tr>
+                                    <td colSpan={2} className="py-1 px-2 text-center text-neutral-500 text-xs">
+                                      ... {taksitSayisi} taksit boyunca her ay {formatCurrency(sonuclar.aylikOdeme)}
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     )}
