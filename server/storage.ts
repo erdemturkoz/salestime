@@ -120,29 +120,36 @@ export class DatabaseStorage implements IStorage {
 
   // Kampanya operations
   async getAllKampanyalar(): Promise<Kampanya[]> {
-    return await db.select().from(kampanyalar);
+    // Doğrudan SQL sorgusu kullanarak branch_id ve created_at'ı atlayalım
+    const result = await db.execute<Kampanya>(
+      `SELECT 
+        id, 
+        kampanya_adi as "kampanyaAdi", 
+        egitim_tipi as "egitimTipi",
+        kur_sayisi as "kurSayisi",
+        toplam_ders_saati as "toplamDersSaati",
+        liste_fiyati as "listeFiyati",
+        nakit_fiyati as "nakitFiyati",
+        indirim_orani as "indirimOrani",
+        faiz_orani as "faizOrani",
+        kitap_fiyati as "kitapFiyati",
+        kitap_set_sayisi as "kitapSetSayisi",
+        max_kredi_karti_taksit as "maxKrediKartiTaksit",
+        max_senet_taksit as "maxSenetTaksit",
+        hediyeler
+      FROM kampanyalar`
+    );
+
+    return result.rows;
   }
   
   async getKampanyasByBranch(branchId: number): Promise<Kampanya[]> {
-    return await db.select()
-      .from(kampanyalar)
-      .where(eq(kampanyalar.branchId, branchId));
+    // Şu an şube bazlı filtre desteklenmiyor, tüm kampanyaları dönüyoruz
+    return await this.getAllKampanyalar();
   }
   
   async getAllVisibleKampanyalar(branchId?: number): Promise<Kampanya[]> {
-    // Bir branchId sağlanırsa, o şubeye ait kampanyaları ve tüm şubelere görünür kampanyaları getir
-    if (branchId) {
-      return await db.select()
-        .from(kampanyalar)
-        .where(
-          or(
-            eq(kampanyalar.branchId, branchId),
-            isNull(kampanyalar.branchId)
-          )
-        );
-    }
-    
-    // branchId sağlanmazsa tüm kampanyaları getir
+    // Tüm kampanyaları getir, şube filtresi desteklenmiyor
     return await this.getAllKampanyalar();
   }
 

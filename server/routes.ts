@@ -26,7 +26,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(kampanyalar);
     } catch (error) {
-      res.status(500).json({ error: "Kampanyalar yüklenirken bir hata oluştu" });
+      console.error("Kampanyalar API hatası:", error);
+      res.status(500).json({ error: "Kampanyalar yüklenirken bir hata oluştu", details: String(error) });
     }
   });
 

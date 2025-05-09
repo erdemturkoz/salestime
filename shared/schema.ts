@@ -31,7 +31,7 @@ export const users = pgTable("users", {
   active: boolean("active").notNull().default(true),
 });
 
-// Kampanya tablosu - şube bağlantısı eklendi
+// Kampanya tablosu
 export const kampanyalar = pgTable("kampanyalar", {
   id: serial("id").primaryKey(),
   kampanyaAdi: text("kampanya_adi").notNull(),
@@ -40,14 +40,14 @@ export const kampanyalar = pgTable("kampanyalar", {
   toplamDersSaati: integer("toplam_ders_saati").notNull(),
   listeFiyati: integer("liste_fiyati").notNull(),
   nakitFiyati: integer("nakit_fiyati").notNull(),
-  indirimOrani: real("indirim_orani").notNull(), // Float değer için real kullanılıyor
-  faizOrani: real("faiz_orani").notNull(), // Faiz oranı da ondalıklı olabilir
+  indirimOrani: integer("indirim_orani").notNull(), // Veritabanında integer olarak oluşturulmuş
+  faizOrani: integer("faiz_orani").notNull(), // Veritabanında integer olarak oluşturulmuş
   kitapFiyati: integer("kitap_fiyati").notNull(),
   kitapSetSayisi: integer("kitap_set_sayisi").default(1),
   maxKrediKartiTaksit: integer("max_kredi_karti_taksit").default(10),
   maxSenetTaksit: integer("max_senet_taksit").default(12),
   hediyeler: json("hediyeler").$type<{isim: string, fiyat: number}[]>().default([]),
-  branchId: integer("branch_id").references(() => branches.id), // null olursa tüm şubelere görünür
+  // branchId kolonu veritabanında mevcut değil, bu yüzden kaldırıldı
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
