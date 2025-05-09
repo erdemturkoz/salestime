@@ -210,44 +210,51 @@ export function createPDFWithTurkishSupport(): jsPDF {
   if (odemeTipi.toLowerCase() !== "nakit") {
     yPos += 15;
     
-    // Kredi kartı veya senet ödeme seçeneklerinde, nakit fiyat ile karşılaştır
-    // Nakit fiyat kampanyalı fiyattır, taksitlendirme farkı eklendiğinde toplam tutar artar
-    // Bu fark tasarruf olarak gösterilir
+    // Nakit ödeme tutarı = Kampanyanın nakit fiyatı 
+    // (kitap veya hediyeler hediye edilmemişse onları da ekle)
     
-    let nakitOdemeTutari = nakitFiyat;
+    // Nakit ödeme temel tutar (kampanya nakit fiyatı)
+    const nakitTemelFiyat = nakitFiyat;
+    let nakitToplamFiyat = nakitTemelFiyat;
     
-    // Toplam tutarı kitap ve hediyeler olmadan bul
-    let taksitliOdemeTutari = genelToplam;
-    
-    // Eğer kitap hediye edildiyse
-    if (kitapHediye) {
-      nakitOdemeTutari += 0; // Nakit ödemeye kitap eklenmez
-      // taksitliOdemeTutari += 0; // Taksitli ödemeye de eklenmez, zaten genel toplamda yok
-    } else {
-      nakitOdemeTutari += kitapUcreti; // Nakit ödemeye kitap ücretini ekle
-      // taksitliOdemeTutari -= 0; // Zaten genel toplamda var
+    // Kitap ücretini ekle (hediye edilmediyse)
+    if (!kitapHediye && kitapUcreti > 0) {
+      nakitToplamFiyat += kitapUcreti;
     }
     
-    // Eğer hediyeler hediye edildiyse
+    // Hediyeleri ekle (hediye edilmediği durumda)
     if (sonuclar.hediyeler && sonuclar.hediyeler.length > 0) {
       for (const hediye of sonuclar.hediyeler) {
         const hediyeKey = hediye.isim;
-        const hediyeEdildi = hediyeEdilenKalemler && hediyeKey in hediyeEdilenKalemler && hediyeEdilenKalemler[hediyeKey] === true;
+        const hediyeEdildi = hediyeEdilenKalemler && 
+                             hediyeKey in hediyeEdilenKalemler && 
+                             hediyeEdilenKalemler[hediyeKey] === true;
         
-        if (!hediyeEdildi) { 
-          // Hediye edilmediyse nakit ödemede ücreti ekle
-          nakitOdemeTutari += hediye.fiyat;
-          // taksitliOdemeTutari -= 0; // Zaten genel toplamda var
+        // Hediye edilmediyse fiyatını ekle
+        if (!hediyeEdildi) {
+          nakitToplamFiyat += hediye.fiyat;
         }
       }
     }
     
-    // Taksit farkını hesapla
-    const fark = taksitliOdemeTutari - nakitOdemeTutari;
+    // Taksitli ödeme toplamı (genel toplam)
+    const taksitliToplamFiyat = genelToplam;
     
-    // Eğer bir tasarruf varsa göster
-    if (fark > 0) {
-      const indirimOrani = Math.round((fark / taksitliOdemeTutari) * 100);
+    // Tasarruf miktarı
+    const tasarrufMiktari = taksitliToplamFiyat - nakitToplamFiyat;
+    
+    console.log("Nakit Avantaj Hesaplama:", {
+      nakitTemelFiyat,
+      nakitToplamFiyat,
+      taksitliToplamFiyat,
+      tasarrufMiktari,
+      kitapHediye,
+      hediyeEdilenKalemler
+    });
+    
+    // Eğer tasarruf varsa göster
+    if (tasarrufMiktari > 0) {
+      const indirimOrani = Math.round((tasarrufMiktari / taksitliToplamFiyat) * 100);
       
       doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
       doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
@@ -257,7 +264,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
       doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
       
       doc.setFontSize(10);
-      doc.text(`Bu egitimi nakit olarak alirsaniz ${fark.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
+      doc.text(`Bu egitimi nakit olarak alirsaniz ${tasarrufMiktari.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
         pageWidth / 2, yPos + 13, { align: 'center' });
     }
     
