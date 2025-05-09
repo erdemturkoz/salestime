@@ -23,7 +23,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
 import { Download } from "lucide-react";
-import { downloadSimpleAsciiPDF } from "@/utils/ascii-pdf";
+import { downloadCustomPDF } from "@/utils/custom-pdf";
 
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
@@ -202,11 +202,11 @@ const HesaplamaPage = () => {
     setIsCalculated(true);
   };
 
-  // PDF oluşturup indirme fonksiyonu - Basitleştirilmiş yöntem
+  // PDF oluşturup indirme fonksiyonu - İSO Türkçe karakterli sürüm
   const handleGeneratePDF = () => {
     try {
-      // En basit PDF oluşturma metodunu kullan
-      downloadSimpleAsciiPDF();
+      // Türkçe karakterleri destekleyen PDF oluşturma metodunu kullan
+      downloadCustomPDF();
       
       toast({
         title: "PDF oluşturuldu",
