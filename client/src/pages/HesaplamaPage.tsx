@@ -43,6 +43,7 @@ const HesaplamaPage = () => {
   const [mudurIndirimTipi, setMudurIndirimTipi] = useState<"miktar" | "yuzde">("miktar");
   const [mudurIndirimDegeri, setMudurIndirimDegeri] = useState<number>(0);
   const [mudurIndirimUygulandi, setMudurIndirimUygulandi] = useState<boolean>(false);
+  const [mudurInisiyatifiAcik, setMudurInisiyatifiAcik] = useState<boolean>(false);
   
   // Sonuçlar
   const [sonuclar, setSonuclar] = useState({
@@ -523,42 +524,56 @@ const HesaplamaPage = () => {
                 <Label htmlFor="kitap-dahil">Kitap dahil</Label>
               </div>
 
-              {/* Müdür İnisiyatifi Bölümü */}
+              {/* Müdür İnisiyatifi Bölümü - Açılır/Kapanır */}
               <div className="border-t border-gray-200 pt-4 mt-2">
-                <p className="text-sm font-medium text-gray-700 mb-2">Müdür İnisiyatifi</p>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <Button
-                    type="button"
-                    variant={mudurIndirimTipi === "miktar" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setMudurIndirimTipi("miktar")}
-                  >
-                    Miktar (₺)
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={mudurIndirimTipi === "yuzde" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setMudurIndirimTipi("yuzde")}
-                  >
-                    Yüzde (%)
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Input 
-                    type="number" 
-                    placeholder={mudurIndirimTipi === "miktar" ? "İndirim tutarı" : "İndirim yüzdesi"}
-                    value={mudurIndirimDegeri || ""}
-                    onChange={(e) => setMudurIndirimDegeri(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    max={mudurIndirimTipi === "yuzde" ? "100" : undefined}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {mudurIndirimTipi === "miktar" 
-                    ? "Toplam tutardan düşülecek sabit indirim miktarı" 
-                    : "Toplam tutara uygulanacak indirim yüzdesi"}
-                </p>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full text-left"
+                  onClick={() => setMudurInisiyatifiAcik(!mudurInisiyatifiAcik)}
+                >
+                  <p className="text-sm font-medium text-gray-700">Müdür İnisiyatifi</p>
+                  <span className="text-gray-400">
+                    {mudurInisiyatifiAcik ? "▲" : "▼"}
+                  </span>
+                </button>
+                
+                {mudurInisiyatifiAcik && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant={mudurIndirimTipi === "miktar" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setMudurIndirimTipi("miktar")}
+                      >
+                        Miktar (₺)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={mudurIndirimTipi === "yuzde" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setMudurIndirimTipi("yuzde")}
+                      >
+                        Yüzde (%)
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="number" 
+                        placeholder={mudurIndirimTipi === "miktar" ? "İndirim tutarı" : "İndirim yüzdesi"}
+                        value={mudurIndirimDegeri || ""}
+                        onChange={(e) => setMudurIndirimDegeri(parseFloat(e.target.value) || 0)}
+                        min="0"
+                        max={mudurIndirimTipi === "yuzde" ? "100" : undefined}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {mudurIndirimTipi === "miktar" 
+                        ? "Toplam tutardan düşülecek sabit indirim miktarı" 
+                        : "Toplam tutara uygulanacak indirim yüzdesi"}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <Button type="submit" className="w-full">Hesapla</Button>
