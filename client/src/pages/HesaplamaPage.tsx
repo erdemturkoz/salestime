@@ -837,21 +837,24 @@ const HesaplamaPage = () => {
           
           {/* Özet Bilgi Kartı - Hesaplama Yapıldığında Görünür */}
           {isCalculated && (
-            <div className="w-full bg-slate-50 rounded-md border border-slate-200 mt-6 overflow-hidden">
-              <div className="flex flex-wrap">
+            <div className="w-full mx-0 px-0">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 rounded-md overflow-hidden border border-slate-200">
                 {/* Sol Kolon - Eğitim Bilgileri */}
-                <div className="w-full md:w-1/3 p-4 bg-blue-50 border-b md:border-b-0 md:border-r border-slate-200">
+                <div className="col-span-4 p-4 bg-blue-50 border-b lg:border-b-0 lg:border-r border-slate-200">
                   <div className="flex flex-col h-full">
                     <div className="mb-4">
                       <h3 className="text-lg font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
                       <p className="text-blue-600">{sonuclar.egitimTipi}</p>
+                      <p className="text-sm text-neutral-500">Genel İngilizce</p>
 
-                      <div className="mt-2 flex items-center text-gray-600 text-sm">
-                        <div className="mr-4">
-                          <div>Kur: <span className="font-medium">{sonuclar.kurSayisi}</span></div>
+                      <div className="mt-2 text-gray-600 text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span>Kur:</span>
+                          <span className="font-medium">{sonuclar.kurSayisi}</span>
                         </div>
-                        <div>
-                          <div>Toplam: <span className="font-medium">{sonuclar.dersSaati} saat</span></div>
+                        <div className="flex items-center justify-between">
+                          <span>Toplam:</span>
+                          <span className="font-medium">{sonuclar.dersSaati} saat</span>
                         </div>
                       </div>
                     </div>
@@ -881,7 +884,7 @@ const HesaplamaPage = () => {
                 </div>
                 
                 {/* Orta Kolon - Ödeme Detayları */}
-                <div className="w-full md:w-1/3 p-4 bg-green-50 border-b md:border-b-0 md:border-r border-slate-200">
+                <div className="col-span-4 p-4 bg-green-50 border-b lg:border-b-0 lg:border-r border-slate-200">
                   <div className="flex flex-col h-full">
                     <h3 className="text-lg font-bold text-green-700 mb-4">Ödeme Detayları</h3>
                     
@@ -909,7 +912,7 @@ const HesaplamaPage = () => {
                 </div>
                 
                 {/* Sağ Kolon - Genel Toplam ve Hediyeler */}
-                <div className="w-full md:w-1/3 p-4 bg-yellow-50">
+                <div className="col-span-4 p-4 bg-yellow-50">
                   <div className="flex flex-col h-full">
                     <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
                       <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
