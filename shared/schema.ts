@@ -8,16 +8,22 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+// Kampanya tablosunu type'a uygun olarak güncelle
 export const kampanyalar = pgTable("kampanyalar", {
   id: serial("id").primaryKey(),
   kampanyaAdi: text("kampanya_adi").notNull(),
+  egitimTipi: text("egitim_tipi").notNull(),
   kurSayisi: integer("kur_sayisi").notNull(),
+  toplamDersSaati: integer("toplam_ders_saati").notNull(),
   listeFiyati: integer("liste_fiyati").notNull(),
   nakitFiyati: integer("nakit_fiyati").notNull(),
   indirimOrani: integer("indirim_orani").notNull(),
   faizOrani: integer("faiz_orani").notNull(),
   kitapFiyati: integer("kitap_fiyati").notNull(),
-  hediyeler: json("hediyeler").$type<string[]>().default([]),
+  kitapSetSayisi: integer("kitap_set_sayisi").default(1),
+  maxKrediKartiTaksit: integer("max_kredi_karti_taksit").default(10),
+  maxSenetTaksit: integer("max_senet_taksit").default(12),
+  hediyeler: json("hediyeler").$type<{isim: string, fiyat: number}[]>().default([]),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

@@ -1,4 +1,6 @@
-import { users, type User, type InsertUser, type Kampanya, type InsertKampanya } from "@shared/schema";
+import { users, kampanyalar, type User, type InsertUser, type Kampanya, type InsertKampanya } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -12,69 +14,57 @@ export interface IStorage {
   deleteKampanya(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private kampanyalar: Map<number, Kampanya>;
-  private userCurrentId: number;
-  private kampanyaCurrentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.kampanyalar = new Map();
-    this.userCurrentId = 1;
-    this.kampanyaCurrentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
 
   // Kampanya operations
   async getAllKampanyalar(): Promise<Kampanya[]> {
-    return Array.from(this.kampanyalar.values());
+    return await db.select().from(kampanyalar);
   }
 
   async getKampanya(id: number): Promise<Kampanya | undefined> {
-    return this.kampanyalar.get(id);
+    const result = await db.select().from(kampanyalar).where(eq(kampanyalar.id, id));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async createKampanya(insertKampanya: InsertKampanya): Promise<Kampanya> {
-    const id = this.kampanyaCurrentId++;
-    const kampanya: Kampanya = { ...insertKampanya, id };
-    this.kampanyalar.set(id, kampanya);
-    return kampanya;
+    const result = await db.insert(kampanyalar).values(insertKampanya).returning();
+    return result[0];
   }
 
   async updateKampanya(id: number, updateData: InsertKampanya): Promise<Kampanya | undefined> {
-    const existingKampanya = this.kampanyalar.get(id);
+    const result = await db
+      .update(kampanyalar)
+      .set(updateData)
+      .where(eq(kampanyalar.id, id))
+      .returning();
     
-    if (!existingKampanya) {
-      return undefined;
-    }
-    
-    const updatedKampanya: Kampanya = { ...updateData, id };
-    this.kampanyalar.set(id, updatedKampanya);
-    
-    return updatedKampanya;
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async deleteKampanya(id: number): Promise<boolean> {
-    return this.kampanyalar.delete(id);
+    const result = await db
+      .delete(kampanyalar)
+      .where(eq(kampanyalar.id, id))
+      .returning();
+    
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+// MemStorage yerine DatabaseStorage kullanmaya başla
+export const storage = new DatabaseStorage();
