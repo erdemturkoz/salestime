@@ -45,6 +45,8 @@ const HesaplamaPage = () => {
   const [mudurIndirimDegeri, setMudurIndirimDegeri] = useState<number>(0);
   const [mudurIndirimUygulandi, setMudurIndirimUygulandi] = useState<boolean>(false);
   const [mudurInisiyatifiAcik, setMudurInisiyatifiAcik] = useState<boolean>(false);
+  const [hediyeEdildi, setHediyeEdildi] = useState<{[key: string]: boolean}>({});
+  const [kitapHediyeEdildi, setKitapHediyeEdildi] = useState<boolean>(false);
   
   // Sonuçlar
   const [sonuclar, setSonuclar] = useState({
@@ -636,21 +638,51 @@ const HesaplamaPage = () => {
                       </div>
 
                       {/* Hediyeler Alanı */}
-                      {sonuclar.hediyeler.length > 0 && (
+                      {(sonuclar.hediyeler.length > 0 || sonuclar.kitapUcreti > 0) && (
                         <div className="mt-6 border rounded-md p-4 bg-blue-50 border-blue-100">
                           <h4 className="text-blue-700 font-bold mb-3 uppercase">HEDİYELER</h4>
                           
                           <div className="space-y-2">
                             {sonuclar.kitapUcreti > 0 && (
                               <div className="flex justify-between items-center">
-                                <div className="flex items-center">
+                                <div>
                                   <span className="text-neutral-700">Kitap Seti</span>
-                                  <span className="text-xs text-neutral-500 ml-2">({formatCurrency(sonuclar.kitapUcreti)})</span>
+                                  <span className="ml-2 text-neutral-500">({formatCurrency(sonuclar.kitapUcreti)})</span>
                                 </div>
                                 <Button 
                                   variant="secondary" 
                                   size="sm" 
-                                  className="bg-blue-500 text-white hover:bg-blue-600"
+                                  className={kitapHediyeEdildi ? "bg-green-500 text-white hover:bg-green-600" : "bg-blue-500 text-white hover:bg-blue-600"}
+                                  onClick={() => {
+                                    // Kitap hediye edildi durumunu değiştir
+                                    const yeniDurum = !kitapHediyeEdildi;
+                                    setKitapHediyeEdildi(yeniDurum);
+                                    
+                                    // Genel toplamı güncelle
+                                    setSonuclar(prev => {
+                                      const yeniToplam = yeniDurum 
+                                        ? prev.genelToplam - prev.kitapUcreti 
+                                        : prev.genelToplam + prev.kitapUcreti;
+                                      
+                                      // Taksitli ödemede taksit başına düşen tutarı güncelle
+                                      const yeniAylikOdeme = taksitSayisi > 1 
+                                        ? Math.round(yeniToplam / taksitSayisi) 
+                                        : yeniToplam;
+                                      
+                                      return {
+                                        ...prev,
+                                        genelToplam: yeniToplam,
+                                        aylikOdeme: yeniAylikOdeme
+                                      };
+                                    });
+                                    
+                                    // Bildirim göster
+                                    toast({
+                                      title: yeniDurum ? "Kitap hediye edildi" : "Kitap hediye iptal edildi",
+                                      description: yeniDurum ? "Kitap ücreti genel toplamdan düşüldü." : "Kitap ücreti genel toplama eklendi.",
+                                      variant: "default",
+                                    });
+                                  }}
                                 >
                                   Hediye Edildi
                                 </Button>
@@ -659,14 +691,45 @@ const HesaplamaPage = () => {
                             
                             {sonuclar.hediyeler.map((hediye, index) => (
                               <div key={index} className="flex justify-between items-center">
-                                <div className="flex items-center">
+                                <div>
                                   <span className="text-neutral-700">{hediye.isim}</span>
-                                  <span className="text-xs text-neutral-500 ml-2">({formatCurrency(hediye.fiyat)})</span>
+                                  <span className="ml-2 text-neutral-500">({formatCurrency(hediye.fiyat)})</span>
                                 </div>
                                 <Button 
                                   variant="secondary" 
                                   size="sm" 
-                                  className="bg-blue-500 text-white hover:bg-blue-600"
+                                  className={hediyeEdildi[hediye.isim] ? "bg-green-500 text-white hover:bg-green-600" : "bg-blue-500 text-white hover:bg-blue-600"}
+                                  onClick={() => {
+                                    // Hediye edildi durumunu değiştir
+                                    const yeniHediyeEdildi = {...hediyeEdildi};
+                                    yeniHediyeEdildi[hediye.isim] = !yeniHediyeEdildi[hediye.isim];
+                                    setHediyeEdildi(yeniHediyeEdildi);
+                                    
+                                    // Genel toplamı güncelle
+                                    setSonuclar(prev => {
+                                      const yeniToplam = yeniHediyeEdildi[hediye.isim] 
+                                        ? prev.genelToplam - hediye.fiyat 
+                                        : prev.genelToplam + hediye.fiyat;
+                                      
+                                      // Taksitli ödemede taksit başına düşen tutarı güncelle
+                                      const yeniAylikOdeme = taksitSayisi > 1 
+                                        ? Math.round(yeniToplam / taksitSayisi) 
+                                        : yeniToplam;
+                                      
+                                      return {
+                                        ...prev,
+                                        genelToplam: yeniToplam,
+                                        aylikOdeme: yeniAylikOdeme
+                                      };
+                                    });
+                                    
+                                    // Bildirim göster
+                                    toast({
+                                      title: yeniHediyeEdildi[hediye.isim] ? "Hediye edildi" : "Hediye iptal edildi",
+                                      description: yeniHediyeEdildi[hediye.isim] ? `${hediye.isim} hediyesi genel toplamdan düşüldü.` : `${hediye.isim} hediyesi genel toplama eklendi.`,
+                                      variant: "default",
+                                    });
+                                  }}
                                 >
                                   Hediye Edildi
                                 </Button>
