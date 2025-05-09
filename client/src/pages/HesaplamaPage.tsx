@@ -737,14 +737,14 @@ const HesaplamaPage = () => {
                 {/* Ortadaki yeşil bölüm */}
                 <div className="md:col-span-4">
                   <div className="bg-green-50 p-3 rounded-md border border-green-100 h-full">
-                    <h4 className="font-semibold text-green-700 mb-2">BEDAVA HEDİYELER!</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>
-                        Kitap Seti ({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)
+                    <h4 className="font-semibold text-green-700 mb-2">BENZERSİZ OLANAKLAR</h4>
+                    <ul className="list-disc list-inside space-y-2">
+                      <li className="font-medium">
+                        Kitap Seti <span className="font-bold">({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)</span>
                       </li>
                       {sonuclar.hediyeler.map(hediye => (
-                        <li key={hediye.isim}>
-                          {hediye.isim} ({formatCurrency(hediye.fiyat)} değerinde)
+                        <li key={hediye.isim} className="font-medium">
+                          {hediye.isim} <span className="font-bold">({formatCurrency(hediye.fiyat)} değerinde)</span>
                         </li>
                       ))}
                     </ul>
