@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, json, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -17,8 +17,8 @@ export const kampanyalar = pgTable("kampanyalar", {
   toplamDersSaati: integer("toplam_ders_saati").notNull(),
   listeFiyati: integer("liste_fiyati").notNull(),
   nakitFiyati: integer("nakit_fiyati").notNull(),
-  indirimOrani: integer("indirim_orani").notNull(),
-  faizOrani: integer("faiz_orani").notNull(),
+  indirimOrani: real("indirim_orani").notNull(), // Float değer için integer yerine real kullanılıyor
+  faizOrani: real("faiz_orani").notNull(), // Faiz oranı da ondalıklı olabilir
   kitapFiyati: integer("kitap_fiyati").notNull(),
   kitapSetSayisi: integer("kitap_set_sayisi").default(1),
   maxKrediKartiTaksit: integer("max_kredi_karti_taksit").default(10),

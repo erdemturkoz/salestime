@@ -109,8 +109,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         toplamDersSaati: kampanya.toplamDersSaati || 0,
         listeFiyati: kampanya.listeFiyati || 0,
         nakitFiyati: kampanya.nakitFiyati || 0,
-        indirimOrani: kampanya.indirimOrani || 0,
-        faizOrani: kampanya.faizOrani || 12,
+        indirimOrani: Math.round(kampanya.indirimOrani || 0), // Tamsayı değer yap
+        faizOrani: Math.round(kampanya.faizOrani || 12), // Tamsayı değer yap
         kitapFiyati: kampanya.kitapFiyati || 0,
         kitapSetSayisi: kampanya.kitapSetSayisi || 1,
         maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
@@ -192,8 +192,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         toplamDersSaati: updatedKampanya.toplamDersSaati || 0,
         listeFiyati: updatedKampanya.listeFiyati || 0,
         nakitFiyati: updatedKampanya.nakitFiyati || 0,
-        indirimOrani: updatedKampanya.indirimOrani || 0,
-        faizOrani: updatedKampanya.faizOrani || 12,
+        indirimOrani: Math.round(updatedKampanya.indirimOrani || 0), // Tamsayı değer yap
+        faizOrani: Math.round(updatedKampanya.faizOrani || 12), // Tamsayı değer yap
         kitapFiyati: updatedKampanya.kitapFiyati || 0,
         kitapSetSayisi: updatedKampanya.kitapSetSayisi || 1,
         maxKrediKartiTaksit: updatedKampanya.maxKrediKartiTaksit || 8,
