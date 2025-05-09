@@ -958,6 +958,20 @@ const HesaplamaPage = () => {
                         </div>
                       )}
                     </div>
+                    
+                    <div className="mt-2 p-3 bg-amber-50 rounded-md border border-amber-200">
+                      <div className="text-center">
+                        <p className="text-sm text-amber-800 font-medium">
+                          Teklif Tarihi: {new Date().toLocaleDateString('tr-TR')}
+                        </p>
+                        <p className="text-xs text-amber-700 mt-1 font-bold">
+                          Bu teklif sadece 2 gün geçerlidir!
+                        </p>
+                        <p className="text-xs text-amber-600 mt-1">
+                          Kampanya kontenjanları sınırlıdır. Fırsatı kaçırmayın!
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
