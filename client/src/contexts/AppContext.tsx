@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Kampanya } from '@/types';
+import { apiRequest } from '@/lib/queryClient';
 
-// Define a mock initial kampanya if needed
+// Define a mock initial kampanya (sadece uygulama ilk yüklenirken gösterilecek)
 const initialKampanya: Kampanya = {
   id: 'initial-kampanya',
   kampanyaAdi: 'Demo Kampanya',
@@ -27,6 +28,8 @@ interface AppContextType {
   addKampanya: (kampanya: Omit<Kampanya, 'id'>) => void;
   deleteKampanya: (id: string) => void;
   updateKampanya: (kampanya: Kampanya) => void;
+  loading: boolean;
+  refreshKampanyalar: () => Promise<void>;
 }
 
 // Create the context with default values to avoid undefined checks
@@ -34,7 +37,9 @@ const defaultContextValue: AppContextType = {
   kampanyalar: [initialKampanya],
   addKampanya: () => {},
   deleteKampanya: () => {},
-  updateKampanya: () => {}
+  updateKampanya: () => {},
+  loading: false,
+  refreshKampanyalar: async () => {}
 };
 
 const AppContext = createContext<AppContextType>(defaultContextValue);
@@ -49,76 +54,150 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [kampanyalar, setKampanyalar] = useState<Kampanya[]>([initialKampanya]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // LocalStorage'dan kampanyaları yükle
-  useEffect(() => {
-    const savedKampanyalar = localStorage.getItem('kampanyalar');
-    if (savedKampanyalar) {
-      try {
-        const parsedData = JSON.parse(savedKampanyalar);
-        
-        // Eski formattan yeni formata dönüştür (string[] -> Hediye[])
-        const updatedKampanyalar = parsedData.map((kampanya: any) => {
-          // Taksit alanları ve toplam ders saati eski versiyonda yoksa ekle
-          const withTaksitFields = {
-            ...kampanya,
-            maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ?? 8,
-            maxSenetTaksit: kampanya.maxSenetTaksit ?? 12,
-            kitapSetSayisi: kampanya.kitapSetSayisi ?? 1,
-            toplamDersSaati: kampanya.toplamDersSaati ?? 0
-          };
-
-          if (withTaksitFields.hediyeler && Array.isArray(withTaksitFields.hediyeler)) {
-            // Eğer hediyeler bir dizi string ise, onları Hediye nesnesine dönüştür
-            if (typeof withTaksitFields.hediyeler[0] === 'string') {
-              return {
-                ...withTaksitFields,
-                hediyeler: withTaksitFields.hediyeler.map((h: string) => ({ isim: h, fiyat: 0 }))
-              };
-            }
-          }
-          
-          return withTaksitFields;
-        });
-        
-        setKampanyalar(updatedKampanyalar);
-      } catch (error) {
-        console.error('Kampanyalar yüklenirken hata oluştu:', error);
-        localStorage.removeItem('kampanyalar');
+  // DB'den kampanyaları çeken fonksiyon
+  const fetchKampanyalar = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/kampanyalar');
+      
+      if (!response.ok) {
+        throw new Error('Kampanyalar yüklenirken bir hata oluştu');
       }
+      
+      const data = await response.json();
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        // Kampanyaları formatla ve state'e kaydet
+        const formattedKampanyalar = data.map((kampanya: any) => ({
+          ...kampanya,
+          id: kampanya.id.toString(), // ID'yi string'e dönüştür
+          // API'dan gelen verileri doğru tiplere çevir
+          hediyeler: kampanya.hediyeler || []
+        }));
+        
+        setKampanyalar(formattedKampanyalar);
+      } else if (data && Array.isArray(data) && data.length === 0) {
+        // Eğer veritabanında hiç kampanya yoksa, sadece demo kampanyası göster
+        setKampanyalar([initialKampanya]);
+      }
+    } catch (error) {
+      console.error('Kampanyaları getirirken bir hata oluştu:', error);
+      // Hata durumunda varsayılan demo kampanyasını göster
+      setKampanyalar([initialKampanya]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Uygulama ilk yüklendiğinde kampanyaları çek
+  useEffect(() => {
+    fetchKampanyalar();
   }, []);
 
-  // Kampanyalar değiştiğinde localStorage'ı güncelle
-  useEffect(() => {
-    localStorage.setItem('kampanyalar', JSON.stringify(kampanyalar));
-  }, [kampanyalar]);
-
-  const addKampanya = (kampanya: Omit<Kampanya, 'id'>) => {
-    const newKampanya: Kampanya = {
-      ...kampanya,
-      id: Date.now().toString(), // Benzersiz bir ID oluştur
-    };
-    setKampanyalar(prev => [...prev, newKampanya]);
+  // Kampanya ekleme fonksiyonu
+  const addKampanya = async (kampanya: Omit<Kampanya, 'id'>) => {
+    try {
+      setLoading(true);
+      
+      // API çağrısı ile veritabanına kampanya ekle
+      const response = await fetch('/api/kampanyalar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(kampanya)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Kampanya eklenirken bir hata oluştu');
+      }
+      
+      // Eklenen kampanyayı al
+      const newKampanya = await response.json();
+      
+      // State'i güncelle
+      setKampanyalar(prev => [...prev, {
+        ...newKampanya,
+        id: newKampanya.id.toString()
+      }]);
+      
+    } catch (error) {
+      console.error('Kampanya eklenirken bir hata oluştu:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteKampanya = (id: string) => {
-    setKampanyalar(prev => prev.filter(kampanya => kampanya.id !== id));
+  // Kampanya silme fonksiyonu
+  const deleteKampanya = async (id: string) => {
+    try {
+      setLoading(true);
+      
+      // API çağrısı ile veritabanından kampanya sil
+      const response = await fetch(`/api/kampanyalar/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Kampanya silinirken bir hata oluştu');
+      }
+      
+      // State'i güncelle
+      setKampanyalar(prev => prev.filter(kampanya => kampanya.id !== id));
+      
+    } catch (error) {
+      console.error('Kampanya silinirken bir hata oluştu:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateKampanya = (updatedKampanya: Kampanya) => {
-    setKampanyalar(prev => 
-      prev.map(kampanya => 
-        kampanya.id === updatedKampanya.id ? updatedKampanya : kampanya
-      )
-    );
+  // Kampanya güncelleme fonksiyonu
+  const updateKampanya = async (updatedKampanya: Kampanya) => {
+    try {
+      setLoading(true);
+      
+      // API çağrısı ile veritabanında kampanya güncelle
+      const response = await fetch(`/api/kampanyalar/${updatedKampanya.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedKampanya)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Kampanya güncellenirken bir hata oluştu');
+      }
+      
+      // State'i güncelle
+      setKampanyalar(prev => 
+        prev.map(kampanya => 
+          kampanya.id === updatedKampanya.id ? updatedKampanya : kampanya
+        )
+      );
+      
+    } catch (error) {
+      console.error('Kampanya güncellenirken bir hata oluştu:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Kampanyaları yenileme fonksiyonu
+  const refreshKampanyalar = async () => {
+    await fetchKampanyalar();
   };
 
   const contextValue = {
     kampanyalar,
     addKampanya,
     deleteKampanya,
-    updateKampanya
+    updateKampanya,
+    loading,
+    refreshKampanyalar
   };
 
   return (
