@@ -307,711 +307,482 @@ const HesaplamaPage = () => {
 
   return (
     <div className="h-full w-full">
-      <header className="mb-4">
-        <h1 className="text-2xl font-bold text-neutral-800">Ücret Hesaplama Arayüzü</h1>
-        <p className="text-neutral-500">Müşterilere sunulacak ödeme seçeneklerini hesaplayın.</p>
-      </header>
+      <div className="w-full px-6">
+        <header className="mb-4">
+          <h1 className="text-2xl font-bold text-neutral-800">Ücret Hesaplama Arayüzü</h1>
+          <p className="text-neutral-500">Müşterilere sunulacak ödeme seçeneklerini hesaplayın.</p>
+        </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
-        {/* Hesaplama Formu */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Ödeme Hesaplama</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form 
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                calculatePayment();
-              }}
-            >
-              <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor="egitim-tipi">Eğitim Tipi</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Eğitim tipini seçin</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <Select
-                  value={selectedEgitimTipi}
-                  onValueChange={(value) => {
-                    setSelectedEgitimTipi(value);
-                    setSelectedKampanyaId(""); // Eğitim tipi değiştiğinde kampanya seçimini sıfırla
-                    setSelectedKurSayisi(null);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Eğitim tipi seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
-                    <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
-                    <SelectItem value="Junior">Junior</SelectItem>
-                    <SelectItem value="Teenage">Teenage</SelectItem>
-                    <SelectItem value="Yds">Yds</SelectItem>
-                    <SelectItem value="Toefl">Toefl</SelectItem>
-                    <SelectItem value="Ielts">Ielts</SelectItem>
-                    <SelectItem value="Ydt">Ydt</SelectItem>
-                    <SelectItem value="Özel Ders">Özel Ders</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor="kampanya-secim">Kampanya Seçimi</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Uygulanacak kampanyayı seçin</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <Select
-                  value={selectedKampanyaId}
-                  onValueChange={(value) => {
-                    setSelectedKampanyaId(value);
-                  }}
-                  disabled={!selectedEgitimTipi}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kampanya seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {kampanyalar
-                      .filter(kampanya => !selectedEgitimTipi || kampanya.egitimTipi === selectedEgitimTipi)
-                      .map((kampanya) => (
-                        <SelectItem key={kampanya.id} value={kampanya.id}>
-                          {kampanya.kampanyaAdi}
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label htmlFor="kur-secim">Kur Sayısı</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Alınacak kur sayısını seçin</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <Select
-                  value={selectedKurSayisi?.toString() || ""}
-                  onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
-                  disabled={!selectedKampanya}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kur sayısı seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {kurOptions().map((kur) => (
-                      <SelectItem key={kur} value={kur.toString()}>
-                        {kur} Kur
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Label>Ödeme Tipi</Label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Ödeme şeklini seçin</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    type="button"
-                    variant={odemeTipi === "nakit" ? "default" : "outline"}
-                    className="py-2 px-3 text-sm font-medium"
-                    onClick={() => {
-                      setOdemeTipi("nakit");
-                      setTaksitSayisi(1);
-                    }}
-                    disabled={!selectedKampanya}
-                  >
-                    Nakit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={odemeTipi === "kredi-karti" ? "default" : "outline"}
-                    className="py-2 px-3 text-sm font-medium"
-                    onClick={() => {
-                      setOdemeTipi("kredi-karti");
-                      setTaksitSayisi(1);
-                    }}
-                    disabled={!selectedKampanya}
-                  >
-                    Kredi Kartı
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={odemeTipi === "senet" ? "default" : "outline"}
-                    className="py-2 px-3 text-sm font-medium"
-                    onClick={() => {
-                      setOdemeTipi("senet");
-                      // Senet seçildiğinde varsayılan olarak ilk taksit seçeneğini belirle
-                      const senetSeçenekleri = taksitOptions();
-                      setTaksitSayisi(senetSeçenekleri.length > 0 ? senetSeçenekleri[0] : 1);
-                    }}
-                    disabled={!selectedKampanya}
-                  >
-                    Senet
-                  </Button>
-                </div>
-              </div>
-
-              {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+          {/* Hesaplama Formu */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Ödeme Hesaplama</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form 
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  calculatePayment();
+                }}
+              >
                 <div className="space-y-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Label htmlFor="taksit-secim">Taksit Sayısı</Label>
+                        <Label htmlFor="egitim-tipi">Eğitim Tipi</Label>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Ödemeyi kaç taksite bölmek istediğinizi seçin</p>
+                        <p>Eğitim tipini seçin</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
                   <Select
-                    value={taksitSayisi?.toString() || ""}
-                    onValueChange={(value) => setTaksitSayisi(parseInt(value))}
+                    value={selectedEgitimTipi}
+                    onValueChange={(value) => {
+                      setSelectedEgitimTipi(value);
+                      setSelectedKampanyaId(""); // Eğitim tipi değiştiğinde kampanya seçimini sıfırla
+                      setSelectedKurSayisi(null);
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Taksit sayısı seçin" />
+                      <SelectValue placeholder="Eğitim tipi seçin" />
                     </SelectTrigger>
                     <SelectContent>
-                      {taksitOptions().map((taksit) => (
-                        <SelectItem key={taksit} value={taksit.toString()}>
-                          {taksit === 1 ? "Tek Çekim" : `${taksit} Taksit`}
+                      <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
+                      <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
+                      <SelectItem value="Junior">Junior</SelectItem>
+                      <SelectItem value="Teenage">Teenage</SelectItem>
+                      <SelectItem value="Yds">Yds</SelectItem>
+                      <SelectItem value="Toefl">Toefl</SelectItem>
+                      <SelectItem value="Ielts">Ielts</SelectItem>
+                      <SelectItem value="Ydt">Ydt</SelectItem>
+                      <SelectItem value="Özel Ders">Özel Ders</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kampanya-secim">Kampanya Seçimi</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Uygulanacak kampanyayı seçin</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <Select
+                    value={selectedKampanyaId}
+                    onValueChange={(value) => {
+                      setSelectedKampanyaId(value);
+                    }}
+                    disabled={!selectedEgitimTipi}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kampanya seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kampanyalar
+                        .filter(kampanya => !selectedEgitimTipi || kampanya.egitimTipi === selectedEgitimTipi)
+                        .map((kampanya) => (
+                          <SelectItem key={kampanya.id} value={kampanya.id}>
+                            {kampanya.kampanyaAdi}
+                          </SelectItem>
+                        ))
+                      }
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="kur-secim">Kur Sayısı</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Alınacak kur sayısını seçin</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <Select
+                    value={selectedKurSayisi?.toString() || ""}
+                    onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
+                    disabled={!selectedKampanya}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kur sayısı seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kurOptions().map((kur) => (
+                        <SelectItem key={kur} value={kur.toString()}>
+                          {kur} Kur
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label>Ödeme Tipi</Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ödeme şeklini seçin</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      type="button"
+                      variant={odemeTipi === "nakit" ? "default" : "outline"}
+                      className="py-2 px-3 text-sm font-medium"
+                      onClick={() => {
+                        setOdemeTipi("nakit");
+                        setTaksitSayisi(1);
+                      }}
+                      disabled={!selectedKampanya}
+                    >
+                      Nakit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={odemeTipi === "kredi-karti" ? "default" : "outline"}
+                      className="py-2 px-3 text-sm font-medium"
+                      onClick={() => {
+                        setOdemeTipi("kredi-karti");
+                        setTaksitSayisi(1);
+                      }}
+                      disabled={!selectedKampanya}
+                    >
+                      Kredi Kartı
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={odemeTipi === "senet" ? "default" : "outline"}
+                      className="py-2 px-3 text-sm font-medium"
+                      onClick={() => {
+                        setOdemeTipi("senet");
+                        // Senet seçildiğinde varsayılan olarak ilk taksit seçeneğini belirle
+                        const senetSeçenekleri = taksitOptions();
+                        setTaksitSayisi(senetSeçenekleri.length > 0 ? senetSeçenekleri[0] : 1);
+                      }}
+                      disabled={!selectedKampanya}
+                    >
+                      Senet
+                    </Button>
+                  </div>
+                </div>
+
+                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && (
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="taksit-secim">Taksit Sayısı</Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Ödemeyi kaç taksite bölmek istediğinizi seçin</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <Select
+                      value={taksitSayisi?.toString() || ""}
+                      onValueChange={(value) => setTaksitSayisi(parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Taksit sayısı seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taksitOptions().map((taksit) => (
+                          <SelectItem key={taksit} value={taksit.toString()}>
+                            {taksit === 1 ? "Tek Çekim" : `${taksit} Taksit`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="kitap-dahil" 
+                    checked={kitapDahil}
+                    onCheckedChange={(checked) => {
+                      setKitapDahil(!!checked);
+                    }}
+                  />
+                  <Label htmlFor="kitap-dahil">Kitap dahil</Label>
+                </div>
+
+                {/* Müdür İnisiyatifi Bölümü - Açılır/Kapanır */}
+                <div className="border-t border-gray-200 pt-4 mt-2">
+                  <button
+                    type="button"
+                    className="flex items-center justify-between w-full text-left"
+                    onClick={() => setMudurInisiyatifiAcik(!mudurInisiyatifiAcik)}
+                  >
+                    <p className="text-sm font-medium text-gray-700">Müdür İnisiyatifi</p>
+                    <span className="text-gray-400">
+                      {mudurInisiyatifiAcik ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  
+                  {mudurInisiyatifiAcik && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <Button
+                          type="button"
+                          variant={mudurIndirimTipi === "miktar" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setMudurIndirimTipi("miktar")}
+                        >
+                          Miktar (₺)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={mudurIndirimTipi === "yuzde" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setMudurIndirimTipi("yuzde")}
+                        >
+                          Yüzde (%)
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input 
+                          type="number" 
+                          placeholder={mudurIndirimTipi === "miktar" ? "İndirim tutarı" : "İndirim yüzdesi"}
+                          value={mudurIndirimDegeri || ""}
+                          onChange={(e) => setMudurIndirimDegeri(parseFloat(e.target.value) || 0)}
+                          min="0"
+                          max={mudurIndirimTipi === "yuzde" ? "100" : undefined}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {mudurIndirimTipi === "miktar" 
+                          ? "Toplam tutardan düşülecek sabit indirim miktarı" 
+                          : "Toplam tutara uygulanacak indirim yüzdesi"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full">Hesapla</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Sonuç Kartı */}
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
+              <CardTitle>Hesaplama Sonucu</CardTitle>
+              {isCalculated && (
+                <div className="mt-2">
+                  {/* Ana kampanya başlığı */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-3 text-center">
+                    <h3 className="text-xl font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
+                    <p className="text-blue-600">{sonuclar.egitimTipi} - {sonuclar.kurSayisi} Kur</p>
+                  </div>
+                </div>
               )}
-
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="kitap-dahil" 
-                  checked={kitapDahil}
-                  onCheckedChange={(checked) => {
-                    setKitapDahil(!!checked);
-                  }}
-                />
-                <Label htmlFor="kitap-dahil">Kitap dahil</Label>
-              </div>
-
-              {/* Müdür İnisiyatifi Bölümü - Açılır/Kapanır */}
-              <div className="border-t border-gray-200 pt-4 mt-2">
-                <button
-                  type="button"
-                  className="flex items-center justify-between w-full text-left"
-                  onClick={() => setMudurInisiyatifiAcik(!mudurInisiyatifiAcik)}
-                >
-                  <p className="text-sm font-medium text-gray-700">Müdür İnisiyatifi</p>
-                  <span className="text-gray-400">
-                    {mudurInisiyatifiAcik ? "▲" : "▼"}
-                  </span>
-                </button>
-                
-                {mudurInisiyatifiAcik && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <Button
-                        type="button"
-                        variant={mudurIndirimTipi === "miktar" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMudurIndirimTipi("miktar")}
-                      >
-                        Miktar (₺)
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={mudurIndirimTipi === "yuzde" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMudurIndirimTipi("yuzde")}
-                      >
-                        Yüzde (%)
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="number" 
-                        placeholder={mudurIndirimTipi === "miktar" ? "İndirim tutarı" : "İndirim yüzdesi"}
-                        value={mudurIndirimDegeri || ""}
-                        onChange={(e) => setMudurIndirimDegeri(parseFloat(e.target.value) || 0)}
-                        min="0"
-                        max={mudurIndirimTipi === "yuzde" ? "100" : undefined}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {mudurIndirimTipi === "miktar" 
-                        ? "Toplam tutardan düşülecek sabit indirim miktarı" 
-                        : "Toplam tutara uygulanacak indirim yüzdesi"}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <Button type="submit" className="w-full">Hesapla</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Sonuç Kartı */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
-            <CardTitle>Hesaplama Sonucu</CardTitle>
-            {isCalculated && (
-              <div className="mt-2">
-                {/* Ana kampanya başlığı */}
-                <div className="bg-blue-50 border border-blue-100 rounded-md p-3 text-center">
-                  <span className="font-bold text-blue-700 text-lg">{sonuclar.kampanyaAdi}</span>
-                </div>
-                
-                {/* Nakit tavsiyesi (kredi kartı ve senet seçildiğinde) */}
-                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && selectedKampanya && (
-                  <div className="mt-2 bg-amber-50 border border-amber-200 rounded-md p-3 text-center">
-                    <div className="font-bold text-amber-800 text-lg">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</div>
-                    <div className="mt-1 flex justify-center items-center">
-                      <span className="text-gray-700">Nakit Fiyat: </span>
-                      <span className="font-bold text-gray-900 ml-1">{formatCurrency(selectedKampanya.nakitFiyati)}</span>
-                      <span className="ml-2 text-green-600 font-semibold">
-                        (-{Math.round(((sonuclar.listeFiyati - selectedKampanya.nakitFiyati) / sonuclar.listeFiyati) * 100)}% indirim)
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="p-6">
-            {isCalculated ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Fiyat Detayları */}
-                <div>
-                  <h3 className="text-neutral-500 font-medium mb-4">Fiyat Detayları</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Liste Fiyatı:</span>
-                      <span className="font-medium w-32 text-right">{formatCurrency(sonuclar.listeFiyati)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">İndirim:</span>
-                      <span className="text-green-500 font-medium w-32 text-right whitespace-nowrap">
-                        -{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Kampanyalı Fiyat:</span>
-                      <span className="font-medium w-32 text-right">
-                        {formatCurrency(sonuclar.kampanyaliFiyat)}
-                      </span>
-                    </div>
-                    
-                    {/* Hediye ve Kitap bilgisi - Yeniden düzenlenmiş */}
-                    <div className="p-3 bg-blue-50 border-dashed border border-blue-200 rounded-md my-2 relative">
-                      {/* Hatırlatma balonu - isCalculated olduğunda göster */}
-                      {isCalculated && (
-                        <div className="absolute -top-3 -right-2 bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full shadow-md border border-amber-200 animate-pulse">
-                          Hediyeleri etmeyi unutmayın!
-                        </div>
-                      )}
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-blue-700 font-medium text-base">HEDİYELER</span>
-                        <span></span>
+            </CardHeader>
+            <CardContent className="p-4">
+              {isCalculated ? (
+                <>
+                  {/* Özet Bilgiler */}
+                  <div className="mb-6">
+                    <h4 className="text-md font-semibold mb-2 text-neutral-700">Fiyat Özeti</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Eğitim Liste Fiyatı:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
                       </div>
-                      
-                      {kitapDahil && (
-                        <div className="flex justify-between items-center mb-2 pb-2 border-b border-blue-100">
-                          <div>
-                            <span className="text-blue-700">Kitap Seti</span>
-                            {sonuclar.kitapUcreti > 0 && (
-                              <span className="ml-1 text-gray-500 text-xs">
-                                ({formatCurrency(sonuclar.kitapUcreti)})
-                              </span>
-                            )}
-                          </div>
-                          
-                          {sonuclar.kitapUcreti > 0 && (
-                            <div className="flex items-center gap-3">
-                              <span className={`text-sm ${hediyeEt["kitap"] ? "text-green-600 font-medium" : ""}`}>
-                                {hediyeEt["kitap"] ? `-${formatCurrency(sonuclar.kitapUcreti)}` : `+${formatCurrency(sonuclar.kitapUcreti)}`}
-                              </span>
-                              <Button
-                                type="button"
-                                variant={hediyeEt["kitap"] ? "default" : "outline"}
-                                size="sm"
-                                className="text-xs h-7 px-2 whitespace-nowrap"
-                                onClick={() => {
-                                  const newHediyeEt = { ...hediyeEt };
-                                  newHediyeEt["kitap"] = !newHediyeEt["kitap"];
-                                  setHediyeEt(newHediyeEt);
-                                  
-                                  // Toplam fiyatı ve aylık ödeme tutarını güncelle
-                                  const yeniToplam = sonuclar.genelToplam + (newHediyeEt["kitap"] ? -sonuclar.kitapUcreti : sonuclar.kitapUcreti);
-                                  
-                                  // Eğer taksit varsa aylık ödemeyi yeniden hesapla
-                                  let yeniAylikOdeme = sonuclar.aylikOdeme;
-                                  if (taksitSayisi > 1) {
-                                    yeniAylikOdeme = yeniToplam / taksitSayisi;
-                                  }
-                                  
-                                  // Yeni taksit planı hesaplaması
-                                  let yeniTaksitPlani = [];
-                                  if (odemeTipi === "senet" && taksitSayisi > 1) {
-                                    // Taksitleri yeniden oluştur
-                                    for (let i = 0; i < taksitSayisi; i++) {
-                                      yeniTaksitPlani.push({
-                                        taksitNo: i + 1,
-                                        tutar: Math.round(yeniToplam / taksitSayisi)
-                                      });
-                                    }
-                                  }
-                                  
-                                  // Yeni sonuçları hazırla
-                                  const yeniSonuclar = {
-                                    ...sonuclar,
-                                    genelToplam: yeniToplam,
-                                    aylikOdeme: yeniAylikOdeme,
-                                    taksitPlanı: odemeTipi === "senet" && taksitSayisi > 1 ? yeniTaksitPlani : sonuclar.taksitPlanı
-                                  };
-                                  
-                                  // Sonuçları state'e kaydet
-                                  setSonuclar(yeniSonuclar);
-                                  
-                                  // Hediye etme durumunu localStorage'a kaydet (PDF için)
-                                  try {
-                                    // Önce mevcut hesaplama verilerini al
-                                    const storeData = localStorage.getItem('hesaplamaData');
-                                    if (storeData) {
-                                      const data = JSON.parse(storeData);
-                                      // Verileri güncelle
-                                      data.genelToplam = yeniToplam;
-                                      data.aylikOdeme = yeniAylikOdeme;
-                                      data.hediyeEdilenKalemler = JSON.stringify(newHediyeEt);
-                                      // Kaydet
-                                      localStorage.setItem('hesaplamaData', JSON.stringify(data));
-                                    }
-                                  } catch (error) {
-                                    console.error("Kitap hediye bilgisi localStorage'a kaydedilemedi:", error);
-                                  }
-                                }}
-                              >
-                                {hediyeEt["kitap"] ? "Hediye Edildi" : "Hediye Et"}
-                              </Button>
-                            </div>
-                          )}
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">İndirim Tutarı:</span>
+                        <span className="text-success font-medium">-{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Kampanyalı Fiyat:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      </div>
+                      {sonuclar.kitapUcreti > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Kitap Ücreti:</span>
+                          <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
                         </div>
                       )}
                       
-                      {sonuclar.hediyeler.map((hediye, idx) => (
-                        <div key={idx} className="flex justify-between items-center mb-2">
-                          <div>
-                            <span className="text-blue-700">{hediye.isim}</span>
-                            {hediye.fiyat > 0 && (
-                              <span className="ml-1 text-gray-500 text-xs">
-                                ({formatCurrency(hediye.fiyat)})
-                              </span>
-                            )}
+                      {/* Müdür İnisiyatifi İndirim Detayı */}
+                      {mudurIndirimUygulandi && (
+                        <div className="border-t border-neutral-100 pt-2 mt-2">
+                          <div className="flex justify-between text-success">
+                            <span className="text-neutral-600">Müdür İnisiyatifi İndirimi:</span>
+                            <span className="font-medium">-{formatCurrency(sonuclar.mudurIndirimTutari)} {sonuclar.mudurIndirimTipi === "yuzde" ? `(${mudurIndirimDegeri}%)` : ""}</span>
                           </div>
-                          
-                          {hediye.fiyat > 0 && (
-                            <div className="flex items-center gap-3">
-                              <span className={`text-sm ${hediyeEt[hediye.isim] ? "text-green-600 font-medium" : ""}`}>
-                                {hediyeEt[hediye.isim] ? `-${formatCurrency(hediye.fiyat)}` : `+${formatCurrency(hediye.fiyat)}`}
-                              </span>
-                              <Button
-                                type="button"
-                                variant={hediyeEt[hediye.isim] ? "default" : "outline"}
-                                size="sm"
-                                className="text-xs h-7 px-2 whitespace-nowrap"
-                                onClick={() => {
-                                  const newHediyeEt = { ...hediyeEt };
-                                  newHediyeEt[hediye.isim] = !newHediyeEt[hediye.isim];
-                                  setHediyeEt(newHediyeEt);
-                                  
-                                  // Toplam fiyatı ve aylık ödeme tutarını güncelle
-                                  const yeniToplam = sonuclar.genelToplam + (newHediyeEt[hediye.isim] ? -hediye.fiyat : hediye.fiyat);
-                                  
-                                  // Eğer taksit varsa aylık ödemeyi yeniden hesapla
-                                  let yeniAylikOdeme = sonuclar.aylikOdeme;
-                                  if (taksitSayisi > 1) {
-                                    yeniAylikOdeme = yeniToplam / taksitSayisi;
-                                  }
-                                  
-                                  // Yeni taksit planı hesaplaması
-                                  let yeniTaksitPlani = [];
-                                  if (odemeTipi === "senet" && taksitSayisi > 1) {
-                                    // Taksitleri yeniden oluştur
-                                    for (let i = 0; i < taksitSayisi; i++) {
-                                      yeniTaksitPlani.push({
-                                        taksitNo: i + 1,
-                                        tutar: Math.round(yeniToplam / taksitSayisi)
-                                      });
-                                    }
-                                  }
-                                  
-                                  // Yeni sonuçları hazırla
-                                  const yeniSonuclar = {
-                                    ...sonuclar,
-                                    genelToplam: yeniToplam,
-                                    aylikOdeme: yeniAylikOdeme,
-                                    taksitPlanı: odemeTipi === "senet" && taksitSayisi > 1 ? yeniTaksitPlani : sonuclar.taksitPlanı
-                                  };
-                                  
-                                  // Sonuçları state'e kaydet
-                                  setSonuclar(yeniSonuclar);
-                                  
-                                  // Hediye etme durumunu localStorage'a kaydet (PDF için)
-                                  try {
-                                    // Önce mevcut hesaplama verilerini al
-                                    const storeData = localStorage.getItem('hesaplamaData');
-                                    if (storeData) {
-                                      const data = JSON.parse(storeData);
-                                      // Verileri güncelle
-                                      data.genelToplam = yeniToplam;
-                                      data.aylikOdeme = yeniAylikOdeme;
-                                      data.hediyeEdilenKalemler = JSON.stringify(newHediyeEt);
-                                      // Kaydet
-                                      localStorage.setItem('hesaplamaData', JSON.stringify(data));
-                                    }
-                                  } catch (error) {
-                                    console.error("Hediye bilgisi localStorage'a kaydedilemedi:", error);
-                                  }
-                                }}
-                              >
-                                {hediyeEt[hediye.isim] ? "Hediye Edildi" : "Hediye Et"}
-                              </Button>
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Müdür İnisiyatifi İndirim Gösterimi */}
-                    {mudurIndirimUygulandi && sonuclar.mudurIndirimTutari > 0 && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-green-700 font-medium">Müdür İnisiyatifi İndirimi:</span>
-                          <span className="text-green-700 font-semibold">
-                            -{formatCurrency(sonuclar.mudurIndirimTutari)}
-                            {sonuclar.mudurIndirimTipi === "yuzde" && ` (${mudurIndirimDegeri}%)`}
-                          </span>
-                        </div>
-                        <div className="text-xs text-green-600 italic">
-                          Özel yetkilendirme ile uygulanan ek indirim
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="border-t border-neutral-100 pt-4 mt-2">
-                      <div className="bg-blue-50 p-3 rounded-md border border-blue-200 flex justify-between items-center">
-                        <span className="text-blue-800 font-semibold text-base">Genel Toplam:</span>
-                        <span className="text-blue-700 font-bold text-xl w-32 text-right">
-                          {formatCurrency(sonuclar.genelToplam)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Ödeme Detayları */}
-                <div>
-                  <h3 className="text-neutral-500 font-medium mb-4">Ödeme Detayları</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Eğitim Tipi:</span>
-                      <span className="font-medium w-32 text-right">{selectedEgitimTipi}</span>
-                    </div>
-                    {selectedKampanya && selectedKampanya.toplamDersSaati > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Toplam Ders Saati:</span>
-                        <span className="font-medium w-32 text-right">{selectedKampanya.toplamDersSaati} saat</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Ödeme Şekli:</span>
-                      <span className="font-medium w-32 text-right">{sonuclar.odemeTipiText}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Taksit Sayısı:</span>
-                      <span className="font-medium w-32 text-right">{sonuclar.taksitDetay}</span>
-                    </div>
-                    {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Aylık Ödeme:</span>
-                        <span className="font-medium w-32 text-right">{formatCurrency(sonuclar.aylikOdeme)}</span>
-                      </div>
-                    )}
-                    
-                    {/* Aylık Ödeme Planı */}
-                    {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
-                      <div className="border-t border-neutral-100 pt-2 mt-2">
-                        <span className="text-neutral-800 font-medium block mb-2">Aylık Ödeme Planı:</span>
-                        <div className="grid grid-cols-1 gap-2">
-                          {Array.from({ length: taksitSayisi }).map((_, index) => {
-                            // Her taksit için tutar
-                            const tutarDisplay = sonuclar.taksitPlanı && sonuclar.taksitPlanı.length > index 
-                              ? sonuclar.taksitPlanı[index].tutar
-                              : sonuclar.aylikOdeme;
-                              
-                            return (
+                      )}
+                      
+                      <div className="grid grid-cols-1 gap-2">
+                        {/* Kampanyada tanımlı hediyeler */}
+                        {sonuclar.hediyeler.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-neutral-100">
+                            <p className="text-sm font-medium mb-1">Kampanya Hediyeleri:</p>
+                            {sonuclar.hediyeler.map((hediye, index) => (
                               <div key={index} className="flex justify-between text-sm">
-                                <span className="text-neutral-600">{index + 1}. Taksit:</span>
-                                <span className="font-medium w-32 text-right">{formatCurrency(tutarDisplay)}</span>
+                                <span className="text-neutral-600">{hediye.isim}</span>
+                                <span>{formatCurrency(hediye.fiyat)}</span>
                               </div>
-                            );
-                          })}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {/* Hediyeler bölümü fiyat detaylarında gösteriliyor */}
+                    </div>
                   </div>
+                  
+                  {/* Ödeme Detayları ve Genel Toplam */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center bg-green-100 p-3 rounded-md border border-green-200 mb-3">
+                      <span className="font-semibold text-neutral-700">Genel Toplam:</span>
+                      <span className="text-lg font-bold text-success">{formatCurrency(sonuclar.genelToplam)}</span>
+                    </div>
+                    
+                    <div className="bg-neutral-50 p-3 rounded-md border border-neutral-200">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-neutral-700">Ödeme Şekli:</span>
+                        <span className="font-medium">{sonuclar.odemeTipiText}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-700">Taksit Detayı:</span>
+                        <span className="font-medium">{sonuclar.taksitDetay}</span>
+                      </div>
+                      {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
+                        <p className="text-blue-600 text-sm mt-1">
+                          Aylık sadece {formatCurrency(sonuclar.aylikOdeme)} x {taksitSayisi} taksit
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <p className="mt-4 text-sm text-neutral-600 border-t border-blue-100 pt-3">
+                    Bu belge eğitim kapsamını ve ödeme koşullarını gösterir. Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.
+                  </p>
+                </>
+              ) : (
+                <div className="py-12 text-center text-neutral-500">
+                  <p>Hesaplama yapmak için formu doldurun ve "Hesapla" butonuna tıklayın.</p>
                 </div>
-              </div>
-            ) : (
-              <div className="py-12 text-center text-neutral-500">
-                Hesaplama sonuçları burada görüntülenecek.
-                <br />
-                Lütfen sol taraftaki formu doldurup "Hesapla" düğmesine tıklayın.
-              </div>
+              )}
+            </CardContent>
+            {isCalculated && (
+              <CardFooter className="flex justify-end bg-neutral-50 border-t border-neutral-100 p-3">
+                <Button variant="outline" size="sm" onClick={handleGeneratePDF}>
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF İndir
+                </Button>
+              </CardFooter>
             )}
-          </CardContent>
-          <CardFooter className="p-4 bg-neutral-50 border-t border-neutral-100 flex justify-end">
-            <Button 
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2"
-              disabled={!isCalculated}
-            >
-              <Download className="h-5 w-5" />
-              PDF İndir
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-      
-      {/* Yeni eklenen Özet Bilgi Kartı (Hesaplama Sonuç kartından bağımsız) */}
-      {isCalculated && (
-        <Card className="mt-6">
-          <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
-            <CardTitle>Özet Bilgi</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            {/* Özet bilgi kartı - Ekran görüntüsündeki gibi */}
+          </Card>
+          
+          {/* Teklif Detayları - Hesaplama Yapıldığında Görünür */}
+          {isCalculated && (
             <div className="w-full bg-blue-50 p-6 rounded-md border border-blue-100">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                {/* Sol alan - Başlık ve içerik */}
+                {/* Sol Kolon - Eğitim Detayları */}
                 <div className="md:col-span-5">
                   <div className="flex justify-between items-start mb-3">
                     <div className="mb-2">
-                      <h3 className="font-bold text-xl text-blue-700">
-                        <span dangerouslySetInnerHTML={{ __html: sonuclar.kampanyaAdi ? sonuclar.kampanyaAdi.replace(' ', '<br/>') : '1+1<br/>KAMPANYASI' }}></span>
-                      </h3>
+                      <h3 className="text-lg font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
+                      <h4 className="text-blue-600">{sonuclar.egitimTipi}</h4>
                     </div>
                     <div className="text-neutral-600 text-sm">
-                      Teklif Tarihi:<br/>{new Date().toLocaleDateString('tr-TR')}
+                      <p>Kur: <span className="font-medium">{sonuclar.kurSayisi}</span></p>
+                      <p>Toplam: <span className="font-medium">{sonuclar.dersSaati} saat</span></p>
                     </div>
                   </div>
                   
-                  <p className="text-neutral-700">Sayın Öğrencimiz,</p>
-                  
-                  <p className="text-neutral-700 my-2">
-                    <span className="text-blue-600 font-semibold">SINIRLI SÜRE</span> için geçerli olan bu özel kampanya kapsamında seçmiş olduğunuz eğitim aşağıdaki <span className="text-blue-600 font-semibold">ÖZEL AVANTAJLARLA</span> sunulmaktadır:
-                  </p>
-                  
-                  <ul className="list-disc list-inside space-y-1 text-neutral-700 ml-2">
-                    <li>
-                      <span className="font-medium">Eğitim Tipi:</span> {selectedEgitimTipi}
-                    </li>
-                    {sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1") && (
-                      <li>
-                        <span className="font-medium">Toplam Eğitim:</span> <span className="font-medium">2 Kur</span>
-                      </li>
-                    )}
-                    <li>
-                      <span className="font-medium">Toplam Ders Saati:</span> {sonuclar.kampanyaAdi && sonuclar.kampanyaAdi.includes("1+1") ? 240 : selectedKampanya?.toplamDersSaati} saat
-                    </li>
-                    <li>
-                      <span className="font-medium">İndirim:</span> <span className="text-green-600 font-medium">%{sonuclar.indirimYuzdesi.toFixed(1)} ({formatCurrency(sonuclar.indirimTutari)})</span>
-                    </li>
-                    <li>
-                      <span className="font-medium">Ödeme Şekli:</span> {sonuclar.odemeTipiText} {sonuclar.taksitDetay}
-                    </li>
-                  </ul>
+                  {/* Özet Tablo */}
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-blue-100">
+                      <tr>
+                        <td className="py-2 text-neutral-600">Liste Fiyatı:</td>
+                        <td className="py-2 text-right font-medium">{formatCurrency(sonuclar.listeFiyati)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-neutral-600">İndirim Oranı:</td>
+                        <td className="py-2 text-right font-medium text-success">{formatPercentage(sonuclar.indirimYuzdesi)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-neutral-600">Eğitim Fiyatı:</td>
+                        <td className="py-2 text-right font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-neutral-600">Kitap Seti:</td>
+                        <td className="py-2 text-right font-medium">{formatCurrency(sonuclar.kitapUcreti)}</td>
+                      </tr>
+                      {mudurIndirimUygulandi && (
+                        <tr>
+                          <td className="py-2 text-neutral-600">Özel İndirim:</td>
+                          <td className="py-2 text-right font-medium text-success">-{formatCurrency(sonuclar.mudurIndirimTutari)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
                 
-                {/* Ortadaki yeşil bölüm */}
+                {/* Orta Kolon - Ödeme Detayları */}
                 <div className="md:col-span-4">
                   <div className="bg-green-50 p-3 rounded-md border border-green-100 h-full">
-                    <h4 className="font-semibold text-green-700 mb-2">HEDİYELER ve AVANTAJLAR</h4>
-                    <ul className="list-disc list-inside space-y-2">
-                      <li className="font-medium">
-                        Kitap Seti <span className="font-bold">({selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? `${selectedKampanya.kitapSetSayisi} set - ` : ''}{formatCurrency(sonuclar.kitapUcreti)} değerinde)</span>
-                      </li>
-                      {sonuclar.hediyeler.map(hediye => (
-                        <li key={hediye.isim} className="font-medium">
-                          {hediye.isim} <span className="font-bold">({formatCurrency(hediye.fiyat)} değerinde)</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h3 className="text-lg font-bold text-green-700 mb-3">Ödeme Detayları</h3>
+                    
+                    <div className="mb-4">
+                      <p className="text-neutral-700">Ödeme Şekli: <span className="font-medium">{sonuclar.odemeTipiText}</span></p>
+                      <p className="text-neutral-700">Plan: <span className="font-medium">{sonuclar.taksitDetay}</span></p>
+                      
+                      {taksitSayisi > 1 && (
+                        <div className="mt-3 p-2 bg-white rounded border border-green-200">
+                          <p className="text-green-700 font-medium text-center">Aylık Ödeme Tutarı</p>
+                          <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
-                {/* En sağdaki bölüm */}
+                {/* Sağ Kolon - Genel Toplam */}
                 <div className="md:col-span-3">
                   <div className="bg-yellow-50 p-3 rounded-md border-2 border-yellow-400 mb-4 shadow-md">
-                    <p className="text-orange-700 font-bold text-sm">
-                      ⚠️ BU ÖZEL TEKLİF YALNIZCA 2 GÜN GEÇERLİDİR!
-                    </p>
+                    <p className="text-yellow-800 font-medium text-center mb-1">Genel Toplam</p>
+                    <p className="text-2xl font-bold text-center text-yellow-900">{formatCurrency(sonuclar.genelToplam)}</p>
+                    <p className="text-xs text-center text-yellow-700 mt-1">Tüm vergiler dahil</p>
                   </div>
                   
                   <div className="bg-blue-100 p-3 rounded-md">
-                    <p className="font-bold text-blue-800 mb-1">
-                      Toplam Eğitim Tutarı:
-                    </p>
-                    <p className="font-bold text-blue-800 text-lg">
-                      {formatCurrency(sonuclar.genelToplam)}
-                    </p>
-                    {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
-                      <p className="text-blue-600 text-sm mt-1">
-                        Aylık sadece {formatCurrency(sonuclar.aylikOdeme)} x {taksitSayisi} taksit
-                      </p>
-                    )}
+                    <p className="text-xs text-blue-800 text-center mb-2">Bu teklif için geçerli hediyeler:</p>
+                    <ul className="text-xs text-blue-700 list-disc pl-4 space-y-1">
+                      {sonuclar.hediyeler.map((hediye, index) => (
+                        <li key={index}>{hediye.isim}</li>
+                      ))}
+                      {sonuclar.hediyeler.length === 0 && (
+                        <li>Bu kampanyada hediye ürün bulunmamaktadır.</li>
+                      )}
+                    </ul>
                   </div>
                 </div>
               </div>
-              
-              <p className="mt-4 text-sm text-neutral-600 border-t border-blue-100 pt-3">
-                Bu belge eğitim kapsamını ve ödeme koşullarını gösterir. Kaydınız tamamlandığında kesin sözleşme düzenlenecektir.
-              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </div>
+      </div>
     </div>
   );
 };

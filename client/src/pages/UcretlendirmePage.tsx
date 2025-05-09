@@ -244,13 +244,13 @@ const UcretlendirmePage = () => {
 
   return (
     <div className="h-full w-full">
-      <div className="max-w-[1200px] mx-auto">
-        <header className="mb-6 px-4">
+      <div className="w-full px-6">
+        <header className="mb-6">
           <h1 className="text-2xl font-bold text-neutral-800">Ücretlendirme Şartları Yönetimi</h1>
           <p className="text-neutral-500">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
           {/* Kampanya Form */}
           <Card>
             <CardHeader className="pb-3">
@@ -703,7 +703,7 @@ const UcretlendirmePage = () => {
         </div>
         
         {/* Kayıtlı Kampanyalar - Tam Genişlikte */}
-        <div className="col-span-full mt-6 px-4">
+        <div className="col-span-full mt-6">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
