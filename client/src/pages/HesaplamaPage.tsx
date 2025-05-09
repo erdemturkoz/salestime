@@ -742,7 +742,7 @@ const HesaplamaPage = () => {
                 {/* Ortadaki yeşil bölüm */}
                 <div className="md:col-span-4">
                   <div className="bg-green-50 p-3 rounded-md border border-green-100 h-full">
-                    <h4 className="font-semibold text-green-700 mb-2">BENZERSİZ OLANAKLAR</h4>
+                    <h4 className="font-semibold text-green-700 mb-2">HEDİYELER ve AVANTAJLAR</h4>
                     <ul className="list-disc list-inside space-y-2">
                       <li className="font-medium">
                         Kitap Seti <span className="font-bold">({selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? `${selectedKampanya.kitapSetSayisi} set - ` : ''}{formatCurrency(sonuclar.kitapUcreti)} değerinde)</span>
