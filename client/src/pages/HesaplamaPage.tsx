@@ -684,11 +684,24 @@ const HesaplamaPage = () => {
                                     yeniAylikOdeme = yeniToplam / taksitSayisi;
                                   }
                                   
+                                  // Yeni taksit planı hesaplaması
+                                  let yeniTaksitPlani = [];
+                                  if (odemeTipi === "senet" && taksitSayisi > 1) {
+                                    // Taksitleri yeniden oluştur
+                                    for (let i = 0; i < taksitSayisi; i++) {
+                                      yeniTaksitPlani.push({
+                                        taksitNo: i + 1,
+                                        tutar: Math.round(yeniToplam / taksitSayisi)
+                                      });
+                                    }
+                                  }
+                                  
                                   // Yeni sonuçları hazırla
                                   const yeniSonuclar = {
                                     ...sonuclar,
                                     genelToplam: yeniToplam,
-                                    aylikOdeme: yeniAylikOdeme
+                                    aylikOdeme: yeniAylikOdeme,
+                                    taksitPlanı: odemeTipi === "senet" && taksitSayisi > 1 ? yeniTaksitPlani : sonuclar.taksitPlanı
                                   };
                                   
                                   // Sonuçları state'e kaydet
@@ -746,11 +759,24 @@ const HesaplamaPage = () => {
                                       yeniAylikOdeme = yeniToplam / taksitSayisi;
                                     }
                                     
+                                    // Yeni taksit planı hesaplaması
+                                    let yeniTaksitPlani = [];
+                                    if (odemeTipi === "senet" && taksitSayisi > 1) {
+                                      // Taksitleri yeniden oluştur
+                                      for (let i = 0; i < taksitSayisi; i++) {
+                                        yeniTaksitPlani.push({
+                                          taksitNo: i + 1,
+                                          tutar: Math.round(yeniToplam / taksitSayisi)
+                                        });
+                                      }
+                                    }
+                                    
                                     // Yeni sonuçları hazırla
                                     const yeniSonuclar = {
                                       ...sonuclar,
                                       genelToplam: yeniToplam,
-                                      aylikOdeme: yeniAylikOdeme
+                                      aylikOdeme: yeniAylikOdeme,
+                                      taksitPlanı: odemeTipi === "senet" && taksitSayisi > 1 ? yeniTaksitPlani : sonuclar.taksitPlanı
                                     };
                                     
                                     // Sonuçları state'e kaydet
