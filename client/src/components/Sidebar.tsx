@@ -1,98 +1,152 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
-import { FileTextIcon, CalculatorIcon } from "lucide-react";
+import React from 'react';
+import { Link, useRoute, useLocation } from 'wouter';
+import { UserRole } from '@shared/schema';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Calculator, 
+  Settings, 
+  DollarSign, 
+  Building2, 
+  LogOut, 
+  Menu, 
+  User,
+  X
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const NAV_ITEMS = [
+  {
+    label: 'Ücret Hesaplama',
+    href: '/hesaplama',
+    icon: <Calculator className="h-5 w-5" />,
+    roles: [UserRole.ADMIN, UserRole.KURUCU, UserRole.SUBE_MUDURU, UserRole.SATIS_DANISMANI],
+  },
+  {
+    label: 'Fiyat Yönetimi',
+    href: '/ucretlendirme',
+    icon: <DollarSign className="h-5 w-5" />,
+    roles: [UserRole.ADMIN, UserRole.KURUCU],
+  },
+  {
+    label: 'Şube & Kullanıcı Yönetimi',
+    href: '/subeler',
+    icon: <Building2 className="h-5 w-5" />,
+    roles: [UserRole.ADMIN, UserRole.KURUCU],
+  },
+  {
+    label: 'Ayarlar',
+    href: '/ayarlar',
+    icon: <Settings className="h-5 w-5" />,
+    roles: [UserRole.ADMIN, UserRole.KURUCU],
+  },
+];
 
 const Sidebar = () => {
-  const [location, setLocation] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { userRole, userName, userBranch, logout } = useAuth();
+  const isMobile = useIsMobile();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [_, setLocation] = useLocation();
 
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location]);
+  const authorizedNavItems = NAV_ITEMS.filter(
+    item => item.roles.includes(userRole as UserRole)
+  );
 
-  const isActive = (path: string): boolean => {
-    if (path === "/" && location === "/") return true;
-    if (path === "/ucretlendirme" && (location === "/" || location === "/ucretlendirme")) return true;
-    return location === path;
+  const toggleSidebar = () => setIsOpen(!isOpen);
+  
+  const handleNavigation = (href: string) => {
+    setLocation(href);
+    if (isMobile) {
+      setIsOpen(false);
+    }
   };
 
-  const links = [
-    {
-      text: "Ücretlendirme Şartları",
-      href: "/ucretlendirme",
-      icon: <FileTextIcon className="h-5 w-5 mr-2" />,
-    },
-    {
-      text: "Ücret Hesaplama",
-      href: "/hesaplama",
-      icon: <CalculatorIcon className="h-5 w-5 mr-2" />,
-    },
-  ];
+  // Mobil için toggle butonu
+  const mobileToggle = (
+    <Button 
+      variant="ghost" 
+      className="p-2 md:hidden fixed top-4 left-4 z-40"
+      onClick={toggleSidebar}
+    >
+      {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+    </Button>
+  );
+
+  // Sidebar içeriği
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-bold">Dil Kursu Yönetim</h2>
+        {userBranch && (
+          <p className="text-sm text-muted-foreground">{userBranch.name}</p>
+        )}
+      </div>
+
+      <div className="flex-grow p-4">
+        <nav className="space-y-2">
+          {authorizedNavItems.map((item) => {
+            const [isActive] = useRoute(item.href);
+            return (
+              <Button
+                key={item.href}
+                variant={isActive ? "default" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => handleNavigation(item.href)}
+              >
+                {item.icon}
+                <span className="ml-2">{item.label}</span>
+              </Button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="p-4 border-t">
+        <div className="flex items-center mb-4">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-5 w-5" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm font-medium">{userName || 'Kullanıcı'}</p>
+            <p className="text-xs text-muted-foreground">{userRole || 'Rol Yok'}</p>
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start" 
+          onClick={logout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Çıkış Yap
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {/* Mobile header */}
-      <div className="md:hidden bg-white shadow-sm p-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-primary">Dil Kursu Yönetim</h1>
-        <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+      {mobileToggle}
+      
+      {/* Mobil Sidebar */}
+      {isMobile && (
+        <div 
+          className={`fixed inset-0 z-30 transform transition-transform duration-300 ease-in-out ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white shadow-md z-20 absolute w-full">
-          <nav className="p-2">
-            <ul className="space-y-1">
-              {links.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className={cn(
-                    "w-full flex items-center p-3 rounded-md text-left font-medium transition-colors",
-                    isActive(link.href)
-                      ? "bg-primary text-white hover:bg-primary/90"
-                      : "text-neutral-700 hover:bg-neutral-100"
-                  )}>
-                    {link.icon}
-                    {link.text}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
+          <aside className="w-64 h-full bg-background border-r shadow-lg relative">
+            {sidebarContent}
+          </aside>
         </div>
       )}
-
-      {/* Desktop sidebar */}
-      <aside className="bg-white shadow-md md:w-64 md:fixed md:h-full flex-shrink-0 z-10 hidden md:block">
-        <div className="p-4 border-b border-neutral-100">
-          <h1 className="text-xl font-semibold text-primary">Dil Kursu Yönetim</h1>
-        </div>
-        
-        <nav className="p-2">
-          <ul className="space-y-1">
-            {links.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className={cn(
-                  "w-full flex items-center p-3 rounded-md text-left font-medium transition-colors",
-                  isActive(link.href)
-                    ? "bg-primary text-white hover:bg-primary/90"
-                    : "text-neutral-700 hover:bg-neutral-100"
-                )}>
-                  {link.icon}
-                  {link.text}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
+      
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <aside className="w-64 h-screen bg-background border-r shadow-lg hidden md:block">
+          {sidebarContent}
+        </aside>
+      )}
     </>
   );
 };

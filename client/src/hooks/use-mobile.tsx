@@ -1,19 +1,25 @@
-import * as React from "react"
+import { useState, useEffect } from 'react';
 
-const MOBILE_BREAKPOINT = 768
+// 768px'den küçük ekranları mobil olarak kabul edelim
+const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
+  );
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    function handleResize() {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
 
-  return !!isMobile
+    window.addEventListener('resize', handleResize);
+    handleResize(); // İlk render'da bir kez çalıştır
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
 }
