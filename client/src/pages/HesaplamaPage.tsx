@@ -842,60 +842,65 @@ const HesaplamaPage = () => {
                 {/* Sol Kolon - Eğitim Bilgileri */}
                 <div className="col-span-4 p-4 bg-blue-50 border-b lg:border-b-0 lg:border-r border-slate-200">
                   <div className="flex flex-col h-full">
-                    <div className="mb-4">
-                      <h3 className="text-lg font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
-                      <p className="text-blue-600">{sonuclar.egitimTipi}</p>
-                      <p className="text-sm text-neutral-500">Genel İngilizce</p>
+                    <div className="mb-3">
+                      <h3 className="text-xl font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
+                      <p className="text-md text-blue-600">{sonuclar.egitimTipi}</p>
+                      <p className="text-sm text-neutral-500 mb-3">Genel İngilizce</p>
 
-                      <div className="mt-2 text-gray-600 text-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span>Kur:</span>
+                      <div className="mt-2 text-neutral-600 text-md">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-normal">Kur:</span>
                           <span className="font-medium">{sonuclar.kurSayisi}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span>Toplam:</span>
+                          <span className="font-normal">Toplam:</span>
                           <span className="font-medium">{sonuclar.dersSaati} saat</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Liste Fiyatı:</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
+                    <div className="space-y-3 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-600 font-normal text-md">Liste Fiyatı:</span>
+                        <span className="font-medium text-md">{formatCurrency(sonuclar.listeFiyati)}</span>
                       </div>
                       
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">İndirim Oranı:</span>
-                        <span className="font-medium text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-600 font-normal text-md">İndirim Oranı:</span>
+                        <span className="font-medium text-md text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
                       </div>
                       
-                      <div className="flex justify-between mb-4">
-                        <span className="text-neutral-600">Eğitim Fiyatı:</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-600 font-normal text-md">İndirim Tutarı:</span>
+                        <span className="font-medium text-md text-green-600">{formatCurrency(sonuclar.listeFiyati - sonuclar.kampanyaliFiyat)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center mb-4 pb-2 border-b border-blue-100">
+                        <span className="text-neutral-700 font-medium text-md">Eğitim Fiyatı:</span>
+                        <span className="font-bold text-md">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
                       </div>
                       
                       <div className="mt-2">
-                        <p className="text-blue-700 font-medium mb-2">Bu teklif için hediyeler:</p>
+                        <p className="text-blue-700 font-medium text-md mb-2">Bu teklif için hediyeler:</p>
                         {kitapDahil && (
-                          <div className="flex items-center justify-between mb-1 pl-2">
+                          <div className="flex items-center justify-between mb-2 pl-2">
                             <div className="flex items-center">
                               <span className="mr-2 text-blue-500">•</span>
                               <span className="text-neutral-700">Kitap Seti</span>
                             </div>
-                            <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(sonuclar.kitapUcreti)}</span>
+                            <span className="text-sm font-medium line-through text-neutral-500">{formatCurrency(sonuclar.kitapUcreti)}</span>
                           </div>
                         )}
                         
                         {sonuclar.hediyeler.length > 0 ? (
-                          <ul className="text-sm pl-2">
+                          <ul className="text-md pl-2 space-y-2">
                             {sonuclar.hediyeler.map((hediye, index) => (
-                              <li key={index} className="flex items-center justify-between mb-1">
+                              <li key={index} className="flex items-center justify-between">
                                 <div className="flex items-center">
                                   <span className="mr-2 text-blue-500">•</span>
                                   <span className="text-neutral-700">{hediye.isim}</span>
                                 </div>
-                                <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(hediye.fiyat)}</span>
+                                <span className="text-sm font-medium line-through text-neutral-500">{formatCurrency(hediye.fiyat)}</span>
                               </li>
                             ))}
                           </ul>
