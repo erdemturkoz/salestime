@@ -177,13 +177,28 @@ export function createPDFWithTurkishSupport(): jsPDF {
   yPos += 10;
   doc.setTextColor(60, 60, 60);
   doc.setFontSize(12);
-  doc.text(`• Kitap Seti (${kitapUcreti.toLocaleString('tr-TR')} TL degerinde)`, margin, yPos);
+  
+  // Hediye edilen kalemleri kontrol et
+  let hediyeEdilenKalemler: Record<string, boolean> = {};
+  try {
+    if (sonuclar.hediyeEdilenKalemler) {
+      hediyeEdilenKalemler = JSON.parse(sonuclar.hediyeEdilenKalemler) as Record<string, boolean>;
+    }
+  } catch (e) {
+    console.error("Hediye edilen kalemler parselenemedi:", e);
+  }
+  
+  // Kitap seti - hediye edilip edilmediğini kontrol et
+  const kitapHediye = hediyeEdilenKalemler && 'kitap' in hediyeEdilenKalemler && hediyeEdilenKalemler.kitap === true;
+  doc.text(`• Kitap Seti (${kitapUcreti.toLocaleString('tr-TR')} TL degerinde)${kitapHediye ? ' - HEDIYE' : ''}`, margin, yPos);
   
   // Hediyeler varsa
   if (sonuclar.hediyeler && sonuclar.hediyeler.length > 0) {
     for (const hediye of sonuclar.hediyeler) {
       yPos += 6;
-      doc.text(`• ${hediye.isim} (${hediye.fiyat.toLocaleString('tr-TR')} TL degerinde)`, margin, yPos);
+      const hediyeKey = hediye.isim;
+      const hediyeEdildi = hediyeEdilenKalemler && hediyeKey in hediyeEdilenKalemler && hediyeEdilenKalemler[hediyeKey] === true;
+      doc.text(`• ${hediye.isim} (${hediye.fiyat.toLocaleString('tr-TR')} TL degerinde)${hediyeEdildi ? ' - HEDIYE' : ''}`, margin, yPos);
     }
   } else {
     // Varsayılan hediye

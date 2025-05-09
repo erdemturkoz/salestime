@@ -206,7 +206,8 @@ const HesaplamaPage = () => {
       egitimTipi: selectedEgitimTipi,
       kurSayisi: selectedKurSayisi,
       dersSaati: selectedKampanya.toplamDersSaati,
-      taksitSayisi: taksitSayisi
+      taksitSayisi: taksitSayisi,
+      hediyeEdilenKalemler: JSON.stringify({}) // Başlangıçta boş bir hediye listesi
     };
     
     // Sonuçları state'e kaydet
