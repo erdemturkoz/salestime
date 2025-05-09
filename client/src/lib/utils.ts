@@ -20,5 +20,5 @@ export const calculateDiscount = (listPrice: number, finalPrice: number): number
 };
 
 export const formatPercentage = (percentage: number): string => {
-  return `${percentage.toFixed(1)}%`;
+  return `${percentage.toFixed(1).replace('.', ',')}%`;
 };

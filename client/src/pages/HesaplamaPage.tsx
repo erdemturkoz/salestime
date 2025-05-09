@@ -493,7 +493,7 @@ const HesaplamaPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">İndirim:</span>
-                      <span className="text-green-500 font-medium w-32 text-right">
+                      <span className="text-green-500 font-medium w-32 text-right whitespace-nowrap">
                         -{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})
                       </span>
                     </div>
