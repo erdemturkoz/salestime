@@ -307,12 +307,12 @@ const HesaplamaPage = () => {
 
   return (
     <div className="h-full w-full">
-      <header className="mb-6">
+      <header className="mb-4">
         <h1 className="text-2xl font-bold text-neutral-800">Ücret Hesaplama Arayüzü</h1>
         <p className="text-neutral-500">Müşterilere sunulacak ödeme seçeneklerini hesaplayın.</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
         {/* Hesaplama Formu */}
         <Card>
           <CardHeader className="pb-3">
