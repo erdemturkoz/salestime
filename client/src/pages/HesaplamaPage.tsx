@@ -896,10 +896,22 @@ const HesaplamaPage = () => {
                     </div>
                     
                     {taksitSayisi > 1 && (
-                      <div className="mt-auto pt-4">
-                        <div className="p-3 bg-white rounded border border-green-200">
-                          <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
-                          <p className="text-xl font-bold text-center text-green-800 mt-1">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                      <div className="pt-4">
+                        <div className="py-3 px-2 bg-white rounded border border-green-200">
+                          <table className="w-full">
+                            <tbody>
+                              <tr>
+                                <td colSpan={2} className="pb-2">
+                                  <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td colSpan={2}>
+                                  <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
