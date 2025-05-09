@@ -244,7 +244,7 @@ const UcretlendirmePage = () => {
 
   return (
     <div className="h-full w-full">
-      <div className="w-full px-6">
+      <div className="w-full px-1 md:px-4">
         <header className="mb-6">
           <h1 className="text-2xl font-bold text-neutral-800">Ücretlendirme Şartları Yönetimi</h1>
           <p className="text-neutral-500">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>

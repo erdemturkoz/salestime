@@ -13,7 +13,7 @@ function Router() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-neutral-50 text-neutral-900">
       <Sidebar />
-      <main className="flex-1 md:ml-64 h-full w-full">
+      <main className="flex-1 md:ml-60 h-full w-full">
         <Switch>
           <Route path="/" component={UcretlendirmePage} />
           <Route path="/ucretlendirme" component={UcretlendirmePage} />
