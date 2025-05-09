@@ -260,6 +260,7 @@ const HesaplamaPage = () => {
       indirimTutari: indirimT,
       indirimYuzdesi: indirimY,
       kampanyaliFiyat: kampanyaFiyat,
+      nakitFiyati: nakitF, // Nakit fiyatını ekledik
       kitapUcreti: kitapF,
       genelToplam: toplamFiyatSonHali,
       aylikOdeme: aylikOdeme,
