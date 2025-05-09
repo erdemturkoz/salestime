@@ -406,34 +406,68 @@ const HesaplamaPage = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Label htmlFor="kur-secim">Kur Sayısı</Label>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Alınacak kur sayısını seçin</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Kur Sayısı */}
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="kur-secim">Kur Sayısı</Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Alınacak kur sayısını seçin</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-                  <Select
-                    value={selectedKurSayisi?.toString() || ""}
-                    onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
-                    disabled={!selectedKampanya}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Kur sayısı seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {kurOptions().map((kur) => (
-                        <SelectItem key={kur} value={kur.toString()}>
-                          {kur} Kur
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Select
+                      value={selectedKurSayisi?.toString() || ""}
+                      onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
+                      disabled={!selectedKampanya}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kur sayısı seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {kurOptions().map((kur) => (
+                          <SelectItem key={kur} value={kur.toString()}>
+                            {kur} Kur
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Taksit Sayısı */}
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="taksit-secim">Taksit Sayısı</Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Ödemeyi kaç taksite bölmek istediğinizi seçin</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <Select
+                      value={taksitSayisi?.toString() || ""}
+                      onValueChange={(value) => setTaksitSayisi(parseInt(value))}
+                      disabled={odemeTipi === "nakit" || !selectedKampanya}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={odemeTipi === "nakit" ? "Nakit Ödeme" : "Taksit sayısı seçin"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taksitOptions().map((taksit) => (
+                          <SelectItem key={taksit} value={taksit.toString()}>
+                            {taksit === 1 ? "Tek Çekim" : `${taksit} Taksit`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -490,36 +524,7 @@ const HesaplamaPage = () => {
                   </div>
                 </div>
 
-                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && (
-                  <div className="space-y-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Label htmlFor="taksit-secim">Taksit Sayısı</Label>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Ödemeyi kaç taksite bölmek istediğinizi seçin</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
 
-                    <Select
-                      value={taksitSayisi?.toString() || ""}
-                      onValueChange={(value) => setTaksitSayisi(parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Taksit sayısı seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {taksitOptions().map((taksit) => (
-                          <SelectItem key={taksit} value={taksit.toString()}>
-                            {taksit === 1 ? "Tek Çekim" : `${taksit} Taksit`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
                 <div className="flex items-center space-x-2">
                   <Checkbox 
