@@ -874,11 +874,6 @@ const HesaplamaPage = () => {
                         <span className="text-neutral-600">Eğitim Fiyatı:</span>
                         <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
                       </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Kitap Seti:</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -901,10 +896,34 @@ const HesaplamaPage = () => {
                     </div>
                     
                     {taksitSayisi > 1 && (
-                      <div className="mt-auto pt-4">
-                        <div className="p-3 bg-white rounded border border-green-200">
+                      <div className="mt-4">
+                        <div className="p-3 bg-white rounded border border-green-200 mb-3">
                           <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
                           <p className="text-xl font-bold text-center text-green-800 mt-1">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                        </div>
+                        
+                        <div className="bg-white rounded border border-green-200 overflow-hidden">
+                          <p className="text-green-700 font-medium text-center p-2 bg-green-50 border-b border-green-200">
+                            Ödeme Planı
+                          </p>
+                          <div className="p-2">
+                            <table className="w-full text-sm">
+                              <thead className="border-b border-green-100">
+                                <tr>
+                                  <th className="text-left py-1 px-2 font-medium text-neutral-600">Taksit</th>
+                                  <th className="text-right py-1 px-2 font-medium text-neutral-600">Tutar</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Array.from({ length: taksitSayisi }, (_, i) => (
+                                  <tr key={i} className={i % 2 === 0 ? "bg-green-50" : ""}>
+                                    <td className="py-1 px-2">{i + 1}. Taksit</td>
+                                    <td className="py-1 px-2 text-right font-medium">{formatCurrency(sonuclar.aylikOdeme)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -920,19 +939,37 @@ const HesaplamaPage = () => {
                       <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
                     </div>
                     
-                    {sonuclar.hediyeler.length > 0 && (
-                      <div className="p-3 bg-blue-50 rounded-md border border-blue-100">
-                        <p className="text-blue-800 font-medium mb-2">Bu teklif için hediyeler:</p>
+                    <div className="p-3 bg-blue-50 rounded-md border border-blue-100 mb-3">
+                      <p className="text-blue-800 font-medium mb-2">Bu teklif için hediyeler:</p>
+                      
+                      {kitapDahil && (
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <span className="mr-2 text-blue-500">•</span>
+                            <span className="text-neutral-700">Kitap Seti</span>
+                          </div>
+                          <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(sonuclar.kitapUcreti)}</span>
+                        </div>
+                      )}
+                      
+                      {sonuclar.hediyeler.length > 0 ? (
                         <ul className="text-sm space-y-1">
                           {sonuclar.hediyeler.map((hediye, index) => (
-                            <li key={index} className="flex items-center">
-                              <span className="mr-2 text-blue-500">•</span>
-                              <span className="text-neutral-700">{hediye.isim}</span>
+                            <li key={index} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="mr-2 text-blue-500">•</span>
+                                <span className="text-neutral-700">{hediye.isim}</span>
+                              </div>
+                              <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(hediye.fiyat)}</span>
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    )}
+                      ) : kitapDahil ? null : (
+                        <div className="text-center text-neutral-500 text-sm my-1">
+                          <p>Hediye bulunmuyor</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
