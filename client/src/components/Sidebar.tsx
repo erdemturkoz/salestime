@@ -116,7 +116,7 @@ const Sidebar = () => {
       
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <aside className="w-64 h-screen bg-background border-r shadow-lg hidden md:block">
+        <aside className="w-60 h-screen bg-background border-r shadow-lg hidden md:block">
           {sidebarContent}
         </aside>
       )}
