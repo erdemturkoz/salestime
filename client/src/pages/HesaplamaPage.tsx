@@ -593,6 +593,7 @@ const HesaplamaPage = () => {
               {isCalculated && (
                 <div className="mt-2">
                   {/* Ana kampanya başlığı */}
+                  {/* Kurs ve Eğitim Tipi Başlık */}
                   <div className="bg-blue-50 border border-blue-100 rounded-md p-3 text-center">
                     <h3 className="text-xl font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
                     <p className="text-blue-600">{sonuclar.egitimTipi} - {sonuclar.kurSayisi} Kur</p>
@@ -611,88 +612,134 @@ const HesaplamaPage = () => {
             <CardContent className="p-4">
               {isCalculated ? (
                 <>
-                  {/* Özet Bilgiler */}
-                  <div className="mb-6">
-                    <h4 className="text-md font-semibold mb-2 text-neutral-700">Fiyat Özeti</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Eğitim Liste Fiyatı:</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">İndirim Tutarı:</span>
-                        <span className="text-success font-medium">-{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Kampanyalı Fiyat:</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
-                      </div>
-                      {sonuclar.kitapUcreti > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Kitap Ücreti:</span>
-                          <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
-                        </div>
-                      )}
+                  {/* Ana Sayfa Düzeni - İki kolon */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                    {/* Fiyat Detayları */}
+                    <div>
+                      <h3 className="text-xl font-medium mb-4 text-neutral-700">Fiyat Detayları</h3>
                       
-                      {/* Müdür İnisiyatifi İndirim Detayı */}
-                      {mudurIndirimUygulandi && (
-                        <div className="border-t border-neutral-100 pt-2 mt-2">
-                          <div className="flex justify-between text-success">
-                            <span className="text-neutral-600">Müdür İnisiyatifi İndirimi:</span>
-                            <span className="font-medium">-{formatCurrency(sonuclar.mudurIndirimTutari)} {sonuclar.mudurIndirimTipi === "yuzde" ? `(${mudurIndirimDegeri}%)` : ""}</span>
-                          </div>
+                      {/* Fiyat Listesi */}
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Liste Fiyatı:</span>
+                          <span className="font-medium text-lg">{formatCurrency(sonuclar.listeFiyati)}</span>
                         </div>
-                      )}
-                      
-                      <div className="grid grid-cols-1 gap-2">
-                        {/* Kampanyada tanımlı hediyeler */}
-                        {sonuclar.hediyeler.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-neutral-100">
-                            <p className="text-sm font-medium mb-1">Kampanya Hediyeleri:</p>
-                            {sonuclar.hediyeler.map((hediye, index) => (
-                              <div key={index} className="flex items-center justify-between text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">İndirim:</span>
+                          <span className="text-success font-medium">-{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Kampanyalı Fiyat:</span>
+                          <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                        </div>
+                      </div>
+
+                      {/* Hediyeler Alanı */}
+                      {sonuclar.hediyeler.length > 0 && (
+                        <div className="mt-6 border rounded-md p-4 bg-blue-50 border-blue-100">
+                          <h4 className="text-blue-700 font-bold mb-3 uppercase">HEDİYELER</h4>
+                          
+                          <div className="space-y-2">
+                            {sonuclar.kitapUcreti > 0 && (
+                              <div className="flex justify-between items-center">
                                 <div className="flex items-center">
-                                  <span className="text-neutral-600">{hediye.isim}</span>
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    {formatCurrency(hediye.fiyat)}
-                                  </Badge>
+                                  <span className="text-neutral-700">Kitap Seti</span>
+                                  <span className="text-xs text-neutral-500 ml-2">({formatCurrency(sonuclar.kitapUcreti)})</span>
                                 </div>
                                 <Button 
-                                  variant="outline" 
+                                  variant="secondary" 
                                   size="sm" 
-                                  className="text-xs h-7 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
-                                  onClick={() => {}}
+                                  className="bg-blue-500 text-white hover:bg-blue-600"
+                                >
+                                  Hediye Edildi
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {sonuclar.hediyeler.map((hediye, index) => (
+                              <div key={index} className="flex justify-between items-center">
+                                <div className="flex items-center">
+                                  <span className="text-neutral-700">{hediye.isim}</span>
+                                  <span className="text-xs text-neutral-500 ml-2">({formatCurrency(hediye.fiyat)})</span>
+                                </div>
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  className="bg-blue-500 text-white hover:bg-blue-600"
                                 >
                                   Hediye Edildi
                                 </Button>
                               </div>
                             ))}
                           </div>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Müdür İnisiyatifi İndirimi */}
+                      {mudurIndirimUygulandi && (
+                        <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-100">
+                          <h4 className="text-green-700 font-bold">Müdür İnisiyatifi İndirimi:</h4>
+                          <div className="flex justify-between items-center">
+                            <span className="text-neutral-700 text-sm">Özel yetkilendirme ile uygulanan ek indirim</span>
+                            <span className="text-green-600 font-medium">-{formatCurrency(sonuclar.mudurIndirimTutari)} ({mudurIndirimDegeri}%)</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Genel Toplam */}
+                      <div className="mt-6 p-3 bg-blue-100 rounded-md border border-blue-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-blue-800 font-bold">Genel Toplam:</span>
+                          <span className="text-blue-800 text-xl font-bold">{formatCurrency(sonuclar.genelToplam)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Ödeme Detayları ve Genel Toplam */}
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center bg-green-100 p-3 rounded-md border border-green-200 mb-3">
-                      <span className="font-semibold text-neutral-700">Genel Toplam:</span>
-                      <span className="text-lg font-bold text-success">{formatCurrency(sonuclar.genelToplam)}</span>
-                    </div>
-                    
-                    <div className="bg-neutral-50 p-3 rounded-md border border-neutral-200">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-neutral-700">Ödeme Şekli:</span>
-                        <span className="font-medium">{sonuclar.odemeTipiText}</span>
+
+                    {/* Ödeme Detayları */}
+                    <div>
+                      <h3 className="text-xl font-medium mb-4 text-neutral-700">Ödeme Detayları</h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Eğitim Tipi:</span>
+                          <span className="font-medium">{sonuclar.egitimTipi}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Toplam Ders Saati:</span>
+                          <span className="font-medium">{sonuclar.dersSaati} saat</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Ödeme Şekli:</span>
+                          <span className="font-medium">{sonuclar.odemeTipiText}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Taksit Sayısı:</span>
+                          <span className="font-medium">{taksitSayisi} Taksit</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Aylık Ödeme:</span>
+                          <span className="font-medium text-blue-700">{formatCurrency(sonuclar.aylikOdeme)}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-700">Taksit Detayı:</span>
-                        <span className="font-medium">{sonuclar.taksitDetay}</span>
-                      </div>
-                      {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
-                        <p className="text-blue-600 text-sm mt-1">
-                          Aylık sadece {formatCurrency(sonuclar.aylikOdeme)} x {taksitSayisi} taksit
-                        </p>
+
+                      {/* Taksit Planı - Sadece taksitli ödeme için */}
+                      {taksitSayisi > 1 && (
+                        <div className="mt-6">
+                          <h4 className="font-medium mb-2">Aylık Ödeme Planı:</h4>
+                          <div className="border rounded-md overflow-hidden">
+                            <table className="w-full text-sm">
+                              <tbody>
+                                {Array.from({length: taksitSayisi}).map((_, i) => (
+                                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    <td className="py-2 px-3 border-b">{i+1}. Taksit:</td>
+                                    <td className="py-2 px-3 border-b text-right font-medium">{formatCurrency(sonuclar.aylikOdeme)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -775,20 +822,8 @@ const HesaplamaPage = () => {
                       {taksitSayisi > 1 && (
                         <div className="mt-3">
                           <div className="p-2 bg-white rounded border border-green-200 mb-2">
-                            <p className="text-green-700 font-medium text-center">Aylık Ödeme Tutarı</p>
+                            <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
                             <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
-                          </div>
-                          
-                          <div className="p-2 bg-white rounded border border-green-100">
-                            <p className="text-green-700 text-sm font-medium mb-1">Aylık Ödeme Planı:</p>
-                            <div className="divide-y divide-green-100">
-                              {Array.from({length: taksitSayisi}).map((_, i) => (
-                                <div key={i} className="py-1 flex justify-between text-sm">
-                                  <span className="text-neutral-600">{i+1}. Taksit:</span>
-                                  <span className="font-medium">{formatCurrency(sonuclar.aylikOdeme)}</span>
-                                </div>
-                              ))}
-                            </div>
                           </div>
                         </div>
                       )}
