@@ -20,6 +20,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
     console.error("Hesaplama verileri alınamadı:", error);
   }
   
+  // PDF'de gösterilecek bilgileri değişkenlere ata
   const egitimTipi = sonuclar.egitimTipi || "Genel Ingilizce"; 
   const kampanyaAdi = sonuclar.kampanyaAdi || "1+1 KAMPANYASI";
   const kurSayisi = sonuclar.kurSayisi || 2;
@@ -29,6 +30,35 @@ export function createPDFWithTurkishSupport(): jsPDF {
   const odemeTipi = sonuclar.odemeTipiText || "Kredi Karti";
   const taksitDetay = sonuclar.taksitDetay || "4 Taksit";
   const kitapUcreti = sonuclar.kitapUcreti || 6000;
+  
+  // Hediye edilen kalemler varsa hesaba katılmayan tutarlar olabilir
+  // Eğer hediyeler state'den bir şekilde takip ediliyorsa bu bilgiyi kullanacağız
+  let hediyeEdilenTutar = 0;
+  if (sonuclar.hediyeEdilenKalemler) {
+    try {
+      // Hediye edilen kalemlerin tutarlarını topla
+      const hediyeEdilenKalemler = JSON.parse(sonuclar.hediyeEdilenKalemler);
+      for (const [key, value] of Object.entries(hediyeEdilenKalemler)) {
+        if (value === true) {
+          // Kitap mı hediye edilmiş?
+          if (key === "kitap") {
+            hediyeEdilenTutar += kitapUcreti;
+          }
+          // Diğer hediyeler araştırılıyor
+          else if (sonuclar.hediyeler) {
+            const hediye = sonuclar.hediyeler.find((h: any) => h.isim === key);
+            if (hediye) {
+              hediyeEdilenTutar += hediye.fiyat;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Hediye edilen kalemler hesaplanamadı:", e);
+    }
+  }
+  
+  // Toplam ve diğer değerleri hesapla
   const genelToplam = sonuclar.genelToplam || 63840;
   const aylikOdeme = sonuclar.aylikOdeme || 15960;
   const taksitSayisi = sonuclar.taksitSayisi || 4;

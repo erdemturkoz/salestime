@@ -660,11 +660,32 @@ const HesaplamaPage = () => {
                                     yeniAylikOdeme = yeniToplam / taksitSayisi;
                                   }
                                   
-                                  setSonuclar({
+                                  // Yeni sonuçları hazırla
+                                  const yeniSonuclar = {
                                     ...sonuclar,
                                     genelToplam: yeniToplam,
                                     aylikOdeme: yeniAylikOdeme
-                                  });
+                                  };
+                                  
+                                  // Sonuçları state'e kaydet
+                                  setSonuclar(yeniSonuclar);
+                                  
+                                  // Hediye etme durumunu localStorage'a kaydet (PDF için)
+                                  try {
+                                    // Önce mevcut hesaplama verilerini al
+                                    const storeData = localStorage.getItem('hesaplamaData');
+                                    if (storeData) {
+                                      const data = JSON.parse(storeData);
+                                      // Verileri güncelle
+                                      data.genelToplam = yeniToplam;
+                                      data.aylikOdeme = yeniAylikOdeme;
+                                      data.hediyeEdilenKalemler = JSON.stringify(newHediyeEt);
+                                      // Kaydet
+                                      localStorage.setItem('hesaplamaData', JSON.stringify(data));
+                                    }
+                                  } catch (error) {
+                                    console.error("Kitap hediye bilgisi localStorage'a kaydedilemedi:", error);
+                                  }
                                 }}
                               >
                                 {hediyeEt["kitap"] ? "Hediye Edildi" : "Hediye Et"}
@@ -701,11 +722,32 @@ const HesaplamaPage = () => {
                                       yeniAylikOdeme = yeniToplam / taksitSayisi;
                                     }
                                     
-                                    setSonuclar({
+                                    // Yeni sonuçları hazırla
+                                    const yeniSonuclar = {
                                       ...sonuclar,
                                       genelToplam: yeniToplam,
                                       aylikOdeme: yeniAylikOdeme
-                                    });
+                                    };
+                                    
+                                    // Sonuçları state'e kaydet
+                                    setSonuclar(yeniSonuclar);
+                                    
+                                    // Hediye etme durumunu localStorage'a kaydet (PDF için)
+                                    try {
+                                      // Önce mevcut hesaplama verilerini al
+                                      const storeData = localStorage.getItem('hesaplamaData');
+                                      if (storeData) {
+                                        const data = JSON.parse(storeData);
+                                        // Verileri güncelle
+                                        data.genelToplam = yeniToplam;
+                                        data.aylikOdeme = yeniAylikOdeme;
+                                        data.hediyeEdilenKalemler = JSON.stringify(newHediyeEt);
+                                        // Kaydet
+                                        localStorage.setItem('hesaplamaData', JSON.stringify(data));
+                                      }
+                                    } catch (error) {
+                                      console.error("Hediye bilgisi localStorage'a kaydedilemedi:", error);
+                                    }
                                   }}
                                 >
                                   {hediyeEt[hediye.isim] ? "Hediye Edildi" : "Hediye Et"}
