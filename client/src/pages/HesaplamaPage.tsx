@@ -423,7 +423,7 @@ const HesaplamaPage = () => {
                     <Select
                       value={selectedKurSayisi?.toString() || ""}
                       onValueChange={(value) => setSelectedKurSayisi(parseInt(value))}
-                      disabled={!selectedKampanya}
+                      disabled={true}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Kur sayısı seçin" />
