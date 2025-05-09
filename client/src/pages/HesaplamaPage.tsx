@@ -835,91 +835,101 @@ const HesaplamaPage = () => {
             )}
           </Card>
           
-          {/* Teklif Detayları - Hesaplama Yapıldığında Görünür */}
+          {/* Özet Bilgi Kartı - Hesaplama Yapıldığında Görünür */}
           {isCalculated && (
-            <div className="w-full bg-blue-50 p-6 rounded-md border border-blue-100">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                {/* Sol Kolon - Eğitim Detayları */}
-                <div className="md:col-span-5">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="mb-2">
+            <div className="w-full bg-slate-50 rounded-md border border-slate-200 mt-6 overflow-hidden">
+              <div className="flex flex-wrap">
+                {/* Sol Kolon - Eğitim Bilgileri */}
+                <div className="w-full md:w-1/3 p-4 bg-blue-50 border-b md:border-b-0 md:border-r border-slate-200">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
                       <h3 className="text-lg font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
-                      <h4 className="text-blue-600">{sonuclar.egitimTipi}</h4>
+                      <p className="text-blue-600">{sonuclar.egitimTipi}</p>
+
+                      <div className="mt-2 flex items-center text-gray-600 text-sm">
+                        <div className="mr-4">
+                          <div>Kur: <span className="font-medium">{sonuclar.kurSayisi}</span></div>
+                        </div>
+                        <div>
+                          <div>Toplam: <span className="font-medium">{sonuclar.dersSaati} saat</span></div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-neutral-600 text-sm">
-                      <p>Kur: <span className="font-medium">{sonuclar.kurSayisi}</span></p>
-                      <p>Toplam: <span className="font-medium">{sonuclar.dersSaati} saat</span></p>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Liste Fiyatı:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">İndirim Oranı:</span>
+                        <span className="font-medium text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Eğitim Fiyatı:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Kitap Seti:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Özet Tablo */}
-                  <table className="w-full text-sm">
-                    <tbody className="divide-y divide-blue-100">
-                      <tr>
-                        <td className="py-2 text-neutral-600">Liste Fiyatı:</td>
-                        <td className="py-2 text-right font-medium">{formatCurrency(sonuclar.listeFiyati)}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-neutral-600">İndirim Oranı:</td>
-                        <td className="py-2 text-right font-medium text-success">{formatPercentage(sonuclar.indirimYuzdesi)}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-neutral-600">Eğitim Fiyatı:</td>
-                        <td className="py-2 text-right font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-neutral-600">Kitap Seti:</td>
-                        <td className="py-2 text-right font-medium">{formatCurrency(sonuclar.kitapUcreti)}</td>
-                      </tr>
-                      {mudurIndirimUygulandi && (
-                        <tr>
-                          <td className="py-2 text-neutral-600">Özel İndirim:</td>
-                          <td className="py-2 text-right font-medium text-success">-{formatCurrency(sonuclar.mudurIndirimTutari)}</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
                 </div>
                 
                 {/* Orta Kolon - Ödeme Detayları */}
-                <div className="md:col-span-4">
-                  <div className="bg-green-50 p-3 rounded-md border border-green-100 h-full">
-                    <h3 className="text-lg font-bold text-green-700 mb-3">Ödeme Detayları</h3>
+                <div className="w-full md:w-1/3 p-4 bg-green-50 border-b md:border-b-0 md:border-r border-slate-200">
+                  <div className="flex flex-col h-full">
+                    <h3 className="text-lg font-bold text-green-700 mb-4">Ödeme Detayları</h3>
                     
-                    <div className="mb-4">
-                      <p className="text-neutral-700">Ödeme Şekli: <span className="font-medium">{sonuclar.odemeTipiText}</span></p>
-                      <p className="text-neutral-700">Plan: <span className="font-medium">{sonuclar.taksitDetay}</span></p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Ödeme Şekli:</span>
+                        <span className="font-medium">{sonuclar.odemeTipiText}</span>
+                      </div>
                       
-                      {taksitSayisi > 1 && (
-                        <div className="mt-3">
-                          <div className="p-2 bg-white rounded border border-green-200 mb-2">
-                            <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
-                            <p className="text-xl font-bold text-center text-green-800">{formatCurrency(sonuclar.aylikOdeme)}</p>
-                          </div>
-                        </div>
-                      )}
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Plan:</span>
+                        <span className="font-medium">{taksitSayisi} Taksit</span>
+                      </div>
                     </div>
+                    
+                    {taksitSayisi > 1 && (
+                      <div className="mt-auto pt-4">
+                        <div className="p-3 bg-white rounded border border-green-200">
+                          <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
+                          <p className="text-xl font-bold text-center text-green-800 mt-1">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                {/* Sağ Kolon - Genel Toplam */}
-                <div className="md:col-span-3">
-                  <div className="bg-yellow-50 p-3 rounded-md border-2 border-yellow-400 mb-4 shadow-md">
-                    <p className="text-yellow-800 font-medium text-center mb-1">Genel Toplam</p>
-                    <p className="text-2xl font-bold text-center text-yellow-900">{formatCurrency(sonuclar.genelToplam)}</p>
-                    <p className="text-xs text-center text-yellow-700 mt-1">Tüm vergiler dahil</p>
-                  </div>
-                  
-                  <div className="bg-blue-100 p-3 rounded-md">
-                    <p className="text-xs text-blue-800 text-center mb-2">Bu teklif için geçerli hediyeler:</p>
-                    <ul className="text-xs text-blue-700 list-disc pl-4 space-y-1">
-                      {sonuclar.hediyeler.map((hediye, index) => (
-                        <li key={index}>{hediye.isim}</li>
-                      ))}
-                      {sonuclar.hediyeler.length === 0 && (
-                        <li>Bu kampanyada hediye ürün bulunmamaktadır.</li>
-                      )}
-                    </ul>
+                {/* Sağ Kolon - Genel Toplam ve Hediyeler */}
+                <div className="w-full md:w-1/3 p-4 bg-yellow-50">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
+                      <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
+                      <p className="text-2xl font-bold text-center text-yellow-900 my-1">{formatCurrency(sonuclar.genelToplam)}</p>
+                      <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
+                    </div>
+                    
+                    {sonuclar.hediyeler.length > 0 && (
+                      <div className="p-3 bg-blue-50 rounded-md border border-blue-100">
+                        <p className="text-blue-800 font-medium mb-2">Bu teklif için hediyeler:</p>
+                        <ul className="text-sm space-y-1">
+                          {sonuclar.hediyeler.map((hediye, index) => (
+                            <li key={index} className="flex items-center">
+                              <span className="mr-2 text-blue-500">•</span>
+                              <span className="text-neutral-700">{hediye.isim}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
