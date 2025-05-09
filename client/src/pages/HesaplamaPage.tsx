@@ -487,9 +487,9 @@ const HesaplamaPage = () => {
                     <div className="font-bold text-amber-800 text-lg">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</div>
                     <div className="mt-1 flex justify-center items-center">
                       <span className="text-gray-700">Nakit Fiyat: </span>
-                      <span className="font-bold text-gray-900 ml-1">{formatCurrency(selectedKampanya.nakitFiyati * (selectedKurSayisi || 1))}</span>
+                      <span className="font-bold text-gray-900 ml-1">{formatCurrency(selectedKampanya.nakitFiyati)}</span>
                       <span className="ml-2 text-green-600 font-semibold">
-                        (-{Math.round(((sonuclar.listeFiyati - selectedKampanya.nakitFiyati * (selectedKurSayisi || 1)) / sonuclar.listeFiyati) * 100)}% indirim)
+                        (-{Math.round(((sonuclar.listeFiyati - selectedKampanya.nakitFiyati) / sonuclar.listeFiyati) * 100)}% indirim)
                       </span>
                     </div>
                   </div>
