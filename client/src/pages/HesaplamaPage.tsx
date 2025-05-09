@@ -475,17 +475,21 @@ const HesaplamaPage = () => {
           <CardHeader className="pb-3 border-b border-neutral-100 bg-neutral-50">
             <CardTitle>Hesaplama Sonucu</CardTitle>
             {isCalculated && (
-              <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md p-2 text-center">
-                <span className="font-bold text-blue-700">{sonuclar.kampanyaAdi}</span>
+              <div className="mt-2">
+                {/* Ana kampanya başlığı */}
+                <div className="bg-blue-50 border border-blue-100 rounded-md p-3 text-center">
+                  <span className="font-bold text-blue-700 text-lg">{sonuclar.kampanyaAdi}</span>
+                </div>
                 
                 {/* Nakit tavsiyesi (kredi kartı ve senet seçildiğinde) */}
-                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && (
-                  <div className="mt-2 bg-yellow-50 border-2 border-yellow-300 rounded-md p-2 text-sm">
-                    <div className="font-bold text-orange-800 text-base">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</div>
-                    <div className="text-neutral-700 mt-1">
-                      Nakit Fiyat: <span className="font-bold">{formatCurrency(selectedKampanya.nakitFiyati * (selectedKurSayisi || 1))}</span> 
+                {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && selectedKampanya && (
+                  <div className="mt-2 bg-amber-50 border border-amber-200 rounded-md p-3 text-center">
+                    <div className="font-bold text-amber-800 text-lg">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</div>
+                    <div className="mt-1 flex justify-center items-center">
+                      <span className="text-gray-700">Nakit Fiyat: </span>
+                      <span className="font-bold text-gray-900 ml-1">{formatCurrency(selectedKampanya.nakitFiyati * (selectedKurSayisi || 1))}</span>
                       <span className="ml-2 text-green-600 font-semibold">
-                        ({Math.round(((sonuclar.listeFiyati - selectedKampanya.nakitFiyati * (selectedKurSayisi || 1)) / sonuclar.listeFiyati) * 100)}% indirim)
+                        (-{Math.round(((sonuclar.listeFiyati - selectedKampanya.nakitFiyati * (selectedKurSayisi || 1)) / sonuclar.listeFiyati) * 100)}% indirim)
                       </span>
                     </div>
                   </div>
