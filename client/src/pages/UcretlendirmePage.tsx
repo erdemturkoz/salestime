@@ -59,6 +59,18 @@ const UcretlendirmePage = () => {
   const [hediyeFiyat, setHediyeFiyat] = useState<number>(0);
   const [krediKartiTaksitler, setKrediKartiTaksitler] = useState<Array<{taksit: number, aylik: number, toplam: number}>>([]);
   const [senetTaksitler, setSenetTaksitler] = useState<Array<{taksit: number, aylik: number, toplam: number}>>([]);
+  
+  // Form doğrulama için hata state'leri
+  const [formErrors, setFormErrors] = useState<{
+    kampanyaAdi?: string;
+    egitimTipi?: string;
+    kurSayisi?: string;
+    toplamDersSaati?: string;
+    listeFiyati?: string;
+    nakitFiyati?: string;
+    faizOrani?: string;
+    kitapFiyati?: string;
+  }>({});
 
   // Form değişikliklerini izle
   useEffect(() => {
@@ -137,48 +149,67 @@ const UcretlendirmePage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Tüm form hatalarını sıfırla
+    setFormErrors({});
+    
+    // Tüm zorunlu alanları kontrol et
+    let hasErrors = false;
+    const errors: { [key: string]: string } = {};
+    
     if (!formData.kampanyaAdi) {
-      toast({
-        title: "Hata",
-        description: "Kampanya adı boş olamaz",
-        variant: "destructive",
-      });
-      return;
+      errors.kampanyaAdi = "Kampanya adı boş olamaz";
+      hasErrors = true;
     }
     
     if (!formData.egitimTipi) {
-      toast({
-        title: "Hata",
-        description: "Lütfen bir eğitim tipi seçin",
-        variant: "destructive",
-      });
-      return;
+      errors.egitimTipi = "Lütfen bir eğitim tipi seçin";
+      hasErrors = true;
     }
 
-    if (formData.kurSayisi <= 0) {
-      toast({
-        title: "Hata",
-        description: "Kur sayısı 0'dan büyük olmalıdır",
-        variant: "destructive",
-      });
-      return;
+    if (!formData.kurSayisi || formData.kurSayisi <= 0) {
+      errors.kurSayisi = "Kur sayısı 0'dan büyük olmalıdır";
+      hasErrors = true;
+    }
+    
+    if (!formData.toplamDersSaati || formData.toplamDersSaati <= 0) {
+      errors.toplamDersSaati = "Toplam ders saati belirtilmelidir";
+      hasErrors = true;
     }
 
-    if (formData.listeFiyati <= 0) {
-      toast({
-        title: "Hata",
-        description: "Liste fiyatı 0'dan büyük olmalıdır",
-        variant: "destructive",
-      });
-      return;
+    if (!formData.listeFiyati || formData.listeFiyati <= 0) {
+      errors.listeFiyati = "Liste fiyatı 0'dan büyük olmalıdır";
+      hasErrors = true;
     }
 
-    if (formData.nakitFiyati <= 0) {
+    if (!formData.nakitFiyati || formData.nakitFiyati <= 0) {
+      errors.nakitFiyati = "Kampanyalı nakit fiyatı 0'dan büyük olmalıdır";
+      hasErrors = true;
+    }
+    
+    if (!formData.faizOrani || formData.faizOrani < 0) {
+      errors.faizOrani = "Faiz oranı belirtilmelidir";
+      hasErrors = true;
+    }
+    
+    if (!formData.kitapFiyati && formData.kitapFiyati !== 0) {
+      errors.kitapFiyati = "Kitap fiyatı belirtilmelidir";
+      hasErrors = true;
+    }
+    
+    // Eğer herhangi bir hata varsa, formErrors'ı güncelle ve işlemi durdur
+    if (hasErrors) {
+      setFormErrors(errors);
+      
+      // İlk hata için toast bildirimi göster
+      const firstError = Object.values(errors)[0];
       toast({
-        title: "Hata",
-        description: "Kampanyalı nakit fiyatı 0'dan büyük olmalıdır",
+        title: "Eksik veya Hatalı Bilgi",
+        description: firstError,
         variant: "destructive",
       });
+      
+      // Formun en üstüne kaydır - hataları görebilmesi için
+      document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
 
@@ -582,6 +613,7 @@ const UcretlendirmePage = () => {
                       <SelectItem value="3">3 Set</SelectItem>
                       <SelectItem value="4">4 Set</SelectItem>
                       <SelectItem value="5">5 Set</SelectItem>
+                      <SelectItem value="6">6 Set</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
