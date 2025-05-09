@@ -116,8 +116,27 @@ export function createPDFWithTurkishSupport(): jsPDF {
   yPos += 6;
   doc.text("• 3 AYLIK ETOPYA ONLINE (9.000 TL degerinde)", margin, yPos);
   
-  // UYARI
+  // NAKİT ÖDEME AVANTAJI
   yPos += 15;
+  // Nakit fiyat 55.000 TL olarak varsayalım ve kredi kartı veya senet taksitlendirmesi olduğunda gösterelim
+  const nakitFiyat = 55000;
+  const genelToplam = 63840;
+  const fark = genelToplam - nakitFiyat;
+  const indirimOrani = Math.round((fark / genelToplam) * 100);
+  
+  doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
+  doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
+  
+  doc.setTextColor(46, 125, 50); // Koyu yeşil
+  doc.setFontSize(12);
+  doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
+  
+  doc.setFontSize(10);
+  doc.text(`Bu egitimi nakit olarak alirsaniz ${fark.toLocaleString('tr-TR')} TL (%${indirimOrani}) tasarruf edersiniz.`, 
+    pageWidth / 2, yPos + 13, { align: 'center' });
+  
+  // UYARI
+  yPos += 20;
   doc.setFillColor(255, 243, 224);
   doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F');
   
