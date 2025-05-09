@@ -116,9 +116,9 @@ const HesaplamaPage = () => {
     const kitapF = kitapDahil ? selectedKampanya.kitapFiyati * (selectedKampanya.kitapSetSayisi || 1) : 0;
     const hediyelerToplam = selectedKampanya.hediyeler.reduce((toplam, hediye) => toplam + hediye.fiyat, 0);
     
-    // İndirim hesaplamaları
-    const indirimT = listeF - nakitF;
-    const indirimY = Math.round((indirimT / listeF) * 100);
+    // İndirim hesaplamaları - sonradan değerler değişecek
+    let indirimT = listeF - nakitF;
+    let indirimY = Math.round((indirimT / listeF) * 100);
     
     let odemeSekli = "";
     let taksitDetayi = "Tek Çekim";
@@ -185,6 +185,10 @@ const HesaplamaPage = () => {
     
     // Hediye etme durumunu sıfırla
     setHediyeEt({});
+    
+    // İndirim oranını liste fiyatı ve kampanyalı fiyat arasından hesaplama
+    indirimT = listeF - kampanyaFiyat;
+    indirimY = Math.round((indirimT / listeF) * 100);
     
     // Sonuçları güncelle
     setSonuclar({
