@@ -320,112 +320,6 @@ const HesaplamaPage = () => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-          {/* Ödeme Hesaplama */}
-          <div className="lg:col-span-3">
-            {isCalculated && (
-              <div className="w-full mb-6">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 rounded-md overflow-hidden border border-slate-200">
-                  {/* Sol Kolon - Eğitim Bilgileri */}
-                  <div className="col-span-4 p-4 bg-blue-50 border-b lg:border-b-0 lg:border-r border-slate-200">
-                    <div className="flex flex-col h-full">
-                      <div className="mb-4">
-                        <h3 className="text-lg font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
-                        <p className="text-blue-600">{sonuclar.egitimTipi}</p>
-                        <p className="text-sm text-neutral-500">Genel İngilizce</p>
-
-                        <div className="mt-2 text-gray-600 text-sm">
-                          <div className="flex items-center justify-between mb-1">
-                            <span>Kur:</span>
-                            <span className="font-medium">{sonuclar.kurSayisi}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Toplam:</span>
-                            <span className="font-medium">{sonuclar.dersSaati} saat</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Liste Fiyatı:</span>
-                          <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">İndirim Oranı:</span>
-                          <span className="font-medium text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Eğitim Fiyatı:</span>
-                          <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Kitap Seti:</span>
-                          <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Orta Kolon - Ödeme Detayları */}
-                  <div className="col-span-4 p-4 bg-green-50 border-b lg:border-b-0 lg:border-r border-slate-200">
-                    <div className="flex flex-col h-full">
-                      <h3 className="text-lg font-bold text-green-700 mb-4">Ödeme Detayları</h3>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Ödeme Şekli:</span>
-                          <span className="font-medium">{sonuclar.odemeTipiText}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Plan:</span>
-                          <span className="font-medium">{taksitSayisi} Taksit</span>
-                        </div>
-                      </div>
-                      
-                      {taksitSayisi > 1 && (
-                        <div className="mt-auto pt-4">
-                          <div className="p-3 bg-white rounded border border-green-200">
-                            <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
-                            <p className="text-xl font-bold text-center text-green-800 mt-1">{formatCurrency(sonuclar.aylikOdeme)}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Sağ Kolon - Genel Toplam ve Hediyeler */}
-                  <div className="col-span-4 p-4 bg-yellow-50">
-                    <div className="flex flex-col h-full">
-                      <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
-                        <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
-                        <p className="text-2xl font-bold text-center text-yellow-900 my-1">{formatCurrency(sonuclar.genelToplam)}</p>
-                        <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
-                      </div>
-                      
-                      {sonuclar.hediyeler.length > 0 && (
-                        <div className="p-3 bg-blue-50 rounded-md border border-blue-100">
-                          <p className="text-blue-800 font-medium mb-2">Bu teklif için hediyeler:</p>
-                          <ul className="text-sm space-y-1">
-                            {sonuclar.hediyeler.map((hediye, index) => (
-                              <li key={index} className="flex items-center">
-                                <span className="mr-2 text-blue-500">•</span>
-                                <span className="text-neutral-700">{hediye.isim}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Hesaplama Formu */}
           <Card>
             <CardHeader className="pb-3">
@@ -941,7 +835,109 @@ const HesaplamaPage = () => {
             )}
           </Card>
           
-          {/* Bu kodu kaldırıyoruz çünkü yukarıda özet bilgi kartını sayfanın başına taşıdık */}
+          {/* Özet Bilgi Kartı - En Alta Yerleştirildi */}
+          {isCalculated && (
+            <div className="w-full lg:col-span-3 mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 rounded-md overflow-hidden border border-slate-200">
+                {/* Sol Kolon - Eğitim Bilgileri */}
+                <div className="col-span-4 p-4 bg-blue-50 border-b lg:border-b-0 lg:border-r border-slate-200">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-blue-700">{sonuclar.kampanyaAdi}</h3>
+                      <p className="text-blue-600">{sonuclar.egitimTipi}</p>
+                      <p className="text-sm text-neutral-500">Genel İngilizce</p>
+
+                      <div className="mt-2 text-gray-600 text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span>Kur:</span>
+                          <span className="font-medium">{sonuclar.kurSayisi}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Toplam:</span>
+                          <span className="font-medium">{sonuclar.dersSaati} saat</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Liste Fiyatı:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">İndirim Oranı:</span>
+                        <span className="font-medium text-green-600">{formatPercentage(sonuclar.indirimYuzdesi)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Eğitim Fiyatı:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Kitap Seti:</span>
+                        <span className="font-medium">{formatCurrency(sonuclar.kitapUcreti)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Orta Kolon - Ödeme Detayları */}
+                <div className="col-span-4 p-4 bg-green-50 border-b lg:border-b-0 lg:border-r border-slate-200">
+                  <div className="flex flex-col h-full">
+                    <h3 className="text-lg font-bold text-green-700 mb-4">Ödeme Detayları</h3>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Ödeme Şekli:</span>
+                        <span className="font-medium">{sonuclar.odemeTipiText}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Plan:</span>
+                        <span className="font-medium">{taksitSayisi} Taksit</span>
+                      </div>
+                    </div>
+                    
+                    {taksitSayisi > 1 && (
+                      <div className="mt-auto pt-4">
+                        <div className="p-3 bg-white rounded border border-green-200">
+                          <p className="text-green-700 font-medium text-center">Aylık Ödeme</p>
+                          <p className="text-xl font-bold text-center text-green-800 mt-1">{formatCurrency(sonuclar.aylikOdeme)}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Sağ Kolon - Genel Toplam ve Hediyeler */}
+                <div className="col-span-4 p-4 bg-yellow-50">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
+                      <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
+                      <p className="text-2xl font-bold text-center text-yellow-900 my-1">{formatCurrency(sonuclar.genelToplam)}</p>
+                      <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
+                    </div>
+                    
+                    {sonuclar.hediyeler.length > 0 && (
+                      <div className="p-3 bg-blue-50 rounded-md border border-blue-100">
+                        <p className="text-blue-800 font-medium mb-2">Bu teklif için hediyeler:</p>
+                        <ul className="text-sm space-y-1">
+                          {sonuclar.hediyeler.map((hediye, index) => (
+                            <li key={index} className="flex items-center">
+                              <span className="mr-2 text-blue-500">•</span>
+                              <span className="text-neutral-700">{hediye.isim}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
