@@ -740,7 +740,7 @@ const HesaplamaPage = () => {
                     <h4 className="font-semibold text-green-700 mb-2">BENZERSİZ OLANAKLAR</h4>
                     <ul className="list-disc list-inside space-y-2">
                       <li className="font-medium">
-                        Kitap Seti <span className="font-bold">({formatCurrency(sonuclar.kitapUcreti)}{selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? ` - ${selectedKampanya.kitapSetSayisi} set` : ''} değerinde)</span>
+                        Kitap Seti <span className="font-bold">({selectedKampanya && selectedKampanya.kitapSetSayisi > 1 ? `${selectedKampanya.kitapSetSayisi} set - ` : ''}{formatCurrency(sonuclar.kitapUcreti)} değerinde)</span>
                       </li>
                       {sonuclar.hediyeler.map(hediye => (
                         <li key={hediye.isim} className="font-medium">
