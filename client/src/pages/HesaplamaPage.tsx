@@ -618,7 +618,13 @@ const HesaplamaPage = () => {
                     </div>
                     
                     {/* Hediye ve Kitap bilgisi - Yeniden düzenlenmiş */}
-                    <div className="p-3 bg-blue-50 border-dashed border border-blue-200 rounded-md my-2">
+                    <div className="p-3 bg-blue-50 border-dashed border border-blue-200 rounded-md my-2 relative">
+                      {/* Hatırlatma balonu - isCalculated olduğunda göster */}
+                      {isCalculated && (
+                        <div className="absolute -top-3 -right-2 bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full shadow-md border border-amber-200 animate-pulse">
+                          Hediyeleri etmeyi unutmayın!
+                        </div>
+                      )}
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-blue-700 font-medium text-base">HEDİYELER</span>
                         <span></span>
