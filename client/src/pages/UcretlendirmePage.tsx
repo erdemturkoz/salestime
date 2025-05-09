@@ -294,13 +294,13 @@ const UcretlendirmePage = () => {
   };
 
   return (
-    <div>
+    <div className="h-full w-full">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-neutral-800">Ücretlendirme Şartları Yönetimi</h1>
         <p className="text-neutral-500">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         {/* Kampanya Form */}
         <Card>
           <CardHeader className="pb-3">
