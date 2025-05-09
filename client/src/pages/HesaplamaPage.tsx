@@ -489,23 +489,18 @@ const HesaplamaPage = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Liste Fiyatı:</span>
-                      <span className="font-medium">{formatCurrency(sonuclar.listeFiyati)}</span>
+                      <span className="font-medium w-32 text-right">{formatCurrency(sonuclar.listeFiyati)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">İndirim:</span>
-                      <span className="text-green-500 font-medium">
+                      <span className="text-green-500 font-medium w-32 text-right">
                         -{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Kampanyalı Fiyat:</span>
-                      <span className="font-medium">
+                      <span className="font-medium w-32 text-right">
                         {formatCurrency(sonuclar.kampanyaliFiyat)}
-                        {odemeTipi === "kredi-karti" && (
-                          <span className="text-xs text-gray-500 block">
-                            (Fatura bedeli %10 dahil)
-                          </span>
-                        )}
                       </span>
                     </div>
                     
@@ -518,13 +513,13 @@ const HesaplamaPage = () => {
                       {kitapDahil && !hediyeEt["kitap"] && (
                         <div className="flex justify-between text-sm">
                           <span className="text-blue-700">+ Kitap Ücreti</span>
-                          <span className="font-medium">+{formatCurrency(sonuclar.kitapUcreti)}</span>
+                          <span className="font-medium w-32 text-right">+{formatCurrency(sonuclar.kitapUcreti)}</span>
                         </div>
                       )}
                       {kitapDahil && hediyeEt["kitap"] && (
                         <div className="flex justify-between text-sm">
                           <span className="text-blue-700">- Hediye Edilen Kitap</span>
-                          <span className="font-medium text-green-600">-{formatCurrency(sonuclar.kitapUcreti)}</span>
+                          <span className="font-medium text-green-600 w-32 text-right">-{formatCurrency(sonuclar.kitapUcreti)}</span>
                         </div>
                       )}
                       {sonuclar.hediyeler.map((hediye, idx) => (
@@ -533,12 +528,12 @@ const HesaplamaPage = () => {
                             {hediyeEt[hediye.isim] ? (
                               <>
                                 <span className="text-blue-700">- Hediye Edilen {hediye.isim}</span>
-                                <span className="font-medium text-green-600">-{formatCurrency(hediye.fiyat)}</span>
+                                <span className="font-medium text-green-600 w-32 text-right">-{formatCurrency(hediye.fiyat)}</span>
                               </>
                             ) : (
                               <>
                                 <span className="text-blue-700">+ {hediye.isim}</span>
-                                <span className="font-medium">+{formatCurrency(hediye.fiyat)}</span>
+                                <span className="font-medium w-32 text-right">+{formatCurrency(hediye.fiyat)}</span>
                               </>
                             )}
                           </div>
@@ -548,7 +543,7 @@ const HesaplamaPage = () => {
 
                     <div className="border-t border-neutral-100 pt-2 flex justify-between">
                       <span className="text-neutral-800 font-medium">Genel Toplam:</span>
-                      <span className="text-primary font-bold text-lg">
+                      <span className="text-primary font-bold text-lg w-32 text-right">
                         {formatCurrency(sonuclar.genelToplam)}
                       </span>
                     </div>
@@ -561,26 +556,26 @@ const HesaplamaPage = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Eğitim Tipi:</span>
-                      <span className="font-medium">{selectedEgitimTipi}</span>
+                      <span className="font-medium w-32 text-right">{selectedEgitimTipi}</span>
                     </div>
                     {selectedKampanya && selectedKampanya.toplamDersSaati > 0 && (
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Toplam Ders Saati:</span>
-                        <span className="font-medium">{selectedKampanya.toplamDersSaati} saat</span>
+                        <span className="font-medium w-32 text-right">{selectedKampanya.toplamDersSaati} saat</span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Ödeme Şekli:</span>
-                      <span className="font-medium">{sonuclar.odemeTipiText}</span>
+                      <span className="font-medium w-32 text-right">{sonuclar.odemeTipiText}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Taksit Sayısı:</span>
-                      <span className="font-medium">{sonuclar.taksitDetay}</span>
+                      <span className="font-medium w-32 text-right">{sonuclar.taksitDetay}</span>
                     </div>
                     {(odemeTipi === "kredi-karti" || odemeTipi === "senet") && taksitSayisi > 1 && (
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Aylık Ödeme:</span>
-                        <span className="font-medium">{formatCurrency(sonuclar.aylikOdeme)}</span>
+                        <span className="font-medium w-32 text-right">{formatCurrency(sonuclar.aylikOdeme)}</span>
                       </div>
                     )}
                     
@@ -592,7 +587,7 @@ const HesaplamaPage = () => {
                           {Array.from({ length: taksitSayisi }).map((_, index) => (
                             <div key={index} className="flex justify-between text-sm">
                               <span className="text-neutral-600">{index + 1}. Taksit:</span>
-                              <span className="font-medium">{formatCurrency(sonuclar.aylikOdeme)}</span>
+                              <span className="font-medium w-32 text-right">{formatCurrency(sonuclar.aylikOdeme)}</span>
                             </div>
                           ))}
                         </div>
