@@ -711,39 +711,13 @@ const HesaplamaPage = () => {
                         </div>
                       </div>
 
-                      {/* Hediyeler Alanı */}
-                      {(sonuclar.hediyeler.length > 0 || sonuclar.kitapUcreti > 0) && (
-                        <div className="mt-4 pt-4 border-t border-neutral-200">
-                          <h4 className="text-md font-medium mb-3 text-neutral-700">Hediyeler</h4>
-                          <div className="space-y-2">
-                            {kitapDahil && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-neutral-600">• Kitap Seti</span>
-                                <span className={hediyeEt.kitap ? "line-through text-neutral-400" : ""}>
-                                  {formatCurrency(sonuclar.kitapUcreti)}
-                                </span>
-                              </div>
-                            )}
-                            
-                            {sonuclar.hediyeler.map((hediye, idx) => (
-                              <div key={idx} className="flex justify-between items-center">
-                                <span className="text-neutral-600">• {hediye.isim}</span>
-                                <span className={hediyeEt[`hediye-${idx}`] ? "line-through text-neutral-400" : ""}>
-                                  {formatCurrency(hediye.fiyat)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        
-                          {/* KATEGORİ 2: GENEL TOPLAM buraya taşındı */}
-                          <div className="mt-3 pt-3 border-t border-neutral-200">
-                            <div className="flex justify-between items-center">
-                              <span className="text-neutral-700 font-semibold">Genel Toplam:</span>
-                              <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.genelToplam)}</span>
-                            </div>
-                          </div>
+                      {/* GENEL TOPLAM */}
+                      <div className="mt-4 pt-4 border-t border-neutral-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700 font-semibold">Genel Toplam:</span>
+                          <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.genelToplam)}</span>
                         </div>
-                      )}
+                      </div>
                       
                       {/* KATEGORİ 3: MÜDÜR İNDİRİMİ VE ÖZEL FİYAT */}
                       {sonuclar.mudurIndirimTutari > 0 && (
