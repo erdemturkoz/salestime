@@ -1246,7 +1246,7 @@ const HesaplamaPage = () => {
                       </div>
                     )}
                     
-                    <div className="p-4 bg-white rounded-md border border-blue-200 shadow-sm mb-3">
+                    <div className="p-4 bg-blue-50 rounded-md border border-blue-200 shadow-sm mb-3">
                       <h3 className="text-blue-800 font-semibold text-md mb-3 pb-1 border-b border-blue-100">Fiyat Bilgileri</h3>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center py-1">
@@ -1257,34 +1257,8 @@ const HesaplamaPage = () => {
                         <div className="flex justify-between items-center py-1">
                           <span className="text-blue-800 font-medium">İndirim Oranı:</span>
                           <span className="font-bold text-lg text-green-600">
-                            {formatPercentage(sonuclar.indirimYuzdesi)}
+                            {formatPercentage(sonuclar.indirimYuzdesi)} ({formatCurrency(sonuclar.listeFiyati - sonuclar.kampanyaliFiyat)})
                           </span>
-                        </div>
-                        
-                        <div className="py-2 border-t border-blue-200 mt-2">
-                          {kitapDahil && (
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center">
-                                <span className="mr-2 text-blue-500">•</span>
-                                <span className="text-neutral-700">Kitap Seti</span>
-                              </div>
-                              <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(sonuclar.kitapUcreti)}</span>
-                            </div>
-                          )}
-                          
-                          {sonuclar.hediyeler.length > 0 && (
-                            <ul className="text-sm">
-                              {sonuclar.hediyeler.map((hediye, index) => (
-                                <li key={index} className="flex items-center justify-between mb-1">
-                                  <div className="flex items-center">
-                                    <span className="mr-2 text-blue-500">•</span>
-                                    <span className="text-neutral-700">{hediye.isim}</span>
-                                  </div>
-                                  <span className="text-xs font-medium line-through text-neutral-500">{formatCurrency(hediye.fiyat)}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
                         </div>
                       </div>
                     </div>
