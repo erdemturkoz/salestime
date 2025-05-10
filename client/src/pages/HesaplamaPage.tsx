@@ -85,6 +85,33 @@ const HesaplamaPage = () => {
       }
     }
   }, [selectedKampanyaId, kampanyalar]);
+  
+  // Müdür inisiyatifi indirimi uygulandığında aylık ödeme tutarını güncelle
+  useEffect(() => {
+    // Müdür indirimi uygulandıysa ve taksitli ödemeyse
+    if (mudurIndirimUygulandi && taksitSayisi > 1 && sonuclar.ozelFiyat > 0) {
+      // Özel fiyat üzerinden yeni aylık ödeme hesapla
+      const yeniAylikOdeme = Math.round(sonuclar.ozelFiyat / taksitSayisi);
+      
+      // Yeni taksit planı oluştur
+      const yeniTaksitPlani: Array<{taksitNo: number, tutar: number}> = [];
+      for (let i = 0; i < taksitSayisi; i++) {
+        yeniTaksitPlani.push({
+          taksitNo: i + 1,
+          tutar: yeniAylikOdeme
+        });
+      }
+      
+      // Aylık ödeme tutarını ve taksit planını güncelle
+      setSonuclar(prev => ({
+        ...prev,
+        aylikOdeme: yeniAylikOdeme,
+        taksitPlanı: yeniTaksitPlani
+      }));
+      
+      console.log("Müdür indirimi sonrası aylık ödeme güncellendi:", yeniAylikOdeme);
+    }
+  }, [mudurIndirimUygulandi, sonuclar.ozelFiyat, taksitSayisi]);
 
   const kurOptions = () => {
     if (!selectedKampanya) return [];
@@ -292,10 +319,8 @@ const HesaplamaPage = () => {
       });
     }
     
-    // Müdür indirimi varsa aylık ödemeyi özel fiyat üzerinden güncelle
-    if (mudurIndirimTutari > 0 && taksitSayisi > 1) {
-      aylikOdeme = Math.round(ozelFiyat / taksitSayisi);
-    }
+    // Müdür indirimi hesaplandığında aylikOdeme useEffect'de güncellenir
+    // Bu kısmı boş bırakıyoruz
     
     const yeniSonuclar = {
       listeFiyati: listeF,
