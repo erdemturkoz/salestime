@@ -881,7 +881,27 @@ const UcretlendirmePage = () => {
                       <tr key={kampanya.id} className="border-b border-neutral-100">
                         <td className="p-3">{kampanya.kampanyaAdi}</td>
                         <td className="p-3">
-                          <span className="px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium">
+                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            kampanya.egitimTipi === "Genel İngilizce" 
+                              ? "bg-blue-50 text-blue-700" 
+                              : kampanya.egitimTipi === "Genel Almanca" 
+                                ? "bg-purple-50 text-purple-700"
+                                : kampanya.egitimTipi === "Junior"
+                                  ? "bg-green-50 text-green-700"
+                                  : kampanya.egitimTipi === "Teenage"
+                                    ? "bg-teal-50 text-teal-700"
+                                    : kampanya.egitimTipi === "Yds"
+                                      ? "bg-amber-50 text-amber-700"
+                                      : kampanya.egitimTipi === "Toefl"
+                                        ? "bg-orange-50 text-orange-700"
+                                        : kampanya.egitimTipi === "Ielts"
+                                          ? "bg-rose-50 text-rose-700"
+                                          : kampanya.egitimTipi === "Ydt"
+                                            ? "bg-indigo-50 text-indigo-700"
+                                            : kampanya.egitimTipi === "Özel Ders"
+                                              ? "bg-slate-50 text-slate-700"
+                                              : "bg-primary/10 text-primary"
+                          }`}>
                             {kampanya.egitimTipi || "Belirtilmemiş"}
                           </span>
                         </td>
