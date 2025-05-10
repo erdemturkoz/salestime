@@ -1073,36 +1073,46 @@ const HesaplamaPage = () => {
                         <span className="font-medium text-md">{formatCurrency(sonuclar.listeFiyati)}</span>
                       </div>
                       
-                      <div className="mb-2">
-                        <div className="text-neutral-700 font-semibold text-md mb-1">İndirim Detayı:</div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-600 font-normal text-md">İndirim Oranı:</span>
+                        <span className="font-medium text-md text-green-600">
+                          {formatPercentage(sonuclar.indirimYuzdesi)}
+                        </span>
+                      </div>
+                      
+                      <div className="mt-4 mb-3 bg-white rounded-md border border-gray-200 p-2 shadow-sm">
+                        <div className="text-neutral-700 font-semibold text-md mb-2 border-b pb-1">İndirim Kırılımı:</div>
                         
-                        <div className="border-l-4 border-blue-400 pl-2 mb-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-neutral-600 font-normal text-sm">Kampanya İndirimi:</span>
-                            <span className="font-medium text-sm text-blue-600">
-                              {formatPercentage(sonuclar.indirimYuzdesi)} ({formatCurrency(sonuclar.listeFiyati - sonuclar.kampanyaliFiyat)})
-                            </span>
+                        <div className="flex justify-between items-center mb-2 pb-2 border-b border-blue-100">
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                            <span className="text-neutral-600 text-sm">Kampanya İndirimi:</span>
                           </div>
+                          <span className="font-medium text-sm text-blue-600">
+                            {formatPercentage(sonuclar.indirimYuzdesi)} ({formatCurrency(sonuclar.listeFiyati - sonuclar.kampanyaliFiyat)})
+                          </span>
                         </div>
                         
                         {sonuclar.mudurIndirimTutari > 0 && (
-                          <div className="border-l-4 border-purple-400 pl-2 mb-1.5">
-                            <div className="flex justify-between items-center">
-                              <span className="text-neutral-600 font-normal text-sm">Müdür İndirimi:</span>
-                              <span className="font-medium text-sm text-purple-600">
-                                {formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} ({formatCurrency(sonuclar.mudurIndirimTutari)})
-                              </span>
+                          <div className="flex justify-between items-center mb-2 pb-2 border-b border-purple-100">
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                              <span className="text-neutral-600 text-sm">Müdür İndirimi:</span>
                             </div>
+                            <span className="font-medium text-sm text-purple-600">
+                              {formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} ({formatCurrency(sonuclar.mudurIndirimTutari)})
+                            </span>
                           </div>
                         )}
                         
-                        <div className="border-l-4 border-green-500 pl-2">
-                          <div className="flex justify-between items-center font-medium">
-                            <span className="text-neutral-700 text-sm">Toplam İndirim:</span>
-                            <span className="text-green-600 text-sm">
-                              {formatPercentage((sonuclar.listeFiyati - sonuclar.ozelFiyat) / sonuclar.listeFiyati * 100)} ({formatCurrency(sonuclar.listeFiyati - sonuclar.ozelFiyat)})
-                            </span>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                            <span className="text-neutral-700 font-medium text-sm">Toplam İndirim:</span>
                           </div>
+                          <span className="font-medium text-sm text-green-600">
+                            {formatPercentage((sonuclar.listeFiyati - sonuclar.ozelFiyat) / sonuclar.listeFiyati * 100)} ({formatCurrency(sonuclar.listeFiyati - sonuclar.ozelFiyat)})
+                          </span>
                         </div>
                       </div>
                       
@@ -1201,14 +1211,13 @@ const HesaplamaPage = () => {
                 <div className="col-span-4 p-4 bg-yellow-50">
                   <div className="flex flex-col h-full">
                     {sonuclar.mudurIndirimTutari > 0 ? (
-                      <div className="mb-3 p-3 bg-yellow-200 rounded-md border border-yellow-400 shadow-sm">
-                        <p className="text-black font-semibold text-center mb-1 uppercase tracking-widest">MÜŞTERİYE ÖZEL FİYAT</p>
+                      <div className="mb-3 p-3 bg-yellow-200 rounded-md border border-yellow-300 shadow-sm">
+                        <p className="text-black font-semibold text-center uppercase tracking-wider text-xl">MÜŞTERİYE ÖZEL FİYAT</p>
                         <p className="text-3xl font-bold text-center text-black my-2">{formatCurrency(sonuclar.ozelFiyat)}</p>
-                        <div className="mt-2 border-t border-yellow-400 pt-2">
-                          <div className="text-sm text-center text-black">
-                            <p className="font-semibold">Müdür Özel İndirimi: {formatCurrency(sonuclar.mudurIndirimTutari)}</p>
-                            <p className="text-xs mt-1">({formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} indirim uygulandı)</p>
-                          </div>
+                        <div className="border-t border-yellow-400 my-2"></div>
+                        <div className="text-sm text-center text-black">
+                          <p className="font-semibold">Müdür Özel İndirimi: {formatCurrency(sonuclar.mudurIndirimTutari)}</p>
+                          <p className="text-xs mt-1">({formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} indirim uygulandı)</p>
                         </div>
                       </div>
                     ) : (
