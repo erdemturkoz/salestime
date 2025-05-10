@@ -4,8 +4,9 @@ import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils
 import { calculateInstallments } from "@/utils/calculator";
 import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
-import { RefreshCwIcon, Plus, FileSpreadsheet, Upload } from "lucide-react";
+import { RefreshCwIcon, Plus, FileSpreadsheet } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
+import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
 
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -834,15 +835,7 @@ const UcretlendirmePage = () => {
                     <span>Excel'e Aktar</span>
                   </Button>
                   
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex items-center gap-1"
-                    onClick={handleImportClick}
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>Excel'den İçe Aktar</span>
-                  </Button>
+                  <ExcelImportInfoDialog onImportClick={handleImportClick} />
                   
                   <Button 
                     variant="ghost" 
