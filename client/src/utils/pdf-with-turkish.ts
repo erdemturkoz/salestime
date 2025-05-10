@@ -76,23 +76,24 @@ export function createPDFWithTurkishSupport(): jsPDF {
   console.log("Hediye edilen tutar:", hediyeEdilenTutar);
   
   // Toplam ve diğer değerleri hesapla
+  // Genel Toplam, Kampanyalı Fiyat ile aynı tutarı kullanır
+  // Hediyeler genel toplamdan düşülmez, ücretsiz hediye olarak verilir
   const genelToplam = sonuclar.genelToplam || 63840;
-  const hediyelerDusulmusGenelToplam = genelToplam - hediyeEdilenTutar;
   
   // Müdür inisiyatifi indirimi ve özel fiyatı doğrudan localStorage'dan alınan veriden kullan
   // Bu sayede ekranda görünen değerlerle tam uyumlu olacak
   let mudurIndirimTutari = sonuclar.mudurIndirimTutari || 0;
-  let ozelFiyat = sonuclar.ozelFiyat || hediyelerDusulmusGenelToplam;
+  let ozelFiyat = sonuclar.ozelFiyat || genelToplam;
   
   // Güvenlik kontrolü - Değerler yoksa hesapla
   if (mudurIndirimTutari <= 0 && sonuclar.mudurIndirimDegeri && sonuclar.mudurIndirimTipi) {
     if (sonuclar.mudurIndirimTipi === "miktar") {
-      mudurIndirimTutari = Math.min(sonuclar.mudurIndirimDegeri, hediyelerDusulmusGenelToplam);
+      mudurIndirimTutari = Math.min(sonuclar.mudurIndirimDegeri, genelToplam);
     } else {
       const yuzde = Math.min(sonuclar.mudurIndirimDegeri, 100);
-      mudurIndirimTutari = Math.round((hediyelerDusulmusGenelToplam * yuzde) / 100);
+      mudurIndirimTutari = Math.round((genelToplam * yuzde) / 100);
     }
-    ozelFiyat = hediyelerDusulmusGenelToplam - mudurIndirimTutari;
+    ozelFiyat = genelToplam - mudurIndirimTutari;
   }
   
   // Taksit hesaplaması - Özel fiyat üzerinden yapılır (müdür indirimi varsa)
@@ -268,8 +269,8 @@ export function createPDFWithTurkishSupport(): jsPDF {
       }
     }
     
-    // Taksitli ödeme toplamı (genel toplam - hediye edilen ürünler)
-    const taksitliToplamFiyat = hediyelerDusulmusGenelToplam;
+    // Taksitli ödeme toplamı (genel toplam)
+    const taksitliToplamFiyat = genelToplam;
     
     // Tasarruf miktarı
     const tasarrufMiktari = taksitliToplamFiyat - nakitToplamFiyat;
@@ -327,12 +328,12 @@ export function createPDFWithTurkishSupport(): jsPDF {
   doc.text("Genel Toplam:", margin + 5, yPos + 10);
   
   doc.setFontSize(14);
-  doc.text(`${hediyelerDusulmusGenelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 20);
+  doc.text(`${genelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 20);
   
   // MÜDÜR İNİSİYATİFİ İNDİRİMİ - Hesaplama sonuçlarını doğrudan kullan
   let mudurIndirimiVarMi = false;
   console.log("PDF'de kullanılacak değerler:", {
-    genelToplam: hediyelerDusulmusGenelToplam,
+    genelToplam: genelToplam,
     mudurIndirimTutari: sonuclar.mudurIndirimTutari,
     ozelFiyat: sonuclar.ozelFiyat
   });
