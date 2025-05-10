@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import UcretlendirmePage from "@/pages/UcretlendirmePage";
 import HesaplamaPage from "@/pages/HesaplamaPage";
 import { AppProvider } from "./contexts/AppContext";
+import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
 
 function Router() {
   return (
@@ -15,8 +16,8 @@ function Router() {
       <Sidebar />
       <main className="flex-1 md:ml-[5px] min-h-screen w-full">
         <Switch>
-          <Route path="/" component={UcretlendirmePage} />
-          <Route path="/ucretlendirme" component={UcretlendirmePage} />
+          <Route path="/" component={HesaplamaPage} />
+          <PasswordProtectedRoute path="/ucretlendirme" component={UcretlendirmePage} />
           <Route path="/hesaplama" component={HesaplamaPage} />
           <Route component={NotFound} />
         </Switch>
