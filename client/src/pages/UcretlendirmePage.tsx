@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
+import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
-import { RefreshCwIcon, Plus } from "lucide-react";
+import { RefreshCwIcon, Plus, FileSpreadsheet, Upload } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ const UcretlendirmePage = () => {
   const { toast } = useToast();
   const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar } = useAppContext();
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [hediyeAdi, setHediyeAdi] = useState("");
@@ -239,6 +241,114 @@ const UcretlendirmePage = () => {
     if (e.key === 'Enter') {
       handleAddHediye();
       e.preventDefault();
+    }
+  };
+  
+  // Excel İşlevleri
+  const handleExportToExcel = () => {
+    if (kampanyalar.length === 0) {
+      toast({
+        title: "Hata",
+        description: "Dışa aktarılacak kampanya bulunmuyor.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      exportToExcel(kampanyalar);
+      toast({
+        title: "Başarılı",
+        description: "Kampanyalar Excel dosyasına aktarıldı.",
+      });
+    } catch (error) {
+      console.error("Excel dışa aktarma hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Excel dosyası oluşturulurken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const importedKampanyalar = await importFromExcel(file);
+      
+      if (importedKampanyalar.length === 0) {
+        toast({
+          title: "Uyarı",
+          description: "İçe aktarılacak kampanya bulunamadı.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Her bir kampanyayı ekle
+      let addedCount = 0;
+      for (const kampanya of importedKampanyalar) {
+        if (kampanya.kampanyaAdi && kampanya.listeFiyati && kampanya.nakitFiyati) {
+          // Type uyumluluğunu sağlamak için undefined değerleri varsayılan değerlerle değiştir
+          const newKampanya = {
+            kampanyaAdi: kampanya.kampanyaAdi,
+            egitimTipi: kampanya.egitimTipi || "",
+            kurSayisi: kampanya.kurSayisi || 1,
+            toplamDersSaati: kampanya.toplamDersSaati || 120,
+            listeFiyati: kampanya.listeFiyati || 0,
+            nakitFiyati: kampanya.nakitFiyati || 0,
+            indirimOrani: kampanya.indirimOrani || 0,
+            faizOrani: kampanya.faizOrani || 0,
+            kitapFiyati: kampanya.kitapFiyati || 0,
+            kitapSetSayisi: kampanya.kitapSetSayisi || 1,
+            maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
+            maxSenetTaksit: kampanya.maxSenetTaksit || 12,
+            hediyeler: kampanya.hediyeler || []
+          };
+          
+          addKampanya(newKampanya);
+          addedCount++;
+        }
+      }
+      
+      if (addedCount > 0) {
+        toast({
+          title: "Başarılı",
+          description: `${addedCount} kampanya başarıyla içe aktarıldı.`,
+        });
+      } else {
+        toast({
+          title: "Uyarı",
+          description: "Geçerli kampanya bulunamadı. Zorunlu alanların dolu olduğundan emin olun.",
+          variant: "destructive",
+        });
+      }
+      
+      // Dosya seçiciyi sıfırla
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      
+    } catch (error) {
+      console.error("Excel içe aktarma hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Excel dosyasından veri okunamadı.",
+        variant: "destructive",
+      });
+      
+      // Dosya seçiciyi sıfırla
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -713,14 +823,46 @@ const UcretlendirmePage = () => {
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
                 <CardTitle>Kayıtlı Kampanyalar</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary hover:text-primary/80 flex items-center gap-1"
-                >
-                  <RefreshCwIcon className="h-4 w-4" />
-                  <span>Yenile</span>
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1"
+                    onClick={handleExportToExcel}
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Excel'e Aktar</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1"
+                    onClick={handleImportClick}
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span>Excel'den İçe Aktar</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-primary hover:text-primary/80 flex items-center gap-1"
+                    onClick={refreshKampanyalar}
+                  >
+                    <RefreshCwIcon className="h-4 w-4" />
+                    <span>Yenile</span>
+                  </Button>
+                  
+                  {/* Gizli dosya giriş elemanı */}
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".xlsx, .xls"
+                    className="hidden" 
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
