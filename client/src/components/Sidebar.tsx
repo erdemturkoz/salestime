@@ -93,7 +93,7 @@ const Sidebar = () => {
   const sidebarContent = (
     <div className="flex flex-col h-full min-h-screen sticky top-0">
       <div className="p-4 border-b">
-        <h2 className="text-lg font-bold">Dil Kursu Yönetim</h2>
+        <h2 className="text-lg font-bold">Sales Time</h2>
       </div>
 
       <div className="flex-1 p-4">
