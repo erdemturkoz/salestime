@@ -1134,11 +1134,22 @@ const HesaplamaPage = () => {
                 {/* Sağ Kolon - Genel Toplam ve Hediyeler */}
                 <div className="col-span-4 p-4 bg-yellow-50">
                   <div className="flex flex-col h-full">
-                    <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
-                      <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
-                      <p className="text-2xl font-bold text-center text-yellow-900 my-1">{formatCurrency(sonuclar.genelToplam)}</p>
-                      <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
-                    </div>
+                    {sonuclar.mudurIndirimTutari > 0 ? (
+                      <div className="mb-3 p-3 bg-emerald-100 rounded-md border border-emerald-300 shadow-sm">
+                        <p className="text-emerald-800 font-medium text-center mb-1">Özel Fiyat</p>
+                        <p className="text-2xl font-bold text-center text-emerald-900 my-1">{formatCurrency(sonuclar.ozelFiyat)}</p>
+                        <div className="text-xs text-center text-emerald-700 mt-1">
+                          <p>Tüm vergiler dahil</p>
+                          <p className="font-semibold">{formatCurrency(sonuclar.mudurIndirimTutari)} Müdür İndirimi Uygulandı!</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
+                        <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
+                        <p className="text-2xl font-bold text-center text-yellow-900 my-1">{formatCurrency(sonuclar.genelToplam)}</p>
+                        <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
+                      </div>
+                    )}
                     
                     <div className="p-3 bg-blue-50 rounded-md border border-blue-100 mb-3">
                       <div className="space-y-3">
