@@ -288,7 +288,7 @@ const HesaplamaPage = () => {
       kampanyaliFiyat: kampanyaFiyat,
       nakitFiyati: nakitF, // Nakit fiyatını ekledik
       kitapUcreti: kitapF,
-      genelToplam: toplamFiyatSonHali,
+      genelToplam: toplamFiyatSonHali, // Müdür inisiyatifi indirimi uygulanmış toplam
       aylikOdeme: aylikOdeme,
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
@@ -303,6 +303,7 @@ const HesaplamaPage = () => {
       taksitPlanı: sonuclar.taksitPlanı || [], // Varsa, oluşturulan taksit planını ekleyelim
       mudurIndirimTutari: mudurIndirimTutari,
       mudurIndirimTipi: mudurIndirimDegeri > 0 ? mudurIndirimTipi : "",
+      kampanyasizToplam: toplamFiyat, // Müdür inisiyatifi indirimi uygulanmamış toplam
     };
     
     // Sonuçları state'e kaydet
@@ -707,6 +708,14 @@ const HesaplamaPage = () => {
                                 <span> ({mudurIndirimDegeri}%)</span>
                               )}
                             </span>
+                          </div>
+                        )}
+                        
+                        {/* İndirimli Fiyat - Müdür İnisiyatifi indirimi varsa gösterilir */}
+                        {sonuclar.mudurIndirimTutari > 0 && (
+                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-200">
+                            <span className="text-neutral-600 font-medium">İndirimli Fiyat:</span>
+                            <span className="font-bold text-lg text-green-600">{formatCurrency(sonuclar.genelToplam)}</span>
                           </div>
                         )}
                       </div>
