@@ -261,7 +261,7 @@ const UcretlendirmePage = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <TooltipProvider>
                       <Tooltip>
@@ -435,31 +435,33 @@ const UcretlendirmePage = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Label htmlFor="faiz-orani">Yıllık Faiz Oranı (%)</Label>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Taksitli ödeme seçeneklerinde uygulanacak yıllık faiz oranı</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <Input
-                    id="faiz-orani"
-                    name="faizOrani"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    placeholder="Örn: 12.5"
-                    value={formData.faizOrani || ""}
-                    onChange={handleInputChange}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="faiz-orani">Yıllık Faiz Oranı (%)</Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Taksitli ödeme seçeneklerinde uygulanacak yıllık faiz oranı</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Input
+                      id="faiz-orani"
+                      name="faizOrani"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      placeholder="Örn: 12.5"
+                      value={formData.faizOrani || ""}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <TooltipProvider>
                       <Tooltip>
