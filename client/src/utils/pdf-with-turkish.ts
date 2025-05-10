@@ -291,24 +291,70 @@ export function createPDFWithTurkishSupport(): jsPDF {
   doc.setTextColor(230, 81, 0);
   doc.text("BU OZEL TEKLIF YALNIZCA 2 GUN GECERLIDIR!", pageWidth / 2, yPos + 6, { align: 'center' });
   
-  // TOPLAM TUTAR
+  // TOPLAM TUTARLAR - Yan yana 3 kart olarak
   yPos += 20;
-  doc.setFillColor(232, 240, 254);
-  doc.rect(margin, yPos, pageWidth - (margin * 2), 20, 'F');
+  
+  // Kart genişliklerini ve boşlukları hesaplayalım
+  const cardSpacing = 10; // Kartlar arası boşluk
+  const cardWidth = (pageWidth - (margin * 2) - (cardSpacing * 2)) / 3; // 3 kart için eşit genişlik
+  
+  // GENEL TOPLAM
+  doc.setFillColor(232, 240, 254); // Mavi
+  doc.rect(margin, yPos, cardWidth, 30, 'F');
   
   doc.setTextColor(46, 76, 170);
-  doc.setFontSize(14);
-  doc.text("Toplam Egitim Tutari:", margin + 5, yPos + 8);
+  doc.setFontSize(12);
+  doc.text("Genel Toplam:", margin + 5, yPos + 10);
   
-  doc.setFontSize(16);
-  doc.text(`${hediyelerDusulmusGenelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 16);
+  doc.setFontSize(14);
+  doc.text(`${hediyelerDusulmusGenelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 20);
+  
+  // MÜDÜR İNİSİYATİFİ İNDİRİMİ - varsa gösterilir
+  let mudurIndirimiVarMi = false;
+  if (sonuclar.mudurIndirimTutari && sonuclar.mudurIndirimTutari > 0) {
+    mudurIndirimiVarMi = true;
+    
+    doc.setFillColor(232, 250, 236); // Açık yeşil
+    doc.rect(margin + cardWidth + cardSpacing, yPos, cardWidth, 30, 'F');
+    
+    doc.setTextColor(46, 125, 50);
+    doc.setFontSize(12);
+    doc.text("Müdür İnisiyatifi İndirimi:", margin + cardWidth + cardSpacing + 5, yPos + 10);
+    
+    doc.setFontSize(14);
+    let mudurIndirimiText = `-${sonuclar.mudurIndirimTutari.toLocaleString('tr-TR')} TL`;
+    
+    // Yüzde gösterimi de ekleniyor
+    if (sonuclar.mudurIndirimTipi === "yuzde" && typeof sonuclar.mudurIndirimDegeri === 'number') {
+      mudurIndirimiText += ` (${sonuclar.mudurIndirimDegeri}%)`;
+    }
+    
+    doc.text(mudurIndirimiText, margin + cardWidth + cardSpacing + 5, yPos + 20);
+  }
+  
+  // ÖZEL FİYAT - Müdür indirimi varsa gösterilir
+  if (mudurIndirimiVarMi && sonuclar.ozelFiyat) {
+    doc.setFillColor(255, 236, 0); // Sarı
+    doc.rect(margin + (cardWidth + cardSpacing) * 2, yPos, cardWidth, 30, 'F');
+    
+    doc.setTextColor(0, 0, 0); // Siyah
+    doc.setFontSize(12);
+    doc.text("Özel Fiyat:", margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 10);
+    
+    doc.setFontSize(14);
+    doc.text(`${sonuclar.ozelFiyat.toLocaleString('tr-TR')} TL`, margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 20);
+  }
   
   // Taksitli ödeme ise taksit bilgisini göster
   if (taksitSayisi > 1) {
+    yPos += 35;
+    doc.setFillColor(232, 240, 254);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 20, 'F');
+    
     doc.setFontSize(12);
     doc.setTextColor(63, 81, 181);
     doc.text(`Aylik sadece ${aylikOdeme.toLocaleString('tr-TR')} TL x ${taksitSayisi} taksit`, 
-      pageWidth - margin - 5, yPos + 12, { align: 'right' });
+      pageWidth / 2, yPos + 12, { align: 'center' });
   }
   
   // ALT BİLGİ
