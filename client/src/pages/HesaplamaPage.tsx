@@ -1185,9 +1185,10 @@ const HesaplamaPage = () => {
                     {taksitSayisi > 1 && (
                       <div>
                         <div className="bg-white rounded-md border border-green-200 overflow-hidden shadow-sm">
-                          <p className="text-green-700 font-bold text-center p-2 bg-green-100 border-b border-green-200">
-                            Aylık Ödeme Planı
-                          </p>
+                          <div className="flex justify-between items-center p-2 bg-green-100 border-b border-green-200">
+                            <p className="text-green-700 font-bold">Aylık Ödeme Planı</p>
+                            <p className="text-green-800 font-semibold">Toplam: <span className="font-bold">{formatCurrency(sonuclar.ozelFiyat)}</span></p>
+                          </div>
                           <div className="p-3">
                             <table className="w-full text-sm">
                               <thead className="bg-green-50 border-b border-green-200">
@@ -1210,8 +1211,10 @@ const HesaplamaPage = () => {
                                   <td className="py-2 px-3 text-right font-bold text-green-800">{formatCurrency(sonuclar.ozelFiyat)}</td>
                                 </tr>
                                 <tr>
-                                  <td colSpan={2} className="py-2 px-3 text-center text-neutral-500 text-xs bg-green-50/30 border-t border-green-100">
-                                    {taksitSayisi} taksit boyunca her ay {formatCurrency(sonuclar.aylikOdeme)} ödeme
+                                  <td colSpan={2} className="py-2 px-3 text-center font-medium text-neutral-600 text-xs bg-green-50/30 border-t border-green-100">
+                                    <span className="bg-green-100 px-3 py-1 rounded-full">
+                                      {taksitSayisi} taksit boyunca her ay {formatCurrency(sonuclar.aylikOdeme)} ödeme
+                                    </span>
                                   </td>
                                 </tr>
                               </tfoot>
