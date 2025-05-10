@@ -915,10 +915,10 @@ const HesaplamaPage = () => {
                       
                       {/* Özel Fiyat - Müdür indiriminden sonra */}
                       {mudurIndirimUygulandi && (
-                        <div className="p-3 bg-emerald-50 rounded-md border border-emerald-100">
+                        <div className="p-3 bg-yellow-300 rounded-md border border-yellow-400">
                           <div className="flex justify-between items-center">
-                            <span className="text-emerald-800 font-bold">Özel Fiyat:</span>
-                            <span className="text-emerald-600 text-xl font-bold">{formatCurrency(sonuclar.ozelFiyat)}</span>
+                            <span className="text-black font-bold">Özel Fiyat:</span>
+                            <span className="text-black text-xl font-bold">{formatCurrency(sonuclar.ozelFiyat)}</span>
                           </div>
                         </div>
                       )}
