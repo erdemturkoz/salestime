@@ -696,6 +696,19 @@ const HesaplamaPage = () => {
                           <span className="text-neutral-600">Kampanyalı Fiyat:</span>
                           <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
                         </div>
+                        
+                        {/* Müdür İnisiyatifi İndirimi - Sadece indirim varsa gösterilir */}
+                        {sonuclar.mudurIndirimTutari > 0 && (
+                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
+                            <span className="text-neutral-600">Müdür İnisiyatifi İndirimi:</span>
+                            <span className="text-green-600 font-bold">
+                              -{formatCurrency(sonuclar.mudurIndirimTutari)} 
+                              {sonuclar.mudurIndirimTipi === "yuzde" && (
+                                <span> ({mudurIndirimDegeri}%)</span>
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Hediyeler Alanı */}
