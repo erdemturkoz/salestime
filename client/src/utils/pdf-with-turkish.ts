@@ -197,17 +197,10 @@ export function createPDFWithTurkishSupport(): jsPDF {
   doc.setFontSize(12);
   
   // Hediye edilen kalemleri kontrol et
-  let hediyeEdilenKalemler: Record<string, boolean> = {};
-  try {
-    if (sonuclar.hediyeEdilenKalemler) {
-      hediyeEdilenKalemler = JSON.parse(sonuclar.hediyeEdilenKalemler) as Record<string, boolean>;
-    }
-  } catch (e) {
-    console.error("Hediye edilen kalemler parselenemedi:", e);
-  }
+  // Yukarıda parseHediyeler değişkenine atadığımız hediye bilgilerini kullan
   
   // Kitap seti - hediye edilip edilmediğini kontrol et
-  const kitapHediye = hediyeEdilenKalemler && 'kitap' in hediyeEdilenKalemler && hediyeEdilenKalemler.kitap === true;
+  const kitapHediye = parsedHediyeler && 'kitap' in parsedHediyeler && parsedHediyeler.kitap === true;
   doc.text(`• Kitap Seti (${kitapUcreti.toLocaleString('tr-TR')} TL degerinde)${kitapHediye ? ' - HEDIYE' : ''}`, margin, yPos);
   
   // Hediyeler varsa
@@ -215,7 +208,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
     for (const hediye of sonuclar.hediyeler) {
       yPos += 6;
       const hediyeKey = hediye.isim;
-      const hediyeEdildi = hediyeEdilenKalemler && hediyeKey in hediyeEdilenKalemler && hediyeEdilenKalemler[hediyeKey] === true;
+      const hediyeEdildi = parsedHediyeler && hediyeKey in parsedHediyeler && parsedHediyeler[hediyeKey] === true;
       doc.text(`• ${hediye.isim} (${hediye.fiyat.toLocaleString('tr-TR')} TL degerinde)${hediyeEdildi ? ' - HEDIYE' : ''}`, margin, yPos);
     }
   } else {
@@ -244,9 +237,9 @@ export function createPDFWithTurkishSupport(): jsPDF {
     if (sonuclar.hediyeler && sonuclar.hediyeler.length > 0) {
       for (const hediye of sonuclar.hediyeler) {
         const hediyeKey = hediye.isim;
-        const hediyeEdildi = hediyeEdilenKalemler && 
-                             hediyeKey in hediyeEdilenKalemler && 
-                             hediyeEdilenKalemler[hediyeKey] === true;
+        const hediyeEdildi = parsedHediyeler && 
+                             hediyeKey in parsedHediyeler && 
+                             parsedHediyeler[hediyeKey] === true;
         
         // Hediye edilmediyse fiyatını ekle
         if (!hediyeEdildi) {
@@ -267,7 +260,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
       taksitliToplamFiyat,
       tasarrufMiktari,
       kitapHediye,
-      hediyeEdilenKalemler
+      hediyeKalemleri: parsedHediyeler
     });
     
     // Eğer tasarruf varsa göster
