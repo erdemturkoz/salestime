@@ -60,7 +60,8 @@ export function createPDFWithTurkishSupport(): jsPDF {
   
   // Toplam ve diğer değerleri hesapla
   const genelToplam = sonuclar.genelToplam || 63840;
-  const aylikOdeme = sonuclar.aylikOdeme || 15960;
+  const hediyelerDusulmusGenelToplam = genelToplam - hediyeEdilenTutar;
+  const aylikOdeme = (hediyelerDusulmusGenelToplam / (sonuclar.taksitSayisi || 4));
   const taksitSayisi = sonuclar.taksitSayisi || 4;
   const nakitFiyat = sonuclar.kampanyaliFiyat || 55000;
   
@@ -290,7 +291,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
   doc.text("Toplam Egitim Tutari:", margin + 5, yPos + 8);
   
   doc.setFontSize(16);
-  doc.text(`${genelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 16);
+  doc.text(`${hediyelerDusulmusGenelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 16);
   
   // Taksitli ödeme ise taksit bilgisini göster
   if (taksitSayisi > 1) {
