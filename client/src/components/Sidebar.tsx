@@ -18,7 +18,7 @@ const NAV_ITEMS = [
     icon: <Calculator className="h-5 w-5" />,
   },
   {
-    label: 'Fiyat Yönetimi',
+    label: 'Kampanya Ekle',
     href: '/ucretlendirme',
     icon: <DollarSign className="h-5 w-5" />,
   },
