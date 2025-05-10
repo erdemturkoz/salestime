@@ -57,7 +57,6 @@ const HesaplamaPage = () => {
     kampanyaliFiyat: 0,
     kitapUcreti: 0,
     genelToplam: 0,
-    ozelFiyat: 0, // Genel Toplam - Müdür İnisiyatifi İndirimi = Özel Fiyat
     aylikOdeme: 0,
     odemeTipiText: "",
     taksitDetay: "",
@@ -69,8 +68,6 @@ const HesaplamaPage = () => {
     egitimTipi: "",
     kurSayisi: 0,
     dersSaati: 0,
-    hediyeEdilenTutar: 0,
-    hediyeEdilenKalemler: "",
   });
 
   const selectedKampanya = kampanyalar.find(k => k.id === selectedKampanyaId);
