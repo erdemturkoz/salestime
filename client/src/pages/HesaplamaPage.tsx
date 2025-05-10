@@ -1224,34 +1224,37 @@ const HesaplamaPage = () => {
                 </div>
                 
                 {/* Sağ Kolon - Genel Toplam ve Hediyeler */}
-                <div className="col-span-4 p-4 bg-yellow-50">
+                <div className="col-span-4 p-4 bg-yellow-50 shadow-sm">
                   <div className="flex flex-col h-full">
                     {sonuclar.mudurIndirimTutari > 0 ? (
-                      <div className="mb-3 p-3 bg-yellow-200 rounded-md border border-yellow-300 shadow-sm">
-                        <p className="text-black font-semibold text-center uppercase tracking-wider text-xl">MÜŞTERİYE ÖZEL FİYAT</p>
-                        <p className="text-3xl font-bold text-center text-black my-2">{formatCurrency(sonuclar.ozelFiyat)}</p>
+                      <div className="mb-4 p-4 bg-yellow-200 rounded-md border border-yellow-400 shadow">
+                        <p className="text-black font-bold text-center uppercase tracking-wider text-xl">MÜŞTERİYE ÖZEL FİYAT</p>
+                        <p className="text-4xl font-extrabold text-center text-black my-3">{formatCurrency(sonuclar.ozelFiyat)}</p>
                         <div className="border-t border-yellow-400 my-2"></div>
-                        <div className="text-sm text-center text-black">
-                          <p className="font-semibold">Müdür Özel İndirimi: {formatCurrency(sonuclar.mudurIndirimTutari)}</p>
-                          <p className="text-xs mt-1">({formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} indirim uygulandı)</p>
+                        <div className="text-center text-black">
+                          <p className="font-semibold text-md">Müdür Özel İndirimi: {formatCurrency(sonuclar.mudurIndirimTutari)}</p>
+                          <p className="mt-1 bg-green-600 text-white text-sm font-medium inline-block px-2 py-0.5 rounded">
+                            {formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} indirim uygulandı
+                          </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="mb-3 p-3 bg-yellow-100 rounded-md border border-yellow-300 shadow-sm">
-                        <p className="text-yellow-800 font-medium text-center">Genel Toplam</p>
-                        <p className="text-2xl font-bold text-center text-yellow-900 my-1">{formatCurrency(sonuclar.genelToplam)}</p>
-                        <p className="text-xs text-center text-yellow-700">Tüm vergiler dahil</p>
+                      <div className="mb-4 p-4 bg-yellow-100 rounded-md border border-yellow-300 shadow">
+                        <p className="text-yellow-800 font-semibold text-center text-lg">Genel Toplam</p>
+                        <p className="text-3xl font-bold text-center text-yellow-900 my-2">{formatCurrency(sonuclar.genelToplam)}</p>
+                        <p className="text-sm text-center text-yellow-700 font-medium">Tüm vergiler dahil</p>
                       </div>
                     )}
                     
-                    <div className="p-3 bg-blue-50 rounded-md border border-blue-100 mb-3">
+                    <div className="p-4 bg-white rounded-md border border-blue-200 shadow-sm mb-3">
+                      <h3 className="text-blue-800 font-semibold text-md mb-3 pb-1 border-b border-blue-100">Fiyat Bilgileri</h3>
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center py-1">
                           <span className="text-blue-800 font-medium">Liste Fiyatı:</span>
                           <span className="font-bold text-lg">{formatCurrency(sonuclar.listeFiyati)}</span>
                         </div>
                         
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center py-1">
                           <span className="text-blue-800 font-medium">İndirim Oranı:</span>
                           <span className="font-bold text-lg text-green-600">
                             {formatPercentage(sonuclar.indirimYuzdesi)}
@@ -1286,15 +1289,17 @@ const HesaplamaPage = () => {
                       </div>
                     </div>
                     
-                    <div className="mt-2 p-3 bg-amber-50 rounded-md border border-amber-200">
+                    <div className="mt-4 p-4 bg-amber-100 rounded-md border border-amber-300 shadow-sm">
                       <div className="text-center">
-                        <p className="text-sm text-amber-800 font-medium">
+                        <p className="text-amber-800 font-semibold text-lg mb-1">
                           Teklif Tarihi: {new Date().toLocaleDateString('tr-TR')}
                         </p>
-                        <p className="text-xs text-amber-700 mt-1 font-bold">
-                          Bu teklif sadece 2 gün geçerlidir!
-                        </p>
-                        <p className="text-xs text-amber-600 mt-1">
+                        <div className="mt-2 bg-amber-200 inline-block px-4 py-1 rounded-full border border-amber-400">
+                          <p className="text-amber-900 font-bold">
+                            Bu teklif sadece 2 gün geçerlidir!
+                          </p>
+                        </div>
+                        <p className="text-sm text-amber-700 mt-3 font-medium">
                           Kampanya kontenjanları sınırlıdır. Fırsatı kaçırmayın!
                         </p>
                       </div>
