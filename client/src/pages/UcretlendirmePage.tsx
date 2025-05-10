@@ -413,15 +413,15 @@ const UcretlendirmePage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
-                          <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
-                          <SelectItem value="Junior">Junior</SelectItem>
-                          <SelectItem value="Teenage">Teenage</SelectItem>
-                          <SelectItem value="Yds">Yds</SelectItem>
-                          <SelectItem value="Toefl">Toefl</SelectItem>
-                          <SelectItem value="Ielts">Ielts</SelectItem>
-                          <SelectItem value="Ydt">Ydt</SelectItem>
-                          <SelectItem value="Özel Ders">Özel Ders</SelectItem>
+                          <SelectItem value="Genel İngilizce" className="bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800">Genel İngilizce</SelectItem>
+                          <SelectItem value="Genel Almanca" className="bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800">Genel Almanca</SelectItem>
+                          <SelectItem value="Junior" className="bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800">Junior</SelectItem>
+                          <SelectItem value="Teenage" className="bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-800">Teenage</SelectItem>
+                          <SelectItem value="Yds" className="bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800">Yds</SelectItem>
+                          <SelectItem value="Toefl" className="bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800">Toefl</SelectItem>
+                          <SelectItem value="Ielts" className="bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800">Ielts</SelectItem>
+                          <SelectItem value="Ydt" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800">Ydt</SelectItem>
+                          <SelectItem value="Özel Ders" className="bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-800">Özel Ders</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
