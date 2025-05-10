@@ -720,18 +720,36 @@ const HesaplamaPage = () => {
                                       
                                       // Genel toplamı güncelle
                                       setSonuclar(prev => {
-                                        const yeniToplam = yeniDurum 
-                                          ? prev.genelToplam - prev.kitapUcreti 
-                                          : prev.genelToplam + prev.kitapUcreti;
+                                        // Kampanyalı fiyatı al (hediyeler hariç)
+                                        const kampanyaliFiyat = prev.kampanyaliFiyat;
+                                        
+                                        // Tüm hediyelerin durumunu kontrol et ve toplam fiyatı hesapla
+                                        let hediyelerToplami = 0;
+                                        
+                                        // Kitap hediye mi?
+                                        if (kitapDahil && !yeniDurum) {
+                                          hediyelerToplami += prev.kitapUcreti;
+                                        }
+                                        
+                                        // Diğer hediyeler
+                                        prev.hediyeler.forEach((h) => {
+                                          // Eğer hediye edilmemişse (yani kullanıcı ödeyecekse) toplama ekle
+                                          if (!hediyeEdildi[h.isim]) {
+                                            hediyelerToplami += h.fiyat;
+                                          }
+                                        });
+                                        
+                                        // Yeni genel toplam: kampanyalı fiyat + ödenmesi gereken hediyeler
+                                        const yeniGenelToplam = kampanyaliFiyat + hediyelerToplami;
                                         
                                         // Taksitli ödemede taksit başına düşen tutarı güncelle
-                                        const yeniAylikOdeme = taksitSayisi > 1 
-                                          ? Math.round(yeniToplam / taksitSayisi) 
-                                          : yeniToplam;
+                                        const yeniAylikOdeme = taksitSayisi > 1
+                                          ? Math.round(yeniGenelToplam / taksitSayisi)
+                                          : yeniGenelToplam;
                                         
                                         return {
                                           ...prev,
-                                          genelToplam: yeniToplam,
+                                          genelToplam: yeniGenelToplam,
                                           aylikOdeme: yeniAylikOdeme
                                         };
                                       });
