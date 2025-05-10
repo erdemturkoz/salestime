@@ -317,7 +317,7 @@ const HesaplamaPage = () => {
   return (
     <div className="h-full w-full">
       <div className="w-full px-6">
-        <header className="mb-4">
+        <header className="mb-4 mt-[5px]">
           <h1 className="text-2xl font-bold text-neutral-800">Ücret Hesaplama Arayüzü</h1>
           <p className="text-neutral-500">Müşterilere sunulacak ödeme seçeneklerini hesaplayın.</p>
         </header>
