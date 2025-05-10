@@ -124,6 +124,10 @@ const HesaplamaPage = () => {
       return;
     }
 
+    // Hediye butonlarının durumlarını sıfırla
+    setKitapHediyeEdildi(false);
+    setHediyeEdildi({});
+    
     // Kur sayısına göre oransal hesaplama
     const kurOrani = selectedKurSayisi / selectedKampanya.kurSayisi;
     const listeF = selectedKampanya.listeFiyati * kurOrani;
