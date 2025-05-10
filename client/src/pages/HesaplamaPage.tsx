@@ -764,10 +764,26 @@ const HesaplamaPage = () => {
                                           ? Math.round(yeniGenelToplam / taksitSayisi)
                                           : yeniGenelToplam;
                                         
+                                        // Müdür inisiyatifi indirimi varsa özel fiyatı yeniden hesapla
+                                        let yeniOzelFiyat = yeniGenelToplam;
+                                        let yeniMudurIndirimTutari = 0;
+                                        
+                                        if (mudurIndirimUygulandi) {
+                                          if (mudurIndirimTipi === "miktar") {
+                                            yeniMudurIndirimTutari = Math.min(mudurIndirimDegeri, yeniGenelToplam);
+                                          } else {
+                                            const yuzde = Math.min(mudurIndirimDegeri, 100);
+                                            yeniMudurIndirimTutari = Math.round((yeniGenelToplam * yuzde) / 100);
+                                          }
+                                          yeniOzelFiyat = yeniGenelToplam - yeniMudurIndirimTutari;
+                                        }
+                                        
                                         return {
                                           ...prev,
                                           genelToplam: yeniGenelToplam,
-                                          aylikOdeme: yeniAylikOdeme
+                                          aylikOdeme: yeniAylikOdeme,
+                                          ozelFiyat: yeniOzelFiyat,
+                                          mudurIndirimTutari: yeniMudurIndirimTutari
                                         };
                                       });
                                       
@@ -831,12 +847,33 @@ const HesaplamaPage = () => {
                                         ? Math.round(yeniGenelToplam / taksitSayisi)
                                         : yeniGenelToplam;
                                       
-                                      // Sonuçları güncelle
-                                      setSonuclar(prev => ({
-                                        ...prev,
-                                        genelToplam: yeniGenelToplam,
-                                        aylikOdeme: yeniAylikOdeme
-                                      }));
+                                      // Sonuçları güncelle (Özel fiyatı da güncelleyerek)
+                                      setSonuclar(prev => {
+                                        // Müdür inisiyatifi indirimi varsa özel fiyatı yeniden hesapla
+                                        let yeniOzelFiyat = yeniGenelToplam;
+                                        if (mudurIndirimUygulandi) {
+                                          let mudurIndirimTutari = 0;
+                                          if (mudurIndirimTipi === "miktar") {
+                                            mudurIndirimTutari = Math.min(mudurIndirimDegeri, yeniGenelToplam);
+                                          } else {
+                                            const yuzde = Math.min(mudurIndirimDegeri, 100);
+                                            mudurIndirimTutari = Math.round((yeniGenelToplam * yuzde) / 100);
+                                          }
+                                          yeniOzelFiyat = yeniGenelToplam - mudurIndirimTutari;
+                                        }
+                                        
+                                        return {
+                                          ...prev,
+                                          genelToplam: yeniGenelToplam,
+                                          aylikOdeme: yeniAylikOdeme,
+                                          ozelFiyat: yeniOzelFiyat,
+                                          mudurIndirimTutari: mudurIndirimUygulandi ? 
+                                            (mudurIndirimTipi === "miktar" ? 
+                                              Math.min(mudurIndirimDegeri, yeniGenelToplam) : 
+                                              Math.round((yeniGenelToplam * Math.min(mudurIndirimDegeri, 100)) / 100)
+                                            ) : 0
+                                        };
+                                      });
                                       
                                       // Bildirim göster
                                       toast({
