@@ -333,17 +333,23 @@ const HesaplamaPage = () => {
   // PDF oluşturup indirme fonksiyonu - İSO Türkçe karakterli sürüm
   const handleGeneratePDF = () => {
     try {
+      // Ekrandaki mevcut değerleri al
+      const mudurIndirimTutari = sonuclar.mudurIndirimTutari || 0;
+      const ozelFiyat = sonuclar.ozelFiyat || sonuclar.genelToplam;
+      
       // PDF için ekstra veri hazırla - doğru fiyat hesaplamalarını içerecek şekilde
       const pdfData = {
         ...sonuclar,
         kampanyaAdi: selectedKampanya?.kampanyaAdi || 'Kampanya',
-        egitimTipi: selectedEgitimTipi?.label || 'Genel İngilizce',
-        mudurIndirimTutari: mudurIndirimTutari,
-        ozelFiyat: ozelFiyat,
-        // Aşağıdaki değerler ekrandaki değerlerle aynı olmalı
+        egitimTipi: 'Genel İngilizce',
+        mudurIndirimTutari, // Tam ekrandaki değer
+        ozelFiyat, // Tam ekrandaki değer
         genelToplam: sonuclar.genelToplam,
         indirimOrani: selectedKampanya?.indirimOrani || 0
       };
+      
+      // Console'a kontrol amaçlı yazdır
+      console.log("PDF için hazırlanan veriler:", pdfData);
       
       // Hazırlanan veriyi localStorage'a kaydet
       localStorage.setItem('hesaplamaData', JSON.stringify(pdfData));

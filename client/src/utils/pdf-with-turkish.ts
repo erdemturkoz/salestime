@@ -329,9 +329,15 @@ export function createPDFWithTurkishSupport(): jsPDF {
   doc.setFontSize(14);
   doc.text(`${hediyelerDusulmusGenelToplam.toLocaleString('tr-TR')} TL`, margin + 5, yPos + 20);
   
-  // MÜDÜR İNİSİYATİFİ İNDİRİMİ - varsa gösterilir
+  // MÜDÜR İNİSİYATİFİ İNDİRİMİ - Hesaplama sonuçlarını doğrudan kullan
   let mudurIndirimiVarMi = false;
-  if (mudurIndirimTutari && mudurIndirimTutari > 0) {
+  console.log("PDF'de kullanılacak değerler:", {
+    genelToplam: hediyelerDusulmusGenelToplam,
+    mudurIndirimTutari: sonuclar.mudurIndirimTutari,
+    ozelFiyat: sonuclar.ozelFiyat
+  });
+  
+  if (sonuclar.mudurIndirimTutari && sonuclar.mudurIndirimTutari > 0) {
     mudurIndirimiVarMi = true;
     
     doc.setFillColor(232, 250, 236); // Açık yeşil
@@ -342,7 +348,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
     doc.text("Müdür İnisiyatifi İndirimi:", margin + cardWidth + cardSpacing + 5, yPos + 10);
     
     doc.setFontSize(14);
-    let mudurIndirimiText = `-${mudurIndirimTutari.toLocaleString('tr-TR')} TL`;
+    let mudurIndirimiText = `-${sonuclar.mudurIndirimTutari.toLocaleString('tr-TR')} TL`;
     
     // Yüzde gösterimi de ekleniyor
     if (sonuclar.mudurIndirimTipi === "yuzde" && typeof sonuclar.mudurIndirimDegeri === 'number') {
@@ -353,7 +359,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
   }
   
   // ÖZEL FİYAT - Müdür indirimi varsa gösterilir
-  if (mudurIndirimiVarMi) {
+  if (mudurIndirimiVarMi && sonuclar.ozelFiyat) {
     doc.setFillColor(255, 236, 0); // Sarı
     doc.rect(margin + (cardWidth + cardSpacing) * 2, yPos, cardWidth, 30, 'F');
     
@@ -362,7 +368,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
     doc.text("Özel Fiyat:", margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 10);
     
     doc.setFontSize(14);
-    doc.text(`${ozelFiyat.toLocaleString('tr-TR')} TL`, margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 20);
+    doc.text(`${sonuclar.ozelFiyat.toLocaleString('tr-TR')} TL`, margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 20);
   }
   
   // Taksitli ödeme ise taksit bilgisini göster
