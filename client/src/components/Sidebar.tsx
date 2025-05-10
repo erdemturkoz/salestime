@@ -51,12 +51,12 @@ const Sidebar = () => {
 
   // Sidebar içeriği
   const sidebarContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-screen sticky top-0">
       <div className="p-4 border-b">
         <h2 className="text-lg font-bold">Dil Kursu Yönetim</h2>
       </div>
 
-      <div className="flex-grow p-4">
+      <div className="flex-1 p-4">
         <nav className="space-y-2">
           {NAV_ITEMS.map((item) => {
             const [isActive] = useRoute(item.href);
@@ -75,7 +75,7 @@ const Sidebar = () => {
         </nav>
       </div>
       
-      <div className="p-4 border-t">
+      <div className="p-4 border-t mt-auto">
         <div className="flex items-center mb-4">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="h-5 w-5" />
@@ -116,7 +116,7 @@ const Sidebar = () => {
       
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <aside className="w-60 h-screen bg-background border-r shadow-lg hidden md:block">
+        <aside className="w-60 min-h-screen h-full bg-background border-r shadow-lg hidden md:block sticky top-0">
           {sidebarContent}
         </aside>
       )}
