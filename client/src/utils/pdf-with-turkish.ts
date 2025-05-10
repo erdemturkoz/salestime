@@ -79,12 +79,19 @@ export function createPDFWithTurkishSupport(): jsPDF {
   const genelToplam = sonuclar.genelToplam || 63840;
   const hediyelerDusulmusGenelToplam = genelToplam - hediyeEdilenTutar;
   
-  // Müdür inisiyatifi indirimi varsa özel fiyatı hesapla
-  let ozelFiyat = hediyelerDusulmusGenelToplam;
-  let mudurIndirimTutari = 0;
+  // Müdür inisiyatifi indirimi ve özel fiyatı doğrudan localStorage'dan alınan veriden kullan
+  // Bu sayede ekranda görünen değerlerle tam uyumlu olacak
+  let mudurIndirimTutari = sonuclar.mudurIndirimTutari || 0;
+  let ozelFiyat = sonuclar.ozelFiyat || hediyelerDusulmusGenelToplam;
   
-  if (sonuclar.mudurIndirimTutari && sonuclar.mudurIndirimTutari > 0) {
-    mudurIndirimTutari = sonuclar.mudurIndirimTutari;
+  // Güvenlik kontrolü - Değerler yoksa hesapla
+  if (mudurIndirimTutari <= 0 && sonuclar.mudurIndirimDegeri && sonuclar.mudurIndirimTipi) {
+    if (sonuclar.mudurIndirimTipi === "miktar") {
+      mudurIndirimTutari = Math.min(sonuclar.mudurIndirimDegeri, hediyelerDusulmusGenelToplam);
+    } else {
+      const yuzde = Math.min(sonuclar.mudurIndirimDegeri, 100);
+      mudurIndirimTutari = Math.round((hediyelerDusulmusGenelToplam * yuzde) / 100);
+    }
     ozelFiyat = hediyelerDusulmusGenelToplam - mudurIndirimTutari;
   }
   

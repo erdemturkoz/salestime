@@ -333,6 +333,21 @@ const HesaplamaPage = () => {
   // PDF oluşturup indirme fonksiyonu - İSO Türkçe karakterli sürüm
   const handleGeneratePDF = () => {
     try {
+      // PDF için ekstra veri hazırla - doğru fiyat hesaplamalarını içerecek şekilde
+      const pdfData = {
+        ...sonuclar,
+        kampanyaAdi: selectedKampanya?.kampanyaAdi || 'Kampanya',
+        egitimTipi: selectedEgitimTipi?.label || 'Genel İngilizce',
+        mudurIndirimTutari: mudurIndirimTutari,
+        ozelFiyat: ozelFiyat,
+        // Aşağıdaki değerler ekrandaki değerlerle aynı olmalı
+        genelToplam: sonuclar.genelToplam,
+        indirimOrani: selectedKampanya?.indirimOrani || 0
+      };
+      
+      // Hazırlanan veriyi localStorage'a kaydet
+      localStorage.setItem('hesaplamaData', JSON.stringify(pdfData));
+      
       // Türkçe karakterleri destekleyen PDF oluşturma metodunu kullan
       downloadPDFWithTurkishSupport();
       
