@@ -720,8 +720,8 @@ const HesaplamaPage = () => {
                       
                       {/* KATEGORİ 3: MÜDÜR İNDİRİMİ VE ÖZEL FİYAT */}
                       {sonuclar.mudurIndirimTutari > 0 && (
-                        <div className="mt-4 pt-3 border-t border-neutral-200">
-                          <div className="flex justify-end items-center">
+                        <>
+                          <div className="flex justify-end items-center mt-4 pt-4 border-t border-neutral-200">
                             <span className="text-green-600 font-bold">
                               -{formatCurrency(sonuclar.mudurIndirimTutari)} 
                               {sonuclar.mudurIndirimTipi === "yuzde" && (
@@ -731,10 +731,10 @@ const HesaplamaPage = () => {
                           </div>
                           
                           {/* ÖZEL FİYAT */}
-                          <div className="mt-2 flex justify-end items-center">
+                          <div className="flex justify-end items-center mt-4 pt-4 border-t border-neutral-200">
                             <span className="font-bold text-lg text-emerald-600">{formatCurrency(sonuclar.ozelFiyat)}</span>
                           </div>
-                        </div>
+                        </>
                       )}
 
                       {/* Ana Hediyeler Alanı */}
