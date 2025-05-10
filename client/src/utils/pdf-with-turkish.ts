@@ -97,9 +97,11 @@ export function createPDFWithTurkishSupport(): jsPDF {
   }
   
   // Taksit hesaplaması - Özel fiyat üzerinden yapılır (müdür indirimi varsa)
-  const aylikOdeme = (sonuclar.taksitSayisi && sonuclar.taksitSayisi > 1) 
-    ? (ozelFiyat / sonuclar.taksitSayisi) 
-    : ozelFiyat;
+  // Müdür İnisiyatifi İndirimi uygulandıysa Özel Fiyat, yoksa Genel Toplam kullanılır
+  const aylikOdeme = sonuclar.aylikOdeme || 
+    ((sonuclar.taksitSayisi && sonuclar.taksitSayisi > 1) 
+      ? (mudurIndirimTutari > 0 ? Math.round(ozelFiyat / sonuclar.taksitSayisi) : Math.round(genelToplam / sonuclar.taksitSayisi))
+      : (mudurIndirimTutari > 0 ? ozelFiyat : genelToplam));
   const taksitSayisi = sonuclar.taksitSayisi || 4;
   const nakitFiyat = sonuclar.kampanyaliFiyat || 55000;
   
@@ -372,16 +374,45 @@ export function createPDFWithTurkishSupport(): jsPDF {
     doc.text(`${sonuclar.ozelFiyat.toLocaleString('tr-TR')} TL`, margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 20);
   }
   
-  // Taksitli ödeme ise taksit bilgisini göster
+  // Taksitli ödeme ise taksit planını göster
   if (taksitSayisi > 1) {
     yPos += 35;
+    
+    // Taksit planı başlığı
     doc.setFillColor(232, 240, 254);
     doc.rect(margin, yPos, pageWidth - (margin * 2), 20, 'F');
     
     doc.setFontSize(12);
     doc.setTextColor(63, 81, 181);
-    doc.text(`Aylik sadece ${aylikOdeme.toLocaleString('tr-TR')} TL x ${taksitSayisi} taksit`, 
+    
+    // Aylık ödeme tutarını taksit sayısına böl - Müdür indirimi varsa özel fiyat üzerinden hesapla
+    const taksitTutari = sonuclar.aylikOdeme || 
+      (mudurIndirimTutari > 0 
+        ? Math.round(sonuclar.ozelFiyat / taksitSayisi) 
+        : Math.round(genelToplam / taksitSayisi));
+    
+    doc.text(`Aylik Odeme Plani: ${taksitTutari.toLocaleString('tr-TR')} TL x ${taksitSayisi} taksit`, 
       pageWidth / 2, yPos + 12, { align: 'center' });
+    
+    // Opsiyonel olarak taksit detaylarını ekleyebiliriz
+    if (taksitSayisi <= 6) { // Maksimum 6 taksit detayı gösterelim
+      yPos += 25;
+      const taksitWidth = (pageWidth - (margin * 2)) / 3; // 3 sütun halinde
+      
+      for (let i = 0; i < taksitSayisi; i++) {
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        const tX = margin + (col * taksitWidth);
+        const tY = yPos + (row * 15);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(63, 81, 181);
+        doc.text(`${i+1}. Taksit: ${taksitTutari.toLocaleString('tr-TR')} TL`, tX + 5, tY);
+      }
+      
+      // Taksit detaylarından sonra aşağı kaydır
+      yPos += 15 * Math.ceil(taksitSayisi / 3);
+    }
   }
   
   // ALT BİLGİ
