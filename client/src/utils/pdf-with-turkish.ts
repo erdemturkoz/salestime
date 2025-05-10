@@ -34,11 +34,26 @@ export function createPDFWithTurkishSupport(): jsPDF {
   // Hediye edilen kalemler varsa hesaba katılmayan tutarlar olabilir
   // Eğer hediyeler state'den bir şekilde takip ediliyorsa bu bilgiyi kullanacağız
   let hediyeEdilenTutar = 0;
-  if (sonuclar.hediyeEdilenKalemler) {
+  let parsedHediyeler: Record<string, boolean> = {};
+  
+  // Eğer hediyeEdilenTutar doğrudan iletilmişse, onu kullan
+  if (typeof sonuclar.hediyeEdilenTutar === 'number') {
+    hediyeEdilenTutar = sonuclar.hediyeEdilenTutar;
+    // Hediye edilen kalemleri de kontrol et
+    if (sonuclar.hediyeEdilenKalemler) {
+      try {
+        parsedHediyeler = JSON.parse(sonuclar.hediyeEdilenKalemler);
+      } catch (e) {
+        console.error("Hediye edilen kalemler parselenemedi:", e);
+      }
+    }
+  } 
+  // Eski yöntem - hediyeEdilenTutar değeri yoksa kalemlerden topla
+  else if (sonuclar.hediyeEdilenKalemler) {
     try {
       // Hediye edilen kalemlerin tutarlarını topla
-      const hediyeEdilenKalemler = JSON.parse(sonuclar.hediyeEdilenKalemler);
-      for (const [key, value] of Object.entries(hediyeEdilenKalemler)) {
+      parsedHediyeler = JSON.parse(sonuclar.hediyeEdilenKalemler);
+      for (const [key, value] of Object.entries(parsedHediyeler)) {
         if (value === true) {
           // Kitap mı hediye edilmiş?
           if (key === "kitap") {
@@ -57,6 +72,8 @@ export function createPDFWithTurkishSupport(): jsPDF {
       console.error("Hediye edilen kalemler hesaplanamadı:", e);
     }
   }
+  
+  console.log("Hediye edilen tutar:", hediyeEdilenTutar);
   
   // Toplam ve diğer değerleri hesapla
   const genelToplam = sonuclar.genelToplam || 63840;

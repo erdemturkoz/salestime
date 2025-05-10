@@ -262,8 +262,8 @@ const HesaplamaPage = () => {
     let hediyeEdilenTutar = 0;
     let hediyeEdilenKalemler: Record<string, boolean> = {};
     
-    // Kitap hediye edilmiş mi?
-    if (!kitapDahil && kitapF > 0) {
+    // Kitap hediye edilmiş mi? Kitap dahil seçiliyse hediye olarak veriyoruz
+    if (kitapDahil && kitapF > 0) {
       hediyeEdilenTutar += kitapF;
       hediyeEdilenKalemler["kitap"] = true;
     }
@@ -662,7 +662,7 @@ const HesaplamaPage = () => {
                   {odemeTipi !== "nakit" && (
                     <div className="mt-3 bg-amber-50 border border-amber-100 rounded-md p-3 text-center">
                       <h3 className="text-lg font-bold text-amber-800">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</h3>
-                      <p className="text-amber-600">Nakit Fiyat: {formatCurrency(sonuclar.nakitFiyati || selectedKampanya?.nakitFiyati || 0)} (-{selectedKampanya?.indirimOrani.toFixed(1).replace('.', ',')}% indirim)</p>
+                      <p className="text-amber-600">Nakit Fiyat: {formatCurrency(sonuclar && 'nakitFiyati' in sonuclar ? sonuclar.nakitFiyati : (selectedKampanya?.nakitFiyati || 0))} (-{selectedKampanya?.indirimOrani.toFixed(1).replace('.', ',')}% indirim)</p>
                     </div>
                   )}
                 </div>
