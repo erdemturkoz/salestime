@@ -17,7 +17,7 @@ function Router() {
       <main className="flex-1 md:ml-[5px] min-h-screen w-full">
         <Switch>
           <Route path="/" component={HesaplamaPage} />
-          <PasswordProtectedRoute path="/ucretlendirme" component={UcretlendirmePage} />
+          <Route path="/ucretlendirme" component={UcretlendirmePage} />
           <Route path="/hesaplama" component={HesaplamaPage} />
           <Route component={NotFound} />
         </Switch>
