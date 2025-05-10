@@ -223,25 +223,33 @@ const HesaplamaPage = () => {
     indirimT = listeF - kampanyaFiyat;
     indirimY = Math.round((indirimT / listeF) * 100);
     
+    // Toplam fiyat hesaplaması: Kampanyalı Fiyat + Hediyeler
+    // Burada kitap dahil ve hediyeler zaten hesaplamaya katılıyor
+    let genelToplam = toplamFiyat;
+    
+    // Hediye edilmiş ürünlerin toplamını zaten hesaplıyoruz, bunların fiyatı düşülecek
+    let hediyelerUcretsiz = 0;
+    
     // Müdür İnisiyatifi indirimini uygula
     let mudurIndirimTutari = 0;
-    let toplamFiyatSonHali = toplamFiyat;
+    let ozelFiyat = genelToplam; // Varsayılan olarak genel toplam
     
     if (mudurIndirimDegeri > 0) {
       if (mudurIndirimTipi === "miktar") {
         // Miktar olarak indirim (TL)
-        mudurIndirimTutari = Math.min(mudurIndirimDegeri, toplamFiyat); // Toplam tutardan fazla indirim yapılamaz
-        toplamFiyatSonHali = toplamFiyat - mudurIndirimTutari;
+        mudurIndirimTutari = Math.min(mudurIndirimDegeri, genelToplam); // Toplam tutardan fazla indirim yapılamaz
       } else {
         // Yüzde olarak indirim (%)
         const yuzde = Math.min(mudurIndirimDegeri, 100); // Maksimum %100 indirim
-        mudurIndirimTutari = Math.round((toplamFiyat * yuzde) / 100);
-        toplamFiyatSonHali = toplamFiyat - mudurIndirimTutari;
+        mudurIndirimTutari = Math.round((genelToplam * yuzde) / 100);
       }
+      
+      // Özel fiyat = Genel Toplam - Müdür İnisiyatifi İndirimi
+      ozelFiyat = genelToplam - mudurIndirimTutari;
       
       // Taksit varsa aylık ödemeyi yeniden hesapla
       if (taksitSayisi > 1) {
-        aylikOdeme = Math.round(toplamFiyatSonHali / taksitSayisi);
+        aylikOdeme = Math.round(ozelFiyat / taksitSayisi);
         
         // Taksit planını güncelle
         if (odemeTipi === "senet" && taksitSayisi > 1) {
@@ -249,7 +257,7 @@ const HesaplamaPage = () => {
           for (let i = 0; i < taksitSayisi; i++) {
             sonuclar.taksitPlanı.push({
               taksitNo: i + 1,
-              tutar: Math.round(toplamFiyatSonHali / taksitSayisi)
+              tutar: Math.round(ozelFiyat / taksitSayisi)
             });
           }
         }
@@ -288,7 +296,8 @@ const HesaplamaPage = () => {
       kampanyaliFiyat: kampanyaFiyat,
       nakitFiyati: nakitF, // Nakit fiyatını ekledik
       kitapUcreti: kitapF,
-      genelToplam: toplamFiyatSonHali, // Müdür inisiyatifi indirimi uygulanmış toplam
+      genelToplam: genelToplam, // Kampanyalı Fiyat + Hediyeler = Genel Toplam
+      ozelFiyat: ozelFiyat, // Genel Toplam - Müdür İnisiyatifi İndirimi = Özel Fiyat
       aylikOdeme: aylikOdeme,
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
@@ -303,7 +312,6 @@ const HesaplamaPage = () => {
       taksitPlanı: sonuclar.taksitPlanı || [], // Varsa, oluşturulan taksit planını ekleyelim
       mudurIndirimTutari: mudurIndirimTutari,
       mudurIndirimTipi: mudurIndirimDegeri > 0 ? mudurIndirimTipi : "",
-      kampanyasizToplam: toplamFiyat, // Müdür inisiyatifi indirimi uygulanmamış toplam
     };
     
     // Sonuçları state'e kaydet
@@ -685,37 +693,42 @@ const HesaplamaPage = () => {
                       
                       {/* Fiyat Listesi */}
                       <div className="space-y-3">
+                        {/* KATEGORİ 1: KAMPANYA FİYATLANDIRMASI */}
                         <div className="flex justify-between items-center">
                           <span className="text-neutral-600">Liste Fiyatı:</span>
                           <span className="font-medium text-lg">{formatCurrency(sonuclar.listeFiyati)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-neutral-600">İndirim:</span>
+                          <span className="text-neutral-600">Kampanya İndirimi:</span>
                           <span className="text-green-600 font-bold">-{formatCurrency(sonuclar.indirimTutari)} ({formatPercentage(sonuclar.indirimYuzdesi)})</span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center pb-2">
                           <span className="text-neutral-600">Kampanyalı Fiyat:</span>
                           <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.kampanyaliFiyat)}</span>
                         </div>
                         
-                        {/* Müdür İnisiyatifi İndirimi - Sadece indirim varsa gösterilir */}
-                        {sonuclar.mudurIndirimTutari > 0 && (
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
-                            <span className="text-neutral-600">Müdür İnisiyatifi İndirimi:</span>
-                            <span className="text-green-600 font-bold">
-                              -{formatCurrency(sonuclar.mudurIndirimTutari)} 
-                              {sonuclar.mudurIndirimTipi === "yuzde" && (
-                                <span> ({mudurIndirimDegeri}%)</span>
-                              )}
-                            </span>
+                        {/* KATEGORİ 2: GENEL TOPLAM - Eğer hediye edilmiş ürünler varsa bu bölüm gösterilir */}
+                        {(sonuclar.hediyeler.length > 0 || sonuclar.kitapUcreti > 0) && (
+                          <div className="border-t border-neutral-200 pt-2">
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="text-neutral-700 font-medium">Genel Toplam:</span>
+                              <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.genelToplam)}</span>
+                            </div>
                           </div>
                         )}
                         
-                        {/* İndirimli Fiyat - Müdür İnisiyatifi indirimi varsa gösterilir */}
+                        {/* KATEGORİ 3: MÜDÜR İNDİRİMİ VE ÖZEL FİYAT */}
                         {sonuclar.mudurIndirimTutari > 0 && (
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-200">
-                            <span className="text-neutral-600 font-medium">İndirimli Fiyat:</span>
-                            <span className="font-bold text-lg text-green-600">{formatCurrency(sonuclar.genelToplam)}</span>
+                          <div className="border-t border-neutral-200 pt-2 mt-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-neutral-600">Müdür İnisiyatifi İndirimi:</span>
+                              <span className="text-green-600 font-bold">
+                                -{formatCurrency(sonuclar.mudurIndirimTutari)} 
+                                {sonuclar.mudurIndirimTipi === "yuzde" && (
+                                  <span> ({mudurIndirimDegeri}%)</span>
+                                )}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
