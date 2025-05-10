@@ -246,8 +246,11 @@ const UcretlendirmePage = () => {
     <div className="h-full w-full">
       <div className="w-full px-1 md:px-4">
         <header className="mb-6 mt-[5px]">
-          <h1 className="text-2xl font-bold text-neutral-800">Ücretlendirme Şartları Yönetimi</h1>
-          <p className="text-neutral-500">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
+          <div className="flex flex-col md:flex-row md:items-center">
+            <div className="md:hidden w-8"></div> {/* Mobil görünümde sol tarafta boşluk */}
+            <h1 className="text-2xl font-bold text-neutral-800 pl-10 md:pl-0 mt-2 md:mt-0">Ücretlendirme Şartları Yönetimi</h1>
+          </div>
+          <p className="text-neutral-500 pl-10 md:pl-0">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
