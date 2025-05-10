@@ -385,9 +385,10 @@ export function createPDFWithTurkishSupport(): jsPDF {
     doc.setFontSize(12);
     doc.setTextColor(63, 81, 181);
     
-    // Aylık ödeme tutarını taksit sayısına böl - Müdür indirimi varsa özel fiyat üzerinden hesapla
+    // Aylık ödeme tutarını doğrudan aylikOdeme alanından al
+    // Hesaplama sayfasında Özel Fiyat / Taksit Sayısı formülüyle hesaplanmış olmalı
     const taksitTutari = sonuclar.aylikOdeme || 
-      (mudurIndirimTutari > 0 
+      (sonuclar.mudurIndirimTutari > 0 
         ? Math.round(sonuclar.ozelFiyat / taksitSayisi) 
         : Math.round(genelToplam / taksitSayisi));
     

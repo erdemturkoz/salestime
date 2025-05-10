@@ -292,6 +292,11 @@ const HesaplamaPage = () => {
       });
     }
     
+    // Müdür indirimi varsa aylık ödemeyi özel fiyat üzerinden güncelle
+    if (mudurIndirimTutari > 0 && taksitSayisi > 1) {
+      aylikOdeme = Math.round(ozelFiyat / taksitSayisi);
+    }
+    
     const yeniSonuclar = {
       listeFiyati: listeF,
       indirimTutari: indirimT,
@@ -301,7 +306,7 @@ const HesaplamaPage = () => {
       kitapUcreti: kitapF,
       genelToplam: genelToplam, // Kampanyalı Fiyat + Hediyeler = Genel Toplam
       ozelFiyat: ozelFiyat, // Genel Toplam - Müdür İnisiyatifi İndirimi = Özel Fiyat
-      aylikOdeme: aylikOdeme,
+      aylikOdeme: aylikOdeme, // Müdür indirimi varsa güncellenmiş değeri
       odemeTipiText: odemeSekli,
       taksitDetay: taksitDetayi,
       kampanyaAdi: selectedKampanya.kampanyaAdi,
