@@ -267,10 +267,10 @@ export function createPDFWithTurkishSupport(): jsPDF {
     if (tasarrufMiktari > 0) {
       const indirimOrani = Math.round((tasarrufMiktari / taksitliToplamFiyat) * 100);
       
-      doc.setFillColor(236, 252, 235); // Açık yeşil arka plan
+      doc.setFillColor(255, 230, 0); // Parlak sarı arka plan
       doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
       
-      doc.setTextColor(46, 125, 50); // Koyu yeşil
+      doc.setTextColor(0, 0, 0); // Siyah yazı
       doc.setFontSize(12);
       doc.text("NAKIT ODEME AVANTAJI", pageWidth / 2, yPos + 6, { align: 'center' });
       

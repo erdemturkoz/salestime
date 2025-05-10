@@ -660,9 +660,9 @@ const HesaplamaPage = () => {
                   
                   {/* Nakit ödeme tavsiyesi banneri */}
                   {odemeTipi !== "nakit" && (
-                    <div className="mt-3 bg-amber-50 border border-amber-100 rounded-md p-3 text-center">
-                      <h3 className="text-lg font-bold text-amber-800">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</h3>
-                      <p className="text-amber-600">Nakit Fiyat: {formatCurrency(selectedKampanya ? selectedKampanya.nakitFiyati : 0)} (-{selectedKampanya ? selectedKampanya.indirimOrani.toFixed(1).replace('.', ',') : 0}% indirim)</p>
+                    <div className="mt-3 bg-yellow-300 border border-yellow-400 rounded-md p-3 text-center">
+                      <h3 className="text-lg font-bold text-black">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</h3>
+                      <p className="text-black">Nakit Fiyat: {formatCurrency(selectedKampanya ? selectedKampanya.nakitFiyati : 0)} (-{selectedKampanya ? selectedKampanya.indirimOrani.toFixed(1).replace('.', ',') : 0}% indirim)</p>
                     </div>
                   )}
                 </div>
