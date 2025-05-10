@@ -147,8 +147,8 @@ const HesaplamaPage = () => {
       taksitDetayi = "Tek Çekim";
       // Kampanyalı fiyat sadece indirimli eğitim fiyatını kapsar, kitap ve hediye dahil değil
       kampanyaFiyat = Math.round(nakitF);
-      // Toplam hesaplanırken sadece kampanyalı fiyat alınır (hediyeler eklenmez)
-      toplamFiyat = Math.round(nakitF);
+      // Toplam hesaplanırken, kampanyalı fiyat + hediyeler dahil edilir
+      toplamFiyat = Math.round(nakitF + kitapF + hediyelerToplam);
       aylikOdeme = toplamFiyat; // Tek ödeme olduğu için aynı
     } else if (odemeTipi === "kredi-karti") {
       odemeSekli = "Kredi Kartı";
@@ -162,8 +162,8 @@ const HesaplamaPage = () => {
         kampanyaFiyat = nakitF + faturaBedeli;
         // Kampanyalı fiyat için açıklama ekleyelim
         kampanyaFiyat = Math.round(kampanyaFiyat); // Yuvarlama yapalım
-        // Taksit hesaplamasında sadece kampanyalı fiyat alınır (hediyeler eklenmez)
-        toplamFiyat = Math.round(kampanyaFiyat);
+        // Taksit hesaplamasında kampanyalı fiyat + hediyeler dahil edilir
+        toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
         aylikOdeme = toplamFiyat;
       } else {
         taksitDetayi = `${taksitSayisi} Taksit`;
@@ -175,8 +175,8 @@ const HesaplamaPage = () => {
         if (taksitHesapla.length > 0) {
           // Kampanyalı fiyata faiz dahil
           kampanyaFiyat = Math.round(taksitHesapla[0].toplam); // Yuvarlama yapalım
-          // Toplam fiyat olarak sadece kampanyalı fiyat alınır (hediyeler eklenmez)
-          toplamFiyat = Math.round(kampanyaFiyat);
+          // Toplam fiyat olarak kampanyalı fiyat + hediyeler dahil edilir
+          toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
           // Aylık ödeme tüm toplamı taksite böler
           aylikOdeme = Math.round(toplamFiyat / taksitSayisi);
         }
@@ -191,8 +191,8 @@ const HesaplamaPage = () => {
       if (taksitHesapla.length > 0) {
         // Kampanyalı fiyata faiz dahil
         kampanyaFiyat = Math.round(taksitHesapla[0].toplam); // Yuvarlama yapalım
-        // Toplam fiyat olarak sadece kampanyalı fiyat alınır (hediyeler eklenmez)
-        toplamFiyat = Math.round(kampanyaFiyat);
+        // Toplam fiyat olarak kampanyalı fiyat + hediyeler dahil edilir
+        toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
         // Aylık ödeme tüm toplamı taksite böler
         aylikOdeme = Math.round(toplamFiyat / taksitSayisi);
         
