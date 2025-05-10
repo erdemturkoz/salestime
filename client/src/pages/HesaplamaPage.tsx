@@ -769,23 +769,39 @@ const HesaplamaPage = () => {
                                       yeniHediyeEdildi[hediye.isim] = !yeniHediyeEdildi[hediye.isim];
                                       setHediyeEdildi(yeniHediyeEdildi);
                                       
-                                      // Genel toplamı güncelle
-                                      setSonuclar(prev => {
-                                        const yeniToplam = yeniHediyeEdildi[hediye.isim] 
-                                          ? prev.genelToplam - hediye.fiyat 
-                                          : prev.genelToplam + hediye.fiyat;
-                                        
-                                        // Taksitli ödemede taksit başına düşen tutarı güncelle
-                                        const yeniAylikOdeme = taksitSayisi > 1 
-                                          ? Math.round(yeniToplam / taksitSayisi) 
-                                          : yeniToplam;
-                                        
-                                        return {
-                                          ...prev,
-                                          genelToplam: yeniToplam,
-                                          aylikOdeme: yeniAylikOdeme
-                                        };
+                                      // Kampanyalı fiyatı al (hediyeler hariç)
+                                      const kampanyaliFiyat = sonuclar.kampanyaliFiyat;
+                                      
+                                      // Tüm hediyelerin durumunu kontrol et ve toplam fiyatı hesapla
+                                      let hediyelerToplami = 0;
+                                      
+                                      // Kitap hediye mi?
+                                      if (kitapDahil && !kitapHediyeEdildi) {
+                                        hediyelerToplami += sonuclar.kitapUcreti;
+                                      }
+                                      
+                                      // Diğer hediyeler
+                                      sonuclar.hediyeler.forEach((h) => {
+                                        // Eğer hediye edilmemişse (yani kullanıcı ödeyecekse) toplama ekle
+                                        if (!yeniHediyeEdildi[h.isim]) {
+                                          hediyelerToplami += h.fiyat;
+                                        }
                                       });
+                                      
+                                      // Yeni genel toplam: kampanyalı fiyat + ödenmesi gereken hediyeler
+                                      const yeniGenelToplam = kampanyaliFiyat + hediyelerToplami;
+                                      
+                                      // Taksitli ödemede taksit başına düşen tutarı güncelle
+                                      const yeniAylikOdeme = taksitSayisi > 1
+                                        ? Math.round(yeniGenelToplam / taksitSayisi)
+                                        : yeniGenelToplam;
+                                      
+                                      // Sonuçları güncelle
+                                      setSonuclar(prev => ({
+                                        ...prev,
+                                        genelToplam: yeniGenelToplam,
+                                        aylikOdeme: yeniAylikOdeme
+                                      }));
                                       
                                       // Bildirim göster
                                       toast({
