@@ -238,8 +238,8 @@ export function createPDFWithTurkishSupport(): jsPDF {
       }
     }
     
-    // Taksitli ödeme toplamı (genel toplam)
-    const taksitliToplamFiyat = genelToplam;
+    // Taksitli ödeme toplamı (genel toplam - hediye edilen ürünler)
+    const taksitliToplamFiyat = hediyelerDusulmusGenelToplam;
     
     // Tasarruf miktarı
     const tasarrufMiktari = taksitliToplamFiyat - nakitToplamFiyat;

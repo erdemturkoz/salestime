@@ -257,6 +257,26 @@ const HesaplamaPage = () => {
     }
     
     // Sonuçların tamamını oluştur
+    
+    // Hediye edilen ürünleri tespit et
+    let hediyeEdilenTutar = 0;
+    let hediyeEdilenKalemler: Record<string, boolean> = {};
+    
+    // Kitap hediye edilmiş mi?
+    if (!kitapDahil && kitapF > 0) {
+      hediyeEdilenTutar += kitapF;
+      hediyeEdilenKalemler["kitap"] = true;
+    }
+    
+    // Hediyeler dizisini oluştur
+    if (selectedKampanya.hediyeler && selectedKampanya.hediyeler.length > 0) {
+      selectedKampanya.hediyeler.forEach(hediye => {
+        // Bu örnekte tüm hediyeler verilmiş kabul ediliyor
+        hediyeEdilenKalemler[hediye.isim] = true;
+        hediyeEdilenTutar += hediye.fiyat;
+      });
+    }
+    
     const yeniSonuclar = {
       listeFiyati: listeF,
       indirimTutari: indirimT,
@@ -274,7 +294,8 @@ const HesaplamaPage = () => {
       kurSayisi: selectedKurSayisi,
       dersSaati: selectedKampanya.toplamDersSaati,
       taksitSayisi: taksitSayisi,
-      hediyeEdilenKalemler: JSON.stringify({}), // Başlangıçta boş bir hediye listesi
+      hediyeEdilenKalemler: JSON.stringify(hediyeEdilenKalemler),
+      hediyeEdilenTutar: hediyeEdilenTutar,
       taksitPlanı: sonuclar.taksitPlanı || [], // Varsa, oluşturulan taksit planını ekleyelim
       mudurIndirimTutari: mudurIndirimTutari,
       mudurIndirimTipi: mudurIndirimDegeri > 0 ? mudurIndirimTipi : "",
