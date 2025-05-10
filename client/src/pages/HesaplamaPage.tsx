@@ -711,32 +711,6 @@ const HesaplamaPage = () => {
                         </div>
                       </div>
 
-                      {/* GENEL TOPLAM */}
-                      <div className="mt-4 pt-4 border-t border-neutral-200">
-                        <div className="flex justify-end items-center">
-                          <span className="font-bold text-lg text-blue-700">{formatCurrency(sonuclar.genelToplam)}</span>
-                        </div>
-                      </div>
-                      
-                      {/* KATEGORİ 3: MÜDÜR İNDİRİMİ VE ÖZEL FİYAT */}
-                      {sonuclar.mudurIndirimTutari > 0 && (
-                        <>
-                          <div className="flex justify-end items-center mt-4 pt-4 border-t border-neutral-200">
-                            <span className="text-green-600 font-bold">
-                              -{formatCurrency(sonuclar.mudurIndirimTutari)} 
-                              {sonuclar.mudurIndirimTipi === "yuzde" && (
-                                <span> ({mudurIndirimDegeri}%)</span>
-                              )}
-                            </span>
-                          </div>
-                          
-                          {/* ÖZEL FİYAT */}
-                          <div className="flex justify-end items-center mt-4 pt-4 border-t border-neutral-200">
-                            <span className="font-bold text-lg text-emerald-600">{formatCurrency(sonuclar.ozelFiyat)}</span>
-                          </div>
-                        </>
-                      )}
-
                       {/* Ana Hediyeler Alanı */}
                       {(sonuclar.hediyeler.length > 0 || sonuclar.kitapUcreti > 0) && (
                         <div className="mt-6 border rounded-md p-4 bg-green-50 border-green-100">
@@ -881,24 +855,33 @@ const HesaplamaPage = () => {
                         </div>
                       )}
 
+                      {/* Genel Toplam */}
+                      <div className="mt-6 p-3 border-t border-b border-neutral-200">
+                        <div className="flex justify-end items-center">
+                          <span className="text-blue-700 text-xl font-bold">{formatCurrency(sonuclar.genelToplam)}</span>
+                        </div>
+                      </div>
+                      
                       {/* Müdür İnisiyatifi İndirimi */}
                       {mudurIndirimUygulandi && (
-                        <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-100">
-                          <h4 className="text-green-700 font-bold">Müdür İnisiyatifi İndirimi:</h4>
-                          <div className="flex justify-between items-center">
-                            <span className="text-neutral-700 text-sm">Özel yetkilendirme ile uygulanan ek indirim</span>
-                            <span className="text-green-600 font-medium">-{formatCurrency(sonuclar.mudurIndirimTutari)} ({mudurIndirimDegeri}%)</span>
+                        <div className="p-3 border-b border-neutral-200">
+                          <div className="flex justify-end items-center">
+                            <span className="text-green-600 font-bold">
+                              -{formatCurrency(sonuclar.mudurIndirimTutari)} 
+                              <span className="ml-1">({mudurIndirimDegeri}%)</span>
+                            </span>
                           </div>
                         </div>
                       )}
-
-                      {/* Genel Toplam */}
-                      <div className="mt-6 p-3 bg-blue-100 rounded-md border border-blue-200">
-                        <div className="flex justify-between items-center">
-                          <span className="text-blue-800 font-bold">Genel Toplam:</span>
-                          <span className="text-blue-800 text-xl font-bold">{formatCurrency(sonuclar.genelToplam)}</span>
+                      
+                      {/* Özel Fiyat - Müdür indiriminden sonra */}
+                      {mudurIndirimUygulandi && (
+                        <div className="p-3 border-b border-neutral-200">
+                          <div className="flex justify-end items-center">
+                            <span className="text-emerald-600 text-xl font-bold">{formatCurrency(sonuclar.ozelFiyat)}</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Ödeme Detayları */}
