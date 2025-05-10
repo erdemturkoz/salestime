@@ -660,7 +660,7 @@ const HesaplamaPage = () => {
                   
                   {/* Nakit ödeme tavsiyesi banneri */}
                   {odemeTipi !== "nakit" && (
-                    <div className="mt-3 bg-yellow-300 border border-yellow-400 rounded-md p-3 text-center">
+                    <div className="mt-3 rounded-md p-3 text-center" style={{ backgroundColor: '#ffec00', border: '1px solid #e6d400' }}>
                       <h3 className="text-lg font-bold text-black">NAKİT SATIŞ TAVSİYE EDİLMEKTEDİR</h3>
                       <p className="text-black">Nakit Fiyat: {formatCurrency(selectedKampanya ? selectedKampanya.nakitFiyati : 0)} (-{selectedKampanya ? selectedKampanya.indirimOrani.toFixed(1).replace('.', ',') : 0}% indirim)</p>
                     </div>

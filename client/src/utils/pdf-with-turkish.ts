@@ -267,7 +267,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
     if (tasarrufMiktari > 0) {
       const indirimOrani = Math.round((tasarrufMiktari / taksitliToplamFiyat) * 100);
       
-      doc.setFillColor(255, 230, 0); // Parlak sarı arka plan
+      doc.setFillColor(255, 236, 0); // #ffec00 parlak sarı arka plan
       doc.rect(margin, yPos, pageWidth - (margin * 2), 15, 'F');
       
       doc.setTextColor(0, 0, 0); // Siyah yazı
