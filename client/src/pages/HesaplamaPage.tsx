@@ -42,7 +42,7 @@ const HesaplamaPage = () => {
   const [kitapDahil, setKitapDahil] = useState<boolean>(true);
   const [hediyeEt, setHediyeEt] = useState<{[key: string]: boolean}>({});
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
-  const [mudurIndirimTipi, setMudurIndirimTipi] = useState<"miktar" | "yuzde">("miktar");
+  const [mudurIndirimTipi, setMudurIndirimTipi] = useState<"miktar" | "yuzde">("yuzde");
   const [mudurIndirimDegeri, setMudurIndirimDegeri] = useState<number>(0);
   const [mudurIndirimUygulandi, setMudurIndirimUygulandi] = useState<boolean>(false);
   const [mudurInisiyatifiAcik, setMudurInisiyatifiAcik] = useState<boolean>(false);
@@ -670,39 +670,22 @@ const HesaplamaPage = () => {
                   
                   {mudurInisiyatifiAcik && (
                     <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <Button
-                          type="button"
-                          variant={mudurIndirimTipi === "miktar" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setMudurIndirimTipi("miktar")}
-                        >
-                          Miktar (₺)
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={mudurIndirimTipi === "yuzde" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setMudurIndirimTipi("yuzde")}
-                        >
-                          Yüzde (%)
-                        </Button>
-                      </div>
+                      {/* Sadece Yüzde (%) seçeneği bırakıldı */}
+                      <input type="hidden" value="yuzde" onChange={() => setMudurIndirimTipi("yuzde")} />
                       <div className="flex gap-2">
                         <Input 
                           type="number" 
-                          placeholder={mudurIndirimTipi === "miktar" ? "İndirim tutarı" : "İndirim yüzdesi"}
+                          placeholder="İndirim yüzdesi"
                           value={mudurIndirimDegeri || ""}
                           onChange={(e) => setMudurIndirimDegeri(parseFloat(e.target.value) || 0)}
                           min="0"
-                          max={mudurIndirimTipi === "yuzde" ? "100" : undefined}
+                          max="100"
                         />
+                        <div className="bg-blue-50 p-2 rounded text-sm text-blue-700 mt-2">
+                          Yüzde olarak indirim oranını girin (0-100 arası)
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {mudurIndirimTipi === "miktar" 
-                          ? "Toplam tutardan düşülecek sabit indirim miktarı" 
-                          : "Toplam tutara uygulanacak indirim yüzdesi"}
-                      </p>
+                      {/* Açıklama bilgisi yukarıya taşındı */}
                     </div>
                   )}
                 </div>
