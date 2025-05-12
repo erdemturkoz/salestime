@@ -348,14 +348,14 @@ export function createPDFWithTurkishSupport(): jsPDF {
     
     doc.setTextColor(46, 125, 50);
     doc.setFontSize(12);
-    doc.text("Müdür İnisiyatifi İndirimi:", margin + cardWidth + cardSpacing + 5, yPos + 10);
+    doc.text("EKSTRA Müdür İndirimi:", margin + cardWidth + cardSpacing + 5, yPos + 10);
     
     doc.setFontSize(14);
     let mudurIndirimiText = `-${sonuclar.mudurIndirimTutari.toLocaleString('tr-TR')} TL`;
     
     // Yüzde gösterimi de ekleniyor
     if (sonuclar.mudurIndirimTipi === "yuzde" && typeof sonuclar.mudurIndirimDegeri === 'number') {
-      mudurIndirimiText += ` (${sonuclar.mudurIndirimDegeri}%)`;
+      mudurIndirimiText += ` (EKSTRA ${sonuclar.mudurIndirimDegeri}%)`;
     }
     
     doc.text(mudurIndirimiText, margin + cardWidth + cardSpacing + 5, yPos + 20);

@@ -1218,9 +1218,9 @@ const HesaplamaPage = () => {
                         <p className="text-4xl font-extrabold text-center text-black my-3">{formatCurrency(sonuclar.ozelFiyat)}</p>
                         <div className="border-t border-yellow-400 my-2"></div>
                         <div className="text-center text-black">
-                          <p className="font-semibold text-md">Müdür Özel İndirimi: {formatCurrency(sonuclar.mudurIndirimTutari)}</p>
-                          <p className="mt-1 bg-green-600 text-white text-sm font-medium inline-block px-2 py-0.5 rounded">
-                            {formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} indirim uygulandı
+                          <p className="font-semibold text-md">EKSTRA Müdür İndirimi: {formatCurrency(sonuclar.mudurIndirimTutari)}</p>
+                          <p className="mt-1 bg-green-600 text-white text-sm font-medium inline-block px-2 py-0.5 rounded uppercase font-bold">
+                            EKSTRA {formatPercentage(sonuclar.mudurIndirimTutari / sonuclar.genelToplam * 100)} indirim uygulandı
                           </p>
                         </div>
                       </div>
