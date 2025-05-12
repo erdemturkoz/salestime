@@ -1214,7 +1214,7 @@ const HesaplamaPage = () => {
                   <div className="flex flex-col h-full">
                     {sonuclar.mudurIndirimTutari > 0 ? (
                       <div className="mb-4 p-4 bg-yellow-200 rounded-md border border-yellow-400 shadow">
-                        <p className="text-black font-bold text-center uppercase tracking-wider text-xl">MÜŞTERİYE ÖZEL FİYAT</p>
+                        <p className="text-black font-bold text-center uppercase tracking-wider text-xl">KİŞİYE ÖZEL FİYAT</p>
                         <p className="text-4xl font-extrabold text-center text-black my-3">{formatCurrency(sonuclar.ozelFiyat)}</p>
                         <div className="border-t border-yellow-400 my-2"></div>
                         <div className="text-center text-black">

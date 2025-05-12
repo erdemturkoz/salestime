@@ -368,7 +368,7 @@ export function createPDFWithTurkishSupport(): jsPDF {
     
     doc.setTextColor(0, 0, 0); // Siyah
     doc.setFontSize(12);
-    doc.text("Özel Fiyat:", margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 10);
+    doc.text("Kişiye Özel Fiyat:", margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 10);
     
     doc.setFontSize(14);
     doc.text(`${sonuclar.ozelFiyat.toLocaleString('tr-TR')} TL`, margin + (cardWidth + cardSpacing) * 2 + 5, yPos + 20);
