@@ -303,6 +303,23 @@ const KullanicilarPage = () => {
                 <option value="Müdür">Müdür</option>
               </select>
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="sube" className="text-right">
+                Şube
+              </label>
+              <select
+                id="sube"
+                value={newUser.sube}
+                onChange={(e) => setNewUser({ ...newUser, sube: e.target.value })}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="Merkez">Merkez</option>
+                <option value="Kadıköy">Kadıköy</option>
+                <option value="Beşiktaş">Beşiktaş</option>
+                <option value="Şişli">Şişli</option>
+                <option value="Bakırköy">Bakırköy</option>
+              </select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -376,6 +393,25 @@ const KullanicilarPage = () => {
                   <option value="Satış Danışmanı">Satış Danışmanı</option>
                   <option value="Müdür Yardımcısı">Müdür Yardımcısı</option>
                   <option value="Müdür">Müdür</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="edit-sube" className="text-right">
+                  Şube
+                </label>
+                <select
+                  id="edit-sube"
+                  value={selectedUser.sube}
+                  onChange={(e) =>
+                    setSelectedUser({ ...selectedUser, sube: e.target.value })
+                  }
+                  className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="Merkez">Merkez</option>
+                  <option value="Kadıköy">Kadıköy</option>
+                  <option value="Beşiktaş">Beşiktaş</option>
+                  <option value="Şişli">Şişli</option>
+                  <option value="Bakırköy">Bakırköy</option>
                 </select>
               </div>
             </div>
