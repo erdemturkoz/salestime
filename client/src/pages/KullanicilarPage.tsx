@@ -25,6 +25,7 @@ type User = {
   soyad: string;
   email: string;
   rol: string;
+  sube: string;
   sonGiris: string;
 };
 
@@ -36,6 +37,7 @@ const dummyUsers: User[] = [
     soyad: "Yılmaz", 
     email: "ahmet.yilmaz@example.com", 
     rol: "Satış Danışmanı", 
+    sube: "Kadıköy",
     sonGiris: "12.05.2025 09:15" 
   },
   { 
@@ -44,6 +46,7 @@ const dummyUsers: User[] = [
     soyad: "Kaya", 
     email: "ayse.kaya@example.com", 
     rol: "Müdür", 
+    sube: "Merkez",
     sonGiris: "11.05.2025 14:30" 
   },
   { 
@@ -52,6 +55,7 @@ const dummyUsers: User[] = [
     soyad: "Demir", 
     email: "mehmet.demir@example.com", 
     rol: "Satış Danışmanı", 
+    sube: "Beşiktaş",
     sonGiris: "10.05.2025 11:45" 
   },
   { 
@@ -60,6 +64,7 @@ const dummyUsers: User[] = [
     soyad: "Şahin", 
     email: "zeynep.sahin@example.com", 
     rol: "Satış Danışmanı", 
+    sube: "Şişli",
     sonGiris: "09.05.2025 16:20" 
   },
   { 
@@ -68,6 +73,7 @@ const dummyUsers: User[] = [
     soyad: "Öztürk", 
     email: "mustafa.ozturk@example.com", 
     rol: "Müdür Yardımcısı", 
+    sube: "Merkez",
     sonGiris: "12.05.2025 08:10" 
   },
 ];
@@ -84,6 +90,7 @@ const KullanicilarPage = () => {
     soyad: "",
     email: "",
     rol: "Satış Danışmanı",
+    sube: "Merkez",
   });
 
   // Kullanıcı arama
@@ -92,7 +99,8 @@ const KullanicilarPage = () => {
       user.ad.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.soyad.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.rol.toLowerCase().includes(searchTerm.toLowerCase())
+      user.rol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.sube.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Kullanıcı ekleme fonksiyonu
@@ -113,6 +121,7 @@ const KullanicilarPage = () => {
       soyad: "",
       email: "",
       rol: "Satış Danışmanı",
+      sube: "Merkez",
     });
     setIsAddDialogOpen(false);
   };
@@ -171,6 +180,7 @@ const KullanicilarPage = () => {
                   <TableHead>Soyad</TableHead>
                   <TableHead>E-posta</TableHead>
                   <TableHead>Rol</TableHead>
+                  <TableHead>Şube</TableHead>
                   <TableHead>Son Giriş</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
@@ -192,6 +202,11 @@ const KullanicilarPage = () => {
                               : "bg-green-100 text-green-800"
                         }`}>
                           {user.rol}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                          {user.sube}
                         </span>
                       </TableCell>
                       <TableCell>{user.sonGiris}</TableCell>
