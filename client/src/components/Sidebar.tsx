@@ -7,7 +7,8 @@ import {
   Users,
   LogOut,
   Menu, 
-  X
+  X,
+  Building
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -37,6 +38,11 @@ const NAV_ITEMS = [
     href: '/kullanicilar',
     icon: <Users className="h-5 w-5" />,
   },
+  {
+    label: 'Şubeler',
+    href: '/subeler',
+    icon: <Building className="h-5 w-5" />,
+  },
 ];
 
 // Sabit şifre değeri
@@ -55,8 +61,8 @@ const Sidebar = () => {
   const toggleSidebar = () => setIsOpen(!isOpen);
   
   const handleNavigation = (href: string) => {
-    // Eğer kampanya ekleme veya kullanıcılar sayfasına gidiliyorsa şifre kontrolü yap
-    if (href === '/ucretlendirme' || href === '/kullanicilar') {
+    // Eğer kampanya ekleme, kullanıcılar veya şubeler sayfasına gidiliyorsa şifre kontrolü yap
+    if (href === '/ucretlendirme' || href === '/kullanicilar' || href === '/subeler') {
       setPasswordModalOpen(true);
       // Hedef sayfayı bir sonraki navigasyon için kaydet
       sessionStorage.setItem('nextPage', href);

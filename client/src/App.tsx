@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import UcretlendirmePage from "@/pages/UcretlendirmePage";
 import HesaplamaPage from "@/pages/HesaplamaPage";
 import KullanicilarPage from "@/pages/KullanicilarPage";
+import SubeKartlari from "@/pages/SubeKartlari";
 import { AppProvider } from "./contexts/AppContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
 
@@ -18,9 +19,22 @@ function Router() {
       <main className="flex-1 md:ml-[5px] min-h-screen w-full">
         <Switch>
           <Route path="/" component={HesaplamaPage} />
-          <Route path="/ucretlendirme" component={UcretlendirmePage} />
+          <Route path="/ucretlendirme">
+            <PasswordProtectedRoute>
+              <UcretlendirmePage />
+            </PasswordProtectedRoute>
+          </Route>
           <Route path="/hesaplama" component={HesaplamaPage} />
-          <Route path="/kullanicilar" component={KullanicilarPage} />
+          <Route path="/kullanicilar">
+            <PasswordProtectedRoute>
+              <KullanicilarPage />
+            </PasswordProtectedRoute>
+          </Route>
+          <Route path="/subeler">
+            <PasswordProtectedRoute>
+              <SubeKartlari />
+            </PasswordProtectedRoute>
+          </Route>
           <Route component={NotFound} />
         </Switch>
       </main>
