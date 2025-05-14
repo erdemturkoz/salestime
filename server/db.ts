@@ -11,5 +11,17 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL, 
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+// Bağlantıyı test et
+pool.on('error', (err) => {
+  console.error('PostgreSQL bağlantı havuzu hatası:', err);
+});
+
+// Drizzle ORM ile bağlantı oluştur
 export const db = drizzle(pool, { schema });

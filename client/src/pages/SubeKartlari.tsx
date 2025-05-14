@@ -67,7 +67,7 @@ const SubeKartlari = () => {
   });
 
   // Şubeleri getir
-  const { data: subeler, isLoading: subelerLoading } = useQuery({
+  const { data: subeler = [], isLoading: subelerLoading, error: subelerError } = useQuery({
     queryKey: ['/api/subeler'],
     retry: false,
   });
@@ -197,9 +197,31 @@ const SubeKartlari = () => {
             </Card>
           ))}
         </div>
+      ) : subelerError ? (
+        <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-600 mb-6">
+          <p className="font-medium">Şubeler yüklenirken bir hata oluştu:</p>
+          <p className="mt-1 text-sm">{(subelerError as Error)?.message || 'Bilinmeyen hata'}</p>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="mt-2"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/subeler'] })}
+          >
+            Yeniden Dene
+          </Button>
+        </div>
+      ) : subeler.length === 0 ? (
+        <div className="p-8 text-center border border-dashed rounded-md">
+          <Building className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+          <h3 className="text-lg font-medium mb-1">Henüz şube bulunmuyor</h3>
+          <p className="text-muted-foreground mb-4">İlk şubenizi eklemek için yukarıdaki butonu kullanın.</p>
+          <Button onClick={openNewSubeForm}>
+            <Plus className="mr-2 h-4 w-4" /> Yeni Şube Ekle
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subeler?.map((sube: any) => (
+          {subeler.map((sube: any) => (
             <Card key={sube.id} className="shadow-md">
               <CardHeader className="pb-2">
                 <CardTitle className="flex justify-between items-start">

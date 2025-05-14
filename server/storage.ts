@@ -266,21 +266,21 @@ export class DatabaseStorage implements IStorage {
       const subelerWithKullanicilar: SubeWithKullanicilar[] = [];
       
       for (const sube of subelerResult) {
-        const kullanicilarResult = await db.execute(
-          `SELECT 
-            ksr.kullanici_id as "kullaniciId", 
-            k.adi as "kullaniciAdi", 
-            k.soyadi as "kullaniciSoyadi", 
-            ksr.rol 
-          FROM kullanici_sube_rolleri ksr
-          JOIN kullanicilar k ON k.id = ksr.kullanici_id
-          WHERE ksr.sube_id = $1`,
-          [sube.id]
-        );
+        // Drizzle ORM kullanarak daha güvenli sorgu
+        const kullanicilarResult = await db
+          .select({
+            kullaniciId: kullaniciSubeRolleri.kullaniciId,
+            kullaniciAdi: kullanicilar.adi,
+            kullaniciSoyadi: kullanicilar.soyadi,
+            rol: kullaniciSubeRolleri.rol
+          })
+          .from(kullaniciSubeRolleri)
+          .innerJoin(kullanicilar, eq(kullaniciSubeRolleri.kullaniciId, kullanicilar.id))
+          .where(eq(kullaniciSubeRolleri.subeId, sube.id));
         
         subelerWithKullanicilar.push({
           ...sube,
-          kullanicilar: kullanicilarResult.rows
+          kullanicilar: kullanicilarResult
         });
       }
       
@@ -297,21 +297,21 @@ export class DatabaseStorage implements IStorage {
       
       if (!sube) return undefined;
       
-      const kullanicilarResult = await db.execute(
-        `SELECT 
-          ksr.kullanici_id as "kullaniciId", 
-          k.adi as "kullaniciAdi", 
-          k.soyadi as "kullaniciSoyadi", 
-          ksr.rol 
-        FROM kullanici_sube_rolleri ksr
-        JOIN kullanicilar k ON k.id = ksr.kullanici_id
-        WHERE ksr.sube_id = $1`,
-        [id]
-      );
+      // Drizzle ORM kullanarak daha güvenli sorgu
+      const kullanicilarResult = await db
+        .select({
+          kullaniciId: kullaniciSubeRolleri.kullaniciId,
+          kullaniciAdi: kullanicilar.adi,
+          kullaniciSoyadi: kullanicilar.soyadi,
+          rol: kullaniciSubeRolleri.rol
+        })
+        .from(kullaniciSubeRolleri)
+        .innerJoin(kullanicilar, eq(kullaniciSubeRolleri.kullaniciId, kullanicilar.id))
+        .where(eq(kullaniciSubeRolleri.subeId, id));
       
       return {
         ...sube,
-        kullanicilar: kullanicilarResult.rows
+        kullanicilar: kullanicilarResult
       };
     } catch (error) {
       console.error("Şube getirme hatası:", error);
