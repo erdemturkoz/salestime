@@ -45,52 +45,62 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Kampanya operations
   async getAllKampanyalar(): Promise<Kampanya[]> {
-    // Doğrudan SQL sorgusu kullanarak branch_id ve created_at'ı atlayalım
-    const result = await db.execute<Kampanya>(
-      `SELECT 
-        id, 
-        kampanya_adi as "kampanyaAdi", 
-        egitim_tipi as "egitimTipi",
-        kur_sayisi as "kurSayisi",
-        toplam_ders_saati as "toplamDersSaati",
-        liste_fiyati as "listeFiyati",
-        nakit_fiyati as "nakitFiyati",
-        indirim_orani as "indirimOrani",
-        faiz_orani as "faizOrani",
-        kitap_fiyati as "kitapFiyati",
-        kitap_set_sayisi as "kitapSetSayisi",
-        max_kredi_karti_taksit as "maxKrediKartiTaksit",
-        max_senet_taksit as "maxSenetTaksit",
-        hediyeler
-      FROM kampanyalar`
-    );
+    try {
+      // Doğrudan SQL sorgusu kullanarak branch_id ve created_at'ı atlayalım
+      const result = await db.execute<Kampanya>(
+        `SELECT 
+          id, 
+          kampanya_adi as "kampanyaAdi", 
+          egitim_tipi as "egitimTipi",
+          kur_sayisi as "kurSayisi",
+          toplam_ders_saati as "toplamDersSaati",
+          liste_fiyati as "listeFiyati",
+          nakit_fiyati as "nakitFiyati",
+          indirim_orani as "indirimOrani",
+          faiz_orani as "faizOrani",
+          kitap_fiyati as "kitapFiyati",
+          kitap_set_sayisi as "kitapSetSayisi",
+          max_kredi_karti_taksit as "maxKrediKartiTaksit",
+          max_senet_taksit as "maxSenetTaksit",
+          hediyeler
+        FROM kampanyalar`
+      );
 
-    return result.rows;
+      return result.rows;
+    } catch (error) {
+      console.error("Kampanyalar API hatası:", error);
+      return [];
+    }
   }
 
   async getKampanya(id: number): Promise<Kampanya | undefined> {
-    const result = await db.execute<Kampanya>(
-      `SELECT 
-        id, 
-        kampanya_adi as "kampanyaAdi", 
-        egitim_tipi as "egitimTipi",
-        kur_sayisi as "kurSayisi",
-        toplam_ders_saati as "toplamDersSaati",
-        liste_fiyati as "listeFiyati",
-        nakit_fiyati as "nakitFiyati",
-        indirim_orani as "indirimOrani",
-        faiz_orani as "faizOrani",
-        kitap_fiyati as "kitapFiyati",
-        kitap_set_sayisi as "kitapSetSayisi",
-        max_kredi_karti_taksit as "maxKrediKartiTaksit",
-        max_senet_taksit as "maxSenetTaksit",
-        hediyeler
-      FROM kampanyalar
-      WHERE id = $1`,
-      [id]
-    );
-    
-    return result.rows.length > 0 ? result.rows[0] : undefined;
+    try {
+      const result = await db.execute<Kampanya>(
+        `SELECT 
+          id, 
+          kampanya_adi as "kampanyaAdi", 
+          egitim_tipi as "egitimTipi",
+          kur_sayisi as "kurSayisi",
+          toplam_ders_saati as "toplamDersSaati",
+          liste_fiyati as "listeFiyati",
+          nakit_fiyati as "nakitFiyati",
+          indirim_orani as "indirimOrani",
+          faiz_orani as "faizOrani",
+          kitap_fiyati as "kitapFiyati",
+          kitap_set_sayisi as "kitapSetSayisi",
+          max_kredi_karti_taksit as "maxKrediKartiTaksit",
+          max_senet_taksit as "maxSenetTaksit",
+          hediyeler
+        FROM kampanyalar
+        WHERE id = $1`,
+        [id]
+      );
+      
+      return result.rows.length > 0 ? result.rows[0] : undefined;
+    } catch (error) {
+      console.error("Kampanya getirme hatası:", error);
+      return undefined;
+    }
   }
 
   async createKampanya(insertKampanya: InsertKampanya): Promise<Kampanya> {
@@ -112,6 +122,222 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(kampanyalar)
       .where(eq(kampanyalar.id, id))
+      .returning();
+    
+    return result.length > 0;
+  }
+
+  // Kullanıcı operations
+  async getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]> {
+    try {
+      const kullanicilarResult = await db.select().from(kullanicilar);
+      
+      const kullanicilarWithRoller: KullaniciWithRollerVeSubeler[] = [];
+      
+      for (const kullanici of kullanicilarResult) {
+        const rollerResult = await db.execute(
+          `SELECT 
+            ksr.sube_id as "subeId", 
+            s.sube_adi as "subeAdi", 
+            ksr.rol 
+          FROM kullanici_sube_rolleri ksr
+          JOIN subeler s ON s.id = ksr.sube_id
+          WHERE ksr.kullanici_id = $1`,
+          [kullanici.id]
+        );
+        
+        kullanicilarWithRoller.push({
+          ...kullanici,
+          roller: rollerResult.rows
+        });
+      }
+      
+      return kullanicilarWithRoller;
+    } catch (error) {
+      console.error("Kullanıcıları getirme hatası:", error);
+      return [];
+    }
+  }
+
+  async getKullanici(id: number): Promise<KullaniciWithRollerVeSubeler | undefined> {
+    try {
+      const [kullanici] = await db.select().from(kullanicilar).where(eq(kullanicilar.id, id));
+      
+      if (!kullanici) return undefined;
+      
+      const rollerResult = await db.execute(
+        `SELECT 
+          ksr.sube_id as "subeId", 
+          s.sube_adi as "subeAdi", 
+          ksr.rol 
+        FROM kullanici_sube_rolleri ksr
+        JOIN subeler s ON s.id = ksr.sube_id
+        WHERE ksr.kullanici_id = $1`,
+        [id]
+      );
+      
+      return {
+        ...kullanici,
+        roller: rollerResult.rows
+      };
+    } catch (error) {
+      console.error("Kullanıcı getirme hatası:", error);
+      return undefined;
+    }
+  }
+
+  async createKullanici(kullanici: InsertKullanici): Promise<Kullanici> {
+    const result = await db.insert(kullanicilar).values(kullanici).returning();
+    return result[0];
+  }
+
+  async updateKullanici(id: number, updateData: InsertKullanici): Promise<Kullanici | undefined> {
+    const result = await db
+      .update(kullanicilar)
+      .set(updateData)
+      .where(eq(kullanicilar.id, id))
+      .returning();
+    
+    return result.length > 0 ? result[0] : undefined;
+  }
+
+  async deleteKullanici(id: number): Promise<boolean> {
+    const result = await db
+      .delete(kullanicilar)
+      .where(eq(kullanicilar.id, id))
+      .returning();
+    
+    return result.length > 0;
+  }
+
+  async addKullaniciToSube(kullaniciId: number, subeId: number, rol: string): Promise<KullaniciSubeRol> {
+    // Önce var olan bir ilişki var mı kontrol et
+    const existing = await db
+      .select()
+      .from(kullaniciSubeRolleri)
+      .where(
+        and(
+          eq(kullaniciSubeRolleri.kullaniciId, kullaniciId),
+          eq(kullaniciSubeRolleri.subeId, subeId)
+        )
+      );
+    
+    // Varsa güncelle, yoksa yeni ekle
+    if (existing.length > 0) {
+      const [result] = await db
+        .update(kullaniciSubeRolleri)
+        .set({ rol })
+        .where(
+          and(
+            eq(kullaniciSubeRolleri.kullaniciId, kullaniciId),
+            eq(kullaniciSubeRolleri.subeId, subeId)
+          )
+        )
+        .returning();
+      return result;
+    } else {
+      const [result] = await db
+        .insert(kullaniciSubeRolleri)
+        .values({ kullaniciId, subeId, rol })
+        .returning();
+      return result;
+    }
+  }
+
+  async removeKullaniciFromSube(kullaniciId: number, subeId: number): Promise<boolean> {
+    const result = await db
+      .delete(kullaniciSubeRolleri)
+      .where(
+        and(
+          eq(kullaniciSubeRolleri.kullaniciId, kullaniciId),
+          eq(kullaniciSubeRolleri.subeId, subeId)
+        )
+      )
+      .returning();
+    
+    return result.length > 0;
+  }
+
+  // Şube operations
+  async getAllSubeler(): Promise<SubeWithKullanicilar[]> {
+    try {
+      const subelerResult = await db.select().from(subeler);
+      
+      const subelerWithKullanicilar: SubeWithKullanicilar[] = [];
+      
+      for (const sube of subelerResult) {
+        const kullanicilarResult = await db.execute(
+          `SELECT 
+            ksr.kullanici_id as "kullaniciId", 
+            k.adi as "kullaniciAdi", 
+            k.soyadi as "kullaniciSoyadi", 
+            ksr.rol 
+          FROM kullanici_sube_rolleri ksr
+          JOIN kullanicilar k ON k.id = ksr.kullanici_id
+          WHERE ksr.sube_id = $1`,
+          [sube.id]
+        );
+        
+        subelerWithKullanicilar.push({
+          ...sube,
+          kullanicilar: kullanicilarResult.rows
+        });
+      }
+      
+      return subelerWithKullanicilar;
+    } catch (error) {
+      console.error("Şubeleri getirme hatası:", error);
+      return [];
+    }
+  }
+
+  async getSube(id: number): Promise<SubeWithKullanicilar | undefined> {
+    try {
+      const [sube] = await db.select().from(subeler).where(eq(subeler.id, id));
+      
+      if (!sube) return undefined;
+      
+      const kullanicilarResult = await db.execute(
+        `SELECT 
+          ksr.kullanici_id as "kullaniciId", 
+          k.adi as "kullaniciAdi", 
+          k.soyadi as "kullaniciSoyadi", 
+          ksr.rol 
+        FROM kullanici_sube_rolleri ksr
+        JOIN kullanicilar k ON k.id = ksr.kullanici_id
+        WHERE ksr.sube_id = $1`,
+        [id]
+      );
+      
+      return {
+        ...sube,
+        kullanicilar: kullanicilarResult.rows
+      };
+    } catch (error) {
+      console.error("Şube getirme hatası:", error);
+      return undefined;
+    }
+  }
+
+  async createSube(sube: InsertSube): Promise<Sube> {
+    const result = await db.insert(subeler).values(sube).returning();
+    return result[0];
+  }
+
+  async updateSube(id: number, updateData: InsertSube): Promise<Sube | undefined> {
+    const result = await db
+      .update(subeler)
+      .set(updateData)
+      .where(eq(subeler.id, id))
+      .returning();
+    
+    return result.length > 0 ? result[0] : undefined;
+  }
+
+  async deleteSube(id: number): Promise<boolean> {
+    const result = await db
+      .delete(subeler)
+      .where(eq(subeler.id, id))
       .returning();
     
     return result.length > 0;
