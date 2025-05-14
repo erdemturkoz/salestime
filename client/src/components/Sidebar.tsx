@@ -4,6 +4,7 @@ import {
   Calculator, 
   DollarSign, 
   User,
+  Users,
   LogOut,
   Menu, 
   X
@@ -31,6 +32,11 @@ const NAV_ITEMS = [
     href: '/ucretlendirme',
     icon: <DollarSign className="h-5 w-5" />,
   },
+  {
+    label: 'Kullanıcılar',
+    href: '/kullanicilar',
+    icon: <Users className="h-5 w-5" />,
+  },
 ];
 
 // Sabit şifre değeri
@@ -49,9 +55,11 @@ const Sidebar = () => {
   const toggleSidebar = () => setIsOpen(!isOpen);
   
   const handleNavigation = (href: string) => {
-    // Eğer kampanya ekleme sayfasına gidiliyorsa ve modal henüz açık değilse
-    if (href === '/ucretlendirme') {
+    // Eğer kampanya ekleme veya kullanıcılar sayfasına gidiliyorsa şifre kontrolü yap
+    if (href === '/ucretlendirme' || href === '/kullanicilar') {
       setPasswordModalOpen(true);
+      // Hedef sayfayı bir sonraki navigasyon için kaydet
+      sessionStorage.setItem('nextPage', href);
       return;
     }
     
@@ -69,7 +77,11 @@ const Sidebar = () => {
       setPasswordModalOpen(false);
       setPassword('');
       setPasswordError(null);
-      setLocation('/ucretlendirme');
+      
+      // Kayıtlı hedef sayfaya yönlendir
+      const nextPage = sessionStorage.getItem('nextPage') || '/ucretlendirme';
+      setLocation(nextPage);
+      
       if (isMobile) {
         setIsOpen(false);
       }

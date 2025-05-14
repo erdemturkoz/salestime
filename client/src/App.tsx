@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/Sidebar";
 import UcretlendirmePage from "@/pages/UcretlendirmePage";
 import HesaplamaPage from "@/pages/HesaplamaPage";
+import KullanicilarPage from "@/pages/KullanicilarPage";
 import { AppProvider } from "./contexts/AppContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
 
@@ -19,6 +20,7 @@ function Router() {
           <Route path="/" component={HesaplamaPage} />
           <Route path="/ucretlendirme" component={UcretlendirmePage} />
           <Route path="/hesaplama" component={HesaplamaPage} />
+          <Route path="/kullanicilar" component={KullanicilarPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
