@@ -1,6 +1,84 @@
-import { pgTable, text, serial, integer, json, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, json, timestamp, varchar, boolean, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Session tablosu - oturum yönetimi için gerekli
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: json("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => {
+    return {
+      expireIdx: index("IDX_session_expire").on(table.expire),
+    };
+  },
+);
+
+// Şube tablosu
+export const subeler = pgTable("subeler", {
+  id: serial("id").primaryKey(),
+  subeAdi: text("sube_adi").notNull(),
+  subeAdresi: text("sube_adresi"),
+  subeTelefon: text("sube_telefon"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Kullanıcı rolleri için enum değerler
+export const Roller = {
+  KURUCU: "Kurucu",
+  MUDUR: "Müdür",
+  SATIS_DANISMANI: "Satış Danışmanı"
+} as const;
+
+// Kullanıcı tablosu
+export const kullanicilar = pgTable("kullanicilar", {
+  id: serial("id").primaryKey(),
+  adi: text("adi").notNull(),
+  soyadi: text("soyadi").notNull(),
+  telefon: text("telefon"),
+  sifre: text("sifre").default("1234"),
+  aktif: boolean("aktif").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Kullanıcı-Şube ilişki tablosu
+export const kullaniciSubeRolleri = pgTable("kullanici_sube_rolleri", {
+  id: serial("id").primaryKey(),
+  kullaniciId: integer("kullanici_id").notNull().references(() => kullanicilar.id, { onDelete: 'cascade' }),
+  subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: 'cascade' }),
+  rol: text("rol").notNull().$type<typeof Roller[keyof typeof Roller]>(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// İlişki tanımlamaları
+export const subelerRelations = relations(subeler, ({ many }) => {
+  return {
+    kullanicilar: many(kullaniciSubeRolleri)
+  };
+});
+
+export const kullanicilarRelations = relations(kullanicilar, ({ many }) => {
+  return {
+    subeler: many(kullaniciSubeRolleri)
+  };
+});
+
+export const kullaniciSubeRolleriRelations = relations(kullaniciSubeRolleri, ({ one }) => {
+  return {
+    kullanici: one(kullanicilar, {
+      fields: [kullaniciSubeRolleri.kullaniciId],
+      references: [kullanicilar.id],
+    }),
+    sube: one(subeler, {
+      fields: [kullaniciSubeRolleri.subeId],
+      references: [subeler.id],
+    })
+  };
+});
 
 // Kampanya tablosu
 export const kampanyalar = pgTable("kampanyalar", {
@@ -25,7 +103,22 @@ export const insertKampanyaSchema = createInsertSchema(kampanyalar).omit({
   id: true,
 });
 
-// Manuel olarak Kampanya tipini tanımlayalım (veritabanındaki gerçek sütunlara uygun şekilde)
+export const insertSubeSchema = createInsertSchema(subeler).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertKullaniciSchema = createInsertSchema(kullanicilar).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertKullaniciSubeRolSchema = createInsertSchema(kullaniciSubeRolleri).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Tipler
 export type Kampanya = {
   id: number;
   kampanyaAdi: string;
@@ -41,6 +134,32 @@ export type Kampanya = {
   maxKrediKartiTaksit: number;
   maxSenetTaksit: number;
   hediyeler: Array<{isim: string, fiyat: number}>;
+};
+
+export type Sube = typeof subeler.$inferSelect;
+export type InsertSube = z.infer<typeof insertSubeSchema>;
+
+export type Kullanici = typeof kullanicilar.$inferSelect;
+export type InsertKullanici = z.infer<typeof insertKullaniciSchema>;
+
+export type KullaniciSubeRol = typeof kullaniciSubeRolleri.$inferSelect;
+export type InsertKullaniciSubeRol = z.infer<typeof insertKullaniciSubeRolSchema>;
+
+export type KullaniciWithRollerVeSubeler = Kullanici & {
+  roller: Array<{
+    subeId: number;
+    subeAdi: string;
+    rol: string;
+  }>;
+};
+
+export type SubeWithKullanicilar = Sube & {
+  kullanicilar: Array<{
+    kullaniciId: number;
+    kullaniciAdi: string;
+    kullaniciSoyadi: string;
+    rol: string;
+  }>;
 };
 
 export type InsertKampanya = z.infer<typeof insertKampanyaSchema>;
