@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Edit, Trash, UserPlus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 // Şube tipini tanımlayalım
 type Sube = {
@@ -375,7 +374,10 @@ const KullanicilarPage = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleOpenEditDialog(user)}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsEditDialogOpen(true);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -531,7 +533,6 @@ const KullanicilarPage = () => {
                   </div>
                 </div>
               )}
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -675,7 +676,6 @@ const KullanicilarPage = () => {
                     </div>
                   </div>
                 )}
-              </div>
             </div>
           )}
           <DialogFooter>
@@ -694,11 +694,12 @@ const KullanicilarPage = () => {
             <DialogTitle>Kullanıcı Sil</DialogTitle>
           </DialogHeader>
           <div className="py-6">
-            {selectedUser && (
-              <p>
-                <strong>{selectedUser.ad} {selectedUser.soyad}</strong> isimli kullanıcıyı silmek istediğinize emin misiniz?
-              </p>
-            )}
+            <p className="text-center">
+              <strong>{selectedUser?.ad} {selectedUser?.soyad}</strong> kullanıcısını silmek istediğinize emin misiniz?
+            </p>
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              Bu işlem geri alınamaz.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
