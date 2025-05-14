@@ -17,20 +17,21 @@ const ADMIN_PASSWORD = 'admin123';
 interface PasswordDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  targetRoute: string;
+  onSuccess?: () => void;
 }
 
-const PasswordDialog: React.FC<PasswordDialogProps> = ({ isOpen, onClose, targetRoute }) => {
+const PasswordDialog: React.FC<PasswordDialogProps> = ({ isOpen, onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [_, navigate] = useLocation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password === ADMIN_PASSWORD) {
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
-      navigate(targetRoute);
     } else {
       setError('Hatalı şifre. Lütfen tekrar deneyiniz.');
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useRoute, useLocation } from 'wouter';
+import { useRoute, useLocation } from 'wouter';
 import { 
   Calculator, 
   DollarSign, 
@@ -12,15 +12,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 
 const NAV_ITEMS = [
   {
@@ -45,54 +36,17 @@ const NAV_ITEMS = [
   },
 ];
 
-// Sabit şifre değeri
-const ADMIN_PASSWORD = 'admin123';
-
 const Sidebar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [_, setLocation] = useLocation();
-  
-  // Şifre modalı için state
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   
   const handleNavigation = (href: string) => {
-    // Eğer kampanya ekleme, kullanıcılar veya şubeler sayfasına gidiliyorsa şifre kontrolü yap
-    if (href === '/ucretlendirme' || href === '/kullanicilar' || href === '/subeler') {
-      setPasswordModalOpen(true);
-      // Hedef sayfayı bir sonraki navigasyon için kaydet
-      sessionStorage.setItem('nextPage', href);
-      return;
-    }
-    
-    // Diğer sayfalar için normal navigasyon
     setLocation(href);
     if (isMobile) {
       setIsOpen(false);
-    }
-  };
-  
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password === ADMIN_PASSWORD) {
-      setPasswordModalOpen(false);
-      setPassword('');
-      setPasswordError(null);
-      
-      // Kayıtlı hedef sayfaya yönlendir
-      const nextPage = sessionStorage.getItem('nextPage') || '/ucretlendirme';
-      setLocation(nextPage);
-      
-      if (isMobile) {
-        setIsOpen(false);
-      }
-    } else {
-      setPasswordError('Hatalı şifre. Lütfen tekrar deneyiniz.');
     }
   };
 
@@ -178,49 +132,6 @@ const Sidebar = () => {
           {sidebarContent}
         </aside>
       )}
-      
-      {/* Şifre Girişi Modalı */}
-      <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Yönetici Girişi</DialogTitle>
-            <DialogDescription>
-              Kampanya yönetimi için yönetici şifresini giriniz.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handlePasswordSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Input
-                  type="password"
-                  placeholder="Şifre giriniz"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setPasswordError(null);
-                  }}
-                  className="col-span-3"
-                />
-                {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                type="button" 
-                onClick={() => {
-                  setPasswordModalOpen(false);
-                  setPassword('');
-                  setPasswordError(null);
-                }}
-              >
-                İptal
-              </Button>
-              <Button type="submit">Giriş</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
