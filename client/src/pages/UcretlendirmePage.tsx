@@ -34,6 +34,7 @@ const UcretlendirmePage = () => {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [hediyeAdi, setHediyeAdi] = useState("");
   const [hediyeFiyati, setHediyeFiyati] = useState("");
+  const [showExcelInfoDialog, setShowExcelInfoDialog] = useState(false);
   const [formData, setFormData] = useState({
     kampanyaAdi: "",
     egitimTipi: "",
@@ -372,6 +373,42 @@ const UcretlendirmePage = () => {
           </div>
           <p className="text-neutral-500 pl-10 md:pl-0">Yeni kampanya oluşturun veya mevcut kampanyaları düzenleyin.</p>
         </header>
+        
+        {/* Şube Filtresi */}
+        <div className="mb-6 flex flex-col md:flex-row gap-3 items-start md:items-center">
+          <div className="w-full md:w-64">
+            <Select
+              value={selectedSubeId ? selectedSubeId.toString() : ""}
+              onValueChange={(value) => {
+                setSelectedSubeId(value ? parseInt(value) : null);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Tüm Şubeler" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tüm Şubeler</SelectItem>
+                {subeler.map((sube) => (
+                  <SelectItem key={sube.id} value={sube.id.toString()}>
+                    {sube.subeAdi}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={refreshKampanyalar}
+              className="ml-2"
+            >
+              <RefreshCwIcon className="mr-2 h-4 w-4" />
+              Kampanyaları Yenile
+            </Button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
           {/* Kampanya Form */}
