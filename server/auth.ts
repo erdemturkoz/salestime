@@ -32,8 +32,10 @@ export const setupSession = (app: Express) => {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: false, // Geliştirme modunda HTTPS olmadığı için false
+        httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 saat
+        sameSite: 'lax'
       },
     })
   );
@@ -87,12 +89,27 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Hesabınız pasif durumdadır. Lütfen yöneticiyle iletişime geçin." });
     }
     
-    // Session'a kullanıcı bilgisini kaydet
-    req.session.user = kullanici;
+    // Kullanıcının şube rollerini al
+    const roller = await storage.getKullaniciRoller(kullanici.id);
+    const kullaniciWithRoller = {
+      ...kullanici,
+      roller: roller
+    };
     
-    // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
-    const { sifre, ...userWithoutPassword } = kullanici;
-    res.json(userWithoutPassword);
+    // Session'a kullanıcı bilgisini kaydet
+    req.session.user = kullaniciWithRoller;
+    
+    // Session'ı kaydetmek için
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session kayıt hatası:', err);
+        return res.status(500).json({ error: "Oturum kaydedilirken bir hata oluştu" });
+      }
+      
+      // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
+      const { sifre, ...userWithoutPassword } = kullaniciWithRoller;
+      return res.json(userWithoutPassword);
+    });
   } catch (error) {
     console.error("Giriş hatası:", error);
     if (error instanceof z.ZodError) {
