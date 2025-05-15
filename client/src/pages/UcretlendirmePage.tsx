@@ -21,14 +21,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 const UcretlendirmePage = () => {
   const { toast } = useToast();
   const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar, 
-    selectedSubeId, setSelectedSubeId, copyKampanyaToSube } = useAppContext();
+    selectedSubeId, setSelectedSubeId, copyKampanyaToSube, copyManyKampanyalarToSube } = useAppContext();
   const { user, isAdmin } = useAuth();
   
   // Kullanıcının şubeleri
   const [subeler, setSubeler] = useState<Array<{id: number, subeAdi: string}>>([]);
   const [targetSubeId, setTargetSubeId] = useState<number | null>(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [showMultiCopyDialog, setShowMultiCopyDialog] = useState(false);
   const [copyingKampanyaId, setCopyingKampanyaId] = useState<string | null>(null);
+  const [selectedKampanyalar, setSelectedKampanyalar] = useState<string[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);

@@ -351,6 +351,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     deleteKampanya,
     updateKampanya,
     copyKampanyaToSube,
+    copyManyKampanyalarToSube,
     loading,
     refreshKampanyalar,
     getKampanyalarBySubeId,
