@@ -54,9 +54,50 @@ const UcretlendirmePage = () => {
   const [krediKartiTaksitler, setKrediKartiTaksitler] = useState<TaksitOption[]>([]);
   const [senetTaksitler, setSenetTaksitler] = useState<TaksitOption[]>([]);
 
+  // Şubeleri getirme
   useEffect(() => {
-    refreshKampanyalar();
-  }, [refreshKampanyalar]);
+    const fetchSubeler = async () => {
+      try {
+        const response = await fetch('/api/subeler');
+        if (!response.ok) {
+          throw new Error('Şubeler getirilemedi');
+        }
+        const data = await response.json();
+        setSubeler(data);
+      } catch (error) {
+        console.error('Şubeler getirme hatası:', error);
+        toast({
+          title: 'Hata',
+          description: 'Şubeler yüklenirken bir hata oluştu.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    fetchSubeler();
+  }, [toast]);
+  
+  // Kampanyaları şube filtresine göre getirme
+  useEffect(() => {
+    const fetchKampanyalar = async () => {
+      try {
+        if (selectedSubeId) {
+          await refreshKampanyalar(selectedSubeId);
+        } else {
+          await refreshKampanyalar();
+        }
+      } catch (error) {
+        console.error('Kampanyalar getirme hatası:', error);
+        toast({
+          title: 'Hata', 
+          description: 'Kampanyalar yüklenirken bir hata oluştu.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    fetchKampanyalar();
+  }, [selectedSubeId, refreshKampanyalar, toast]);
 
   // Liste fiyatı veya nakit fiyatı değiştiğinde, indirim oranını hesapla
   useEffect(() => {
@@ -387,7 +428,7 @@ const UcretlendirmePage = () => {
                 <SelectValue placeholder="Tüm Şubeler" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tüm Şubeler</SelectItem>
+                <SelectItem value="all">Tüm Şubeler</SelectItem>
                 {subeler.map((sube) => (
                   <SelectItem key={sube.id} value={sube.id.toString()}>
                     {sube.subeAdi}
