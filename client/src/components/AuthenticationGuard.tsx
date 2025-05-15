@@ -29,7 +29,7 @@ export default function AuthenticationGuard({ children, adminOnly = false }: Aut
   // Admin yetkisi kontrolü
   if (adminOnly) {
     const userRoles = user.roller?.map(r => r.rol) || [];
-    const isAdmin = userRoles.includes("Kurucu") || userRoles.includes("Müdür");
+    const isAdmin = userRoles.includes("Sistem Yöneticisi") || userRoles.includes("Kurucu") || userRoles.includes("Müdür");
     
     if (!isAdmin) {
       return <Redirect to="/" />;

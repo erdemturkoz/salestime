@@ -209,8 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = () => {
     if (!user || !user.roller) return false;
     
-    const userRoles = user.roller.map(r => r.rol);
-    return userRoles.includes("Kurucu") || userRoles.includes("Müdür");
+    const userRoles = user.roller.map((r: any) => r.rol);
+    return userRoles.includes("Sistem Yöneticisi") || userRoles.includes("Kurucu") || userRoles.includes("Müdür");
   };
 
   return (

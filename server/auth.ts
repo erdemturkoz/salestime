@@ -65,14 +65,14 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   res.status(401).json({ error: "Oturumunuz açık değil. Lütfen giriş yapın." });
 };
 
-// Admin (Kurucu ve Müdür) rolü kontrolü
+// Admin (Sistem Yöneticisi, Kurucu ve Müdür) rolü kontrolü
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (req.session && req.session.user) {
     const user = req.session.user as any;
     
-    // Roller içinde KURUCU veya MÜDÜR var mı kontrol et
+    // Roller içinde Sistem Yöneticisi, KURUCU veya MÜDÜR var mı kontrol et
     if (user.roller && user.roller.some((r: any) => 
-      r.rol === "Kurucu" || r.rol === "Müdür")) {
+      r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür")) {
       return next();
     }
   }
