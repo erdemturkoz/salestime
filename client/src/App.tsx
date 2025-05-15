@@ -11,6 +11,7 @@ import KullanicilarPage from "@/pages/KullanicilarPage";
 import SubeKartlari from "@/pages/SubeKartlari";
 import GirisPage from "@/pages/GirisPage";
 import { AppProvider } from "./contexts/AppContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
 import AuthenticationGuard from "@/components/AuthenticationGuard";
 

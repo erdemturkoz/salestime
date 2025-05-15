@@ -34,7 +34,13 @@ export function useAuth() {
   // Giriş işlemi
   const loginMutation = useMutation({
     mutationFn: async (credentials: Login) => {
-      const res = await apiRequest("POST", "/api/auth/login", credentials);
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Giriş yapılamadı");
@@ -60,7 +66,12 @@ export function useAuth() {
   // Çıkış işlemi
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/auth/logout");
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Çıkış yapılamadı");
@@ -86,7 +97,13 @@ export function useAuth() {
   // Şifre değiştirme
   const changePasswordMutation = useMutation({
     mutationFn: async (passwordData: ChangePassword) => {
-      const res = await apiRequest("POST", "/api/auth/change-password", passwordData);
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(passwordData)
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Şifre değiştirilemedi");
