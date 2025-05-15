@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLocation } from "wouter";
+import { useLocation, Redirect } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -32,9 +32,8 @@ export default function GirisPage() {
   });
 
   // Eğer kullanıcı zaten giriş yapmışsa ana sayfaya yönlendir
-  if (user) {
-    navigate('/');
-    return null;
+  if (!isLoading && user) {
+    return <Redirect to="/" />;
   }
 
   const onSubmit = async (data: LoginFormValues) => {

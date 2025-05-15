@@ -21,7 +21,9 @@ function Router() {
       <Sidebar />
       <main className="flex-1 md:ml-[5px] min-h-screen w-full">
         <Switch>
-          <Route path="/giris" component={GirisPage} />
+          <Route path="/giris">
+            <GirisPage />
+          </Route>
           <Route path="/">
             <AuthenticationGuard>
               <HesaplamaPage />
