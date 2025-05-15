@@ -110,7 +110,16 @@ const Sidebar = () => {
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => logout()}
+              onClick={async () => {
+                try {
+                  setIsPending(true);
+                  await logout();
+                } catch (error) {
+                  console.error('Çıkış hatası:', error);
+                } finally {
+                  setIsPending(false);
+                }
+              }}
               disabled={isPending}
             >
               <LogOut className="h-4 w-4 mr-2" />

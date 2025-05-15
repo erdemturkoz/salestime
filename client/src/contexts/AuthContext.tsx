@@ -2,7 +2,9 @@ import React, { createContext, ReactNode, useContext, useState, useEffect } from
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@shared/schema";
+import { KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
+
+type User = KullaniciWithRollerVeSubeler | Kullanici;
 
 interface AuthContextType {
   user: User | null;
