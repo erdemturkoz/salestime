@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Kampanya Kopyalama API endpoint'i
-  app.post("/api/kampanyalar/:id/copy", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/kampanyalar/:id/copy", async (req, res) => {
     try {
       const { id } = req.params;
       const { subeId } = req.body;
