@@ -35,7 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/current-user"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/auth/current-user");
+        const res = await fetch("/api/auth/current-user", {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log("Current user response status:", res.status);
         if (!res.ok) {
           if (res.status === 401) {
             // 401 hatası durumunda sessizce null döndür
@@ -59,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoginPending(true);
       const res = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -78,8 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Hoş geldiniz!",
       });
       
+      console.log("Giriş başarılı, kullanıcı verisi:", userData);
+      
       // Kullanıcı verilerini güncelle
-      await refetch();
+      const updatedUser = await refetch();
+      console.log("Yenilenen kullanıcı verisi:", updatedUser.data);
+      
+      window.location.href = "/"; // Sayfayı yenileme ve ana sayfaya gitme
     } catch (error: any) {
       toast({
         title: "Giriş Başarısız",
@@ -98,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLogoutPending(true);
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -115,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Başarıyla çıkış yaptınız.",
       });
       
-      await refetch();
+      window.location.href = "/giris"; // Çıkış sonrası giriş sayfasına yönlendir
     } catch (error: any) {
       toast({
         title: "Çıkış Başarısız",
