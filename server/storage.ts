@@ -26,6 +26,7 @@ export interface IStorage {
   updateKampanya(id: number, kampanya: InsertKampanya): Promise<Kampanya | undefined>;
   deleteKampanya(id: number): Promise<boolean>;
   copyKampanyaToSube(kampanyaId: number, subeId: number): Promise<Kampanya | undefined>;
+  copyManyKampanyalarToSube(kampanyaIds: number[], subeId: number): Promise<Kampanya[]>;
   
   // Kullanıcı operations
   getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]>;
@@ -215,6 +216,32 @@ export class DatabaseStorage implements IStorage {
       console.error(`Kampanya ${kampanyaId} şubeye ${subeId} kopyalanırken hata:`, error);
       return undefined;
     }
+  }
+  
+  async copyManyKampanyalarToSube(kampanyaIds: number[], subeId: number): Promise<Kampanya[]> {
+    const results: Kampanya[] = [];
+    const errors: number[] = [];
+    
+    // Her bir kampanya için kopyalama işlemi yapılır
+    for (const kampanyaId of kampanyaIds) {
+      try {
+        const newKampanya = await this.copyKampanyaToSube(kampanyaId, subeId);
+        if (newKampanya) {
+          results.push(newKampanya);
+        } else {
+          errors.push(kampanyaId);
+        }
+      } catch (error) {
+        console.error(`Kampanya ${kampanyaId} şubeye ${subeId} kopyalanırken hata:`, error);
+        errors.push(kampanyaId);
+      }
+    }
+    
+    if (errors.length > 0) {
+      console.warn(`Bazı kampanyalar kopyalanamadı (IDs: ${errors.join(', ')})`);
+    }
+    
+    return results;
   }
 
   async createKampanya(insertKampanya: InsertKampanya): Promise<Kampanya> {

@@ -305,40 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Kampanya kopyalama API
-  app.post("/api/kampanyalar/:id/copy", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { subeId } = req.body;
-      
-      if (!subeId) {
-        return res.status(400).json({ error: "Hedef şube ID'si belirtilmemiş" });
-      }
-      
-      // Kaynak kampanyayı al
-      const sourceKampanya = await storage.getKampanya(parseInt(id));
-      
-      if (!sourceKampanya) {
-        return res.status(404).json({ error: "Kopyalanacak kampanya bulunamadı" });
-      }
-      
-      // Kampanya verilerini hedef şubeye kopyala
-      const kampanyaData = {
-        ...sourceKampanya,
-        id: undefined, // Yeni bir ID oluşturulacak
-        subeId: subeId, // Hedef şube ID'si
-        hediyeler: sourceKampanya.hediyeler // Hediyeleri de kopyala
-      };
-      
-      // Yeni kampanyayı oluştur
-      const newKampanya = await storage.createKampanya(kampanyaData);
-      
-      res.status(201).json(newKampanya);
-    } catch (error) {
-      console.error("Kampanya kopyalama hatası:", error);
-      res.status(500).json({ error: "Kampanya kopyalanırken bir hata oluştu", details: String(error) });
-    }
-  });
+
 
   app.post("/api/kampanyalar", async (req, res) => {
     try {
@@ -410,6 +377,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Kampanya kopyalama hatası:", error);
       res.status(500).json({ error: "Kampanya kopyalanırken bir hata oluştu", details: String(error) });
+    }
+  });
+  
+  // Çoklu Kampanya Kopyalama API endpoint'i
+  app.post("/api/kampanyalar/copy-many", async (req, res) => {
+    try {
+      const { kampanyaIds, subeId } = req.body;
+      
+      if (!subeId) {
+        return res.status(400).json({ error: "Hedef şube ID'si (subeId) gereklidir" });
+      }
+      
+      if (!kampanyaIds || !Array.isArray(kampanyaIds) || kampanyaIds.length === 0) {
+        return res.status(400).json({ error: "Kopyalanacak kampanya ID'leri (kampanyaIds) gereklidir ve en az bir ID içermelidir" });
+      }
+      
+      // ID'leri sayıya dönüştür
+      const numericIds = kampanyaIds.map(id => parseInt(id));
+      
+      const newKampanyalar = await storage.copyManyKampanyalarToSube(numericIds, parseInt(subeId));
+      
+      if (newKampanyalar.length === 0) {
+        return res.status(404).json({ error: "Hiçbir kampanya kopyalanamadı" });
+      }
+      
+      res.status(201).json({
+        success: true,
+        message: `${newKampanyalar.length} kampanya başarıyla kopyalandı`,
+        kampanyalar: newKampanyalar
+      });
+    } catch (error) {
+      console.error("Çoklu kampanya kopyalama hatası:", error);
+      res.status(500).json({ error: "Kampanyalar kopyalanırken bir hata oluştu", details: String(error) });
     }
   });
 
