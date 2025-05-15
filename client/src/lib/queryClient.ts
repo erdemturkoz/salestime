@@ -8,7 +8,12 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       queryFn: async ({ queryKey }) => {
         if (typeof queryKey[0] === 'string') {
-          const response = await fetch(queryKey[0]);
+          const response = await fetch(queryKey[0], {
+            credentials: 'include', // Cookies'leri göndermek için
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
@@ -23,6 +28,7 @@ export const queryClient = new QueryClient({
 export async function apiRequest(url: string, options: RequestInit = {}) {
   const response = await fetch(url, {
     ...options,
+    credentials: 'include', // Önemli: Cookies gönderimi sağlar
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
