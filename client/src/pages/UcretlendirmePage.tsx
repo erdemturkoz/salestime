@@ -336,6 +336,19 @@ const UcretlendirmePage = () => {
     });
   };
   
+  // Tüm kampanyaları seçme işlevi
+  const handleSelectAllKampanyalar = () => {
+    // Eğer tüm kampanyalar seçiliyse, seçimi kaldır
+    if (selectedKampanyalar.length === kampanyalar.length) {
+      setSelectedKampanyalar([]);
+    } 
+    // Değilse tüm kampanyaları seç
+    else {
+      const allKampanyaIds = kampanyalar.map(k => k.id);
+      setSelectedKampanyalar(allKampanyaIds);
+    }
+  };
+  
   // Kampanya kopyalama modalı açma
   const openCopyDialog = (kampanyaId: string) => {
     setCopyingKampanyaId(kampanyaId);
@@ -1273,27 +1286,41 @@ const UcretlendirmePage = () => {
           
           <div className="flex flex-col gap-4 py-4">
             {/* Kampanyalar Seçim Listesi */}
-            <div className="max-h-60 overflow-y-auto border rounded-md p-2">
-              <Label className="mb-2 block">Kopyalanacak Kampanyalar</Label>
-              {kampanyalar.length > 0 ? (
-                <div className="space-y-2">
-                  {kampanyalar.map((kampanya) => (
-                    <div 
-                      key={kampanya.id} 
-                      className="flex items-center p-2 hover:bg-slate-100 rounded-md"
-                    >
-                      <input
-                        type="checkbox"
-                        id={`kampanya-${kampanya.id}`}
-                        className="mr-3 h-4 w-4"
-                        checked={selectedKampanyalar.includes(kampanya.id)}
-                        onChange={() => handleKampanyaSelect(kampanya.id)}
-                      />
-                      <label 
-                        htmlFor={`kampanya-${kampanya.id}`}
-                        className="flex-grow cursor-pointer"
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Kopyalanacak Kampanyalar</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSelectAllKampanyalar}
+                  className="h-7 text-xs"
+                >
+                  {selectedKampanyalar.length === kampanyalar.length 
+                    ? "Tümünü Temizle" 
+                    : "Tümünü Seç"}
+                </Button>
+              </div>
+              
+              <div className="max-h-60 overflow-y-auto border rounded-md p-2">
+                {kampanyalar.length > 0 ? (
+                  <div className="space-y-2">
+                    {kampanyalar.map((kampanya) => (
+                      <div 
+                        key={kampanya.id} 
+                        className="flex items-center p-2 hover:bg-slate-100 rounded-md"
                       >
-                        {kampanya.kampanyaAdi}
+                        <input
+                          type="checkbox"
+                          id={`kampanya-${kampanya.id}`}
+                          className="mr-3 h-4 w-4"
+                          checked={selectedKampanyalar.includes(kampanya.id)}
+                          onChange={() => handleKampanyaSelect(kampanya.id)}
+                        />
+                        <label 
+                          htmlFor={`kampanya-${kampanya.id}`}
+                          className="flex-grow cursor-pointer"
+                        >
+                          {kampanya.kampanyaAdi}
                       </label>
                     </div>
                   ))}
