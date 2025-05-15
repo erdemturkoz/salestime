@@ -1,13 +1,16 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { Server, createServer } from "http";
+import { eq, and } from "drizzle-orm";
 import { storage } from "./storage";
 import { 
   insertKampanyaSchema, 
   insertSubeSchema, 
   insertKullaniciSchema, 
   insertKullaniciSubeRolSchema,
-  Roller
+  Roller,
+  kullaniciSubeRolleri
 } from "@shared/schema";
+import { db } from "./db";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -117,9 +120,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/kullanicilar", async (req, res) => {
     try {
+      // Kullanıcı veri şemasını doğrula
       const kullaniciData = insertKullaniciSchema.parse(req.body);
+      
+      // Roller varsa ayrı tut (Şema dışı veriler)
+      const roller = req.body.roller || [];
+      
+      // Yeni kullanıcıyı oluştur
       const newKullanici = await storage.createKullanici(kullaniciData);
-      res.status(201).json(newKullanici);
+      
+      // Roller varsa, her rol için kullanıcı-şube ilişkisini ekle
+      if (roller && roller.length > 0) {
+        for (const rol of roller) {
+          await storage.addKullaniciToSube(
+            newKullanici.id, 
+            rol.subeId, 
+            rol.rol
+          );
+        }
+      }
+      
+      // Güncel roller dahil kullanıcı bilgisini al
+      const kullaniciWithRoller = await storage.getKullanici(newKullanici.id);
+      
+      res.status(201).json(kullaniciWithRoller);
     } catch (error) {
       console.error("Kullanıcı oluşturma hatası:", error);
       if (error instanceof z.ZodError) {
@@ -132,14 +156,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/kullanicilar/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      const parsedId = parseInt(id);
+      
+      // Kullanıcı veri şemasını doğrula
       const kullaniciData = insertKullaniciSchema.parse(req.body);
-      const updatedKullanici = await storage.updateKullanici(parseInt(id), kullaniciData);
+      
+      // Roller varsa ayrı tut (Şema dışı veriler)
+      const roller = req.body.roller || [];
+      
+      // Kullanıcıyı güncelle
+      const updatedKullanici = await storage.updateKullanici(parsedId, kullaniciData);
       
       if (!updatedKullanici) {
         return res.status(404).json({ error: "Güncellenecek kullanıcı bulunamadı" });
       }
       
-      res.json(updatedKullanici);
+      // Önce mevcut kullanıcı-şube ilişkilerini sil
+      // Bu işlem, kullanıcının güncel şube-rol listesinin tamamen yeni duruma geçmesini sağlar
+      const existingRoller = await db
+        .select()
+        .from(kullaniciSubeRolleri)
+        .where(eq(kullaniciSubeRolleri.kullaniciId, parsedId));
+      
+      for (const rol of existingRoller) {
+        await storage.removeKullaniciFromSube(parsedId, rol.subeId);
+      }
+      
+      // Yeni rolleri ekle
+      if (roller && roller.length > 0) {
+        for (const rol of roller) {
+          await storage.addKullaniciToSube(
+            parsedId, 
+            rol.subeId, 
+            rol.rol
+          );
+        }
+      }
+      
+      // Güncel roller dahil kullanıcı bilgisini al
+      const kullaniciWithRoller = await storage.getKullanici(parsedId);
+      
+      res.json(kullaniciWithRoller);
     } catch (error) {
       console.error("Kullanıcı güncelleme hatası:", error);
       if (error instanceof z.ZodError) {
