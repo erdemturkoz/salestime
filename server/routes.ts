@@ -304,6 +304,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Kampanya yüklenirken bir hata oluştu", details: String(error) });
     }
   });
+  
+  // Kampanya kopyalama API
+  app.post("/api/kampanyalar/:id/copy", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { subeId } = req.body;
+      
+      if (!subeId) {
+        return res.status(400).json({ error: "Hedef şube ID'si belirtilmemiş" });
+      }
+      
+      // Kaynak kampanyayı al
+      const sourceKampanya = await storage.getKampanya(parseInt(id));
+      
+      if (!sourceKampanya) {
+        return res.status(404).json({ error: "Kopyalanacak kampanya bulunamadı" });
+      }
+      
+      // Kampanya verilerini hedef şubeye kopyala
+      const kampanyaData = {
+        ...sourceKampanya,
+        id: undefined, // Yeni bir ID oluşturulacak
+        subeId: subeId, // Hedef şube ID'si
+        hediyeler: sourceKampanya.hediyeler // Hediyeleri de kopyala
+      };
+      
+      // Yeni kampanyayı oluştur
+      const newKampanya = await storage.createKampanya(kampanyaData);
+      
+      res.status(201).json(newKampanya);
+    } catch (error) {
+      console.error("Kampanya kopyalama hatası:", error);
+      res.status(500).json({ error: "Kampanya kopyalanırken bir hata oluştu", details: String(error) });
+    }
+  });
 
   app.post("/api/kampanyalar", async (req, res) => {
     try {
