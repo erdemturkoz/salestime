@@ -109,36 +109,6 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-  
-  async getKampanyasBySubeId(subeId: number): Promise<Kampanya[]> {
-    try {
-      const result = await db.execute<Kampanya>(
-        `SELECT 
-          id, 
-          kampanya_adi as "kampanyaAdi", 
-          egitim_tipi as "egitimTipi",
-          kur_sayisi as "kurSayisi",
-          toplam_ders_saati as "toplamDersSaati",
-          liste_fiyati as "listeFiyati",
-          nakit_fiyati as "nakitFiyati",
-          indirim_orani as "indirimOrani",
-          faiz_orani as "faizOrani",
-          kitap_fiyati as "kitapFiyati",
-          kitap_set_sayisi as "kitapSetSayisi",
-          max_kredi_karti_taksit as "maxKrediKartiTaksit",
-          max_senet_taksit as "maxSenetTaksit",
-          hediyeler,
-          sube_id as "subeId"
-        FROM kampanyalar
-        WHERE sube_id = $1`,
-        [subeId]
-      );
-      return result.rows;
-    } catch (error) {
-      console.error(`Şube ${subeId} için kampanyaları getirme hatası:`, error);
-      return [];
-    }
-  }
 
   async getKampanya(id: number): Promise<Kampanya | undefined> {
     try {
