@@ -50,7 +50,7 @@ export const setupSession = (app: Express) => {
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün
         path: '/',
-        sameSite: 'none'       // Embedded iframe için gereklidir
+        sameSite: 'lax'        // SameSite=none iframe'de sorun çıkarıyor
       },
     })
   );

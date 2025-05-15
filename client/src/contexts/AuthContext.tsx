@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   
   // Sunucudan gelen ve localStorage'dan gelen kullanıcı bilgisini birleştir
+  // @ts-ignore
   const user = serverUser || localUser;
 
   // Giriş yap
@@ -143,6 +144,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       queryClient.setQueryData(["/api/auth/current-user"], null);
+      
+      // LocalStorage'dan kullanıcı bilgisini sil
+      if (window.clearUserData) {
+        window.clearUserData();
+      }
+      
+      setLocalUser(null);
       
       toast({
         title: "Çıkış Başarılı",
