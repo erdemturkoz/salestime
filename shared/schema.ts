@@ -31,7 +31,8 @@ export const subeler = pgTable("subeler", {
 export const Roller = {
   KURUCU: "Kurucu",
   MUDUR: "Müdür",
-  SATIS_DANISMANI: "Satış Danışmanı"
+  SATIS_DANISMANI: "Satış Danışmanı",
+  SISTEM_YONETICISI: "Sistem Yöneticisi"
 } as const;
 
 // Kullanıcı tablosu
