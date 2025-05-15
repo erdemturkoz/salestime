@@ -112,6 +112,10 @@ export const login = async (req: Request, res: Response) => {
     
     // Session'a kullanıcı bilgisini kaydet
     req.session.user = kullaniciWithRoller;
+    req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 gün
+    
+    console.log('Login - Session ID:', req.sessionID);
+    console.log('Login - Session cookie:', req.session.cookie);
     
     // Session'ı kaydetmek için
     req.session.save((err) => {
@@ -119,6 +123,8 @@ export const login = async (req: Request, res: Response) => {
         console.error('Session kayıt hatası:', err);
         return res.status(500).json({ error: "Oturum kaydedilirken bir hata oluştu" });
       }
+      
+      console.log('Session kaydedildi - User ID:', kullaniciWithRoller.id);
       
       // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
       const { sifre, ...userWithoutPassword } = kullaniciWithRoller;
@@ -147,7 +153,10 @@ export const logout = (req: Request, res: Response) => {
 
 // Mevcut oturum bilgisi
 export const getCurrentUser = (req: Request, res: Response) => {
-  if (!req.session.user) {
+  console.log("Session ID:", req.sessionID);
+  console.log("Session bilgisi:", req.session);
+  
+  if (!req.session || !req.session.user) {
     return res.status(401).json({ error: "Oturum açık değil" });
   }
   
