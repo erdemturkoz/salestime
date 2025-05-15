@@ -28,8 +28,12 @@ interface AppContextType {
   addKampanya: (kampanya: Omit<Kampanya, 'id'>) => void;
   deleteKampanya: (id: string) => void;
   updateKampanya: (kampanya: Kampanya) => void;
+  copyKampanyaToSube: (kampanyaId: string, subeId: number) => Promise<boolean>;
   loading: boolean;
   refreshKampanyalar: () => Promise<void>;
+  getKampanyalarBySubeId: (subeId: number) => Promise<void>;
+  selectedSubeId: number | null;
+  setSelectedSubeId: (subeId: number | null) => void;
 }
 
 // Create the context with default values to avoid undefined checks
@@ -38,8 +42,12 @@ const defaultContextValue: AppContextType = {
   addKampanya: () => {},
   deleteKampanya: () => {},
   updateKampanya: () => {},
+  copyKampanyaToSube: async () => false,
   loading: false,
-  refreshKampanyalar: async () => {}
+  refreshKampanyalar: async () => {},
+  getKampanyalarBySubeId: async () => {},
+  selectedSubeId: null,
+  setSelectedSubeId: () => {},
 };
 
 const AppContext = createContext<AppContextType>(defaultContextValue);
