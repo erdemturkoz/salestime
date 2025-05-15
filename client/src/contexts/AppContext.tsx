@@ -309,14 +309,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // useEffect ekleyerek selectedSubeId değiştiğinde kampanyaları güncelleyin
+  // İlk yükleme için kampanyaları getir
   useEffect(() => {
-    if (selectedSubeId) {
-      getKampanyalarBySubeId(selectedSubeId);
-    } else {
-      fetchKampanyalar();
-    }
-  }, [selectedSubeId]);
+    // Başlangıçta bir kez kampanyaları yükle
+    fetchKampanyalar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const contextValue = {
     kampanyalar,

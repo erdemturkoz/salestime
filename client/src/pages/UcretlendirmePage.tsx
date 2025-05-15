@@ -4,18 +4,19 @@ import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils
 import { calculateInstallments } from "@/utils/calculator";
 import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
-import { RefreshCwIcon, Plus, FileSpreadsheet, Building } from "lucide-react";
+import { RefreshCwIcon, Plus, FileSpreadsheet, Building, Copy } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
 import { useAuth } from "@/hooks/useAuth";
 
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const UcretlendirmePage = () => {
   const { toast } = useToast();
@@ -77,10 +78,12 @@ const UcretlendirmePage = () => {
     fetchSubeler();
   }, [toast]);
   
-  // Kampanyaları şube filtresine göre getirme
+  // Şube seçimi değiştiğinde kampanyaları filtreleme
   useEffect(() => {
     const fetchKampanyalar = async () => {
       try {
+        // selectedSubeId null ise tüm kampanyaları getir
+        // değilse şubeye göre filtrele
         if (selectedSubeId) {
           await refreshKampanyalar(selectedSubeId);
         } else {
@@ -97,7 +100,31 @@ const UcretlendirmePage = () => {
     };
     
     fetchKampanyalar();
-  }, [selectedSubeId, refreshKampanyalar, toast]);
+  }, [selectedSubeId, toast, refreshKampanyalar]);
+  
+  // Sayfa ilk yüklendiğinde şubeleri getir
+  useEffect(() => {
+    const fetchSubeler = async () => {
+      try {
+        const response = await fetch('/api/subeler');
+        if (!response.ok) {
+          throw new Error('Şubeler getirilemedi');
+        }
+        const data = await response.json();
+        setSubeler(data);
+      } catch (error) {
+        console.error('Şubeler getirme hatası:', error);
+        toast({
+          title: 'Hata',
+          description: 'Şubeler yüklenirken bir hata oluştu.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    fetchSubeler();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Liste fiyatı veya nakit fiyatı değiştiğinde, indirim oranını hesapla
   useEffect(() => {
@@ -296,6 +323,52 @@ const UcretlendirmePage = () => {
     }
   };
   
+  // Kampanya kopyalama modalı açma
+  const openCopyDialog = (kampanyaId: string) => {
+    setCopyingKampanyaId(kampanyaId);
+    setTargetSubeId(null); // Hedef şubeyi sıfırla
+    setShowCopyDialog(true);
+  };
+  
+  // Kampanya kopyalama işlemi
+  const handleCopyKampanya = async () => {
+    if (!copyingKampanyaId || !targetSubeId) {
+      toast({
+        title: 'Hata',
+        description: 'Lütfen hedef şubeyi seçin.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      const result = await copyKampanyaToSube(copyingKampanyaId, targetSubeId);
+      if (result) {
+        toast({
+          title: 'Başarılı',
+          description: 'Kampanya başarıyla kopyalandı.',
+        });
+        await refreshKampanyalar(selectedSubeId || undefined);
+        setShowCopyDialog(false);
+        setCopyingKampanyaId(null);
+        setTargetSubeId(null);
+      } else {
+        toast({
+          title: 'Hata',
+          description: 'Kampanya kopyalanırken bir hata oluştu.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Kampanya kopyalama hatası:', error);
+      toast({
+        title: 'Hata',
+        description: 'Kampanya kopyalanırken bir hata oluştu.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
   // Excel İşlevleri
   const handleExportToExcel = () => {
     if (kampanyalar.length === 0) {
@@ -443,7 +516,12 @@ const UcretlendirmePage = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => refreshKampanyalar()}
+                onClick={() => {
+                  const fetchData = async () => {
+                    await refreshKampanyalar(selectedSubeId || undefined);
+                  };
+                  fetchData();
+                }}
                 className="ml-2"
               >
                 <RefreshCwIcon className="mr-2 h-4 w-4" />
