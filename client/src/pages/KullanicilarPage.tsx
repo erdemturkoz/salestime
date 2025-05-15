@@ -16,175 +16,180 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Edit, Trash, UserPlus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Edit, Trash, UserPlus, AlertCircle } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // Şube tipini tanımlayalım
 type Sube = {
-  id: string;
-  ad: string;
+  id: number;
+  subeAdi: string;
+  subeAdresi?: string;
+  subeTelefon?: string;
+  kullanicilar?: Array<{
+    kullaniciId: number;
+    kullaniciAdi: string;
+    kullaniciSoyadi: string;
+    rol: string;
+  }>;
 };
 
 // Rol tipini tanımlayalım
 type Rol = "Kurucu" | "Müdür" | "Satış Danışmanı";
 
 // Kullanıcı-Şube ilişkisini tanımlayalım
-type SubeRol = {
-  subeId: string;
+type KullaniciSubeRol = {
+  subeId: number;
+  subeAdi: string; 
   rol: Rol;
 };
 
-// Örnek kullanıcı tipi - birden fazla şubeyi yönetebilir
-type User = {
+// Kullanıcı tipi
+type Kullanici = {
   id: number;
-  ad: string;
-  soyad: string;
-  email: string;
-  subeRolleri: SubeRol[]; // Birden fazla şube için rol
-  sonGiris: string;
+  adi: string;
+  soyadi: string;
+  roller: KullaniciSubeRol[];
 };
 
-// Örnek şubeler
-const SUBELER: Sube[] = [
-  { id: "merkez", ad: "Merkez" },
-  { id: "kadikoy", ad: "Kadıköy" },
-  { id: "besiktas", ad: "Beşiktaş" },
-  { id: "sisli", ad: "Şişli" },
-  { id: "bakirkoy", ad: "Bakırköy" },
-];
-
-// Örnek kullanıcı verileri
-const dummyUsers: User[] = [
-  { 
-    id: 1, 
-    ad: "Ahmet", 
-    soyad: "Yılmaz", 
-    email: "ahmet.yilmaz@example.com", 
-    subeRolleri: [
-      { subeId: "kadikoy", rol: "Satış Danışmanı" }
-    ],
-    sonGiris: "12.05.2025 09:15" 
-  },
-  { 
-    id: 2, 
-    ad: "Ayşe", 
-    soyad: "Kaya", 
-    email: "ayse.kaya@example.com", 
-    subeRolleri: [
-      { subeId: "merkez", rol: "Müdür" }
-    ],
-    sonGiris: "11.05.2025 14:30" 
-  },
-  { 
-    id: 3, 
-    ad: "Mehmet", 
-    soyad: "Demir", 
-    email: "mehmet.demir@example.com", 
-    subeRolleri: [
-      { subeId: "besiktas", rol: "Satış Danışmanı" }
-    ],
-    sonGiris: "10.05.2025 11:45" 
-  },
-  { 
-    id: 4, 
-    ad: "Zeynep", 
-    soyad: "Şahin", 
-    email: "zeynep.sahin@example.com", 
-    subeRolleri: [
-      { subeId: "sisli", rol: "Satış Danışmanı" },
-      { subeId: "bakirkoy", rol: "Satış Danışmanı" }
-    ],
-    sonGiris: "09.05.2025 16:20" 
-  },
-  { 
-    id: 5, 
-    ad: "Mustafa", 
-    soyad: "Öztürk", 
-    email: "mustafa.ozturk@example.com", 
-    subeRolleri: [
-      { subeId: "merkez", rol: "Müdür" },
-      { subeId: "kadikoy", rol: "Müdür" },
-      { subeId: "besiktas", rol: "Müdür" }
-    ],
-    sonGiris: "12.05.2025 08:10" 
-  },
-  { 
-    id: 6, 
-    ad: "Ali", 
-    soyad: "Yıldırım", 
-    email: "ali.yildirim@example.com", 
-    subeRolleri: [
-      { subeId: "merkez", rol: "Kurucu" },
-      { subeId: "kadikoy", rol: "Kurucu" },
-      { subeId: "besiktas", rol: "Kurucu" },
-      { subeId: "sisli", rol: "Kurucu" },
-      { subeId: "bakirkoy", rol: "Kurucu" }
-    ],
-    sonGiris: "12.05.2025 10:30" 
-  },
-];
-
 const KullanicilarPage = () => {
-  const [users, setUsers] = useState<User[]>(dummyUsers);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Kullanici | null>(null);
+  
+  // Formlar için state
   const [newUser, setNewUser] = useState({
-    ad: "",
-    soyad: "",
-    email: "",
+    adi: "",
+    soyadi: "",
     selectedRol: "Satış Danışmanı" as Rol,
-    selectedSubeId: "merkez",
-    selectedSubeler: [] as {subeId: string, rol: Rol}[],
+    selectedSubeId: 0,
+    selectedSubeler: [] as {subeId: number, rol: Rol}[],
   });
 
-  // Şube adını ID'den bulmak için yardımcı fonksiyon
-  const getSubeAdi = (subeId: string): string => {
-    const sube = SUBELER.find(s => s.id === subeId);
-    return sube ? sube.ad : subeId;
-  };
+  // Şubeleri API'den çek
+  const { data: subeler = [], isLoading: subelerLoading, error: subelerError } = useQuery({
+    queryKey: ['/api/subeler'],
+    retry: false,
+  });
 
-  // Kullanıcı arama - birden çok şubede çalışanlar için daha karmaşık arama
-  const filteredUsers = users.filter(
-    (user) => {
-      const searchTermLower = searchTerm.toLowerCase();
-      
-      // Temel bilgiler içinde arama
-      if (
-        user.ad.toLowerCase().includes(searchTermLower) ||
-        user.soyad.toLowerCase().includes(searchTermLower) ||
-        user.email.toLowerCase().includes(searchTermLower)
-      ) {
-        return true;
-      }
-      
-      // Rol ve şube bilgisi içinde arama
-      return user.subeRolleri.some(subeRol => {
-        // Rol içinde arama
-        if (subeRol.rol.toLowerCase().includes(searchTermLower)) {
-          return true;
-        }
-        
-        // Şube adı içinde arama
-        const subeAdi = getSubeAdi(subeRol.subeId);
-        return subeAdi.toLowerCase().includes(searchTermLower);
+  // Kullanıcıları API'den çek
+  const { data: kullanicilar = [], isLoading: kullanicilarLoading, error: kullanicilarError } = useQuery({
+    queryKey: ['/api/kullanicilar'],
+    retry: false,
+  });
+
+  // Kullanıcı ekleme, düzenleme ve silme için mutasyonlar
+  const { mutate: createKullanici, isPending: isCreatingKullanici } = useMutation({
+    mutationFn: (data: any) => apiRequest('/api/kullanicilar', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      toast({
+        title: "Kullanıcı eklendi",
+        description: "Yeni kullanıcı başarıyla eklendi.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
+      resetAndCloseAddDialog();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: `Kullanıcı eklenirken bir hata oluştu: ${error.message || 'Bilinmeyen hata'}`,
+        variant: "destructive",
       });
     }
-  );
+  });
 
-  // Yeni şube-rol eklemek için state ve fonksiyonlar
-  const [currentSubeRol, setCurrentSubeRol] = useState<SubeRol>({
-    subeId: "merkez",
+  const { mutate: updateKullanici, isPending: isUpdatingKullanici } = useMutation({
+    mutationFn: (data: any) => apiRequest(`/api/kullanicilar/${data.id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      toast({
+        title: "Kullanıcı güncellendi",
+        description: "Kullanıcı bilgileri başarıyla güncellendi.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: `Kullanıcı güncellenirken bir hata oluştu: ${error.message || 'Bilinmeyen hata'}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const { mutate: deleteKullanici, isPending: isDeletingKullanici } = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/kullanicilar/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      toast({
+        title: "Kullanıcı silindi",
+        description: "Kullanıcı başarıyla silindi.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
+      setIsDeleteDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: `Kullanıcı silinirken bir hata oluştu: ${error.message || 'Bilinmeyen hata'}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Yeni şube-rol için state
+  const [currentSubeRol, setCurrentSubeRol] = useState<{subeId: number, rol: Rol}>({
+    subeId: 0,
     rol: "Satış Danışmanı"
   });
+
+  // Kullanıcı dialoglarını açma ve kapatma fonksiyonları
+  const openAddDialog = () => {
+    if (Array.isArray(subeler) && subeler.length > 0) {
+      setCurrentSubeRol({
+        subeId: subeler[0].id,
+        rol: "Satış Danışmanı"
+      });
+      setNewUser({
+        adi: "",
+        soyadi: "",
+        selectedRol: "Satış Danışmanı",
+        selectedSubeId: subeler[0].id,
+        selectedSubeler: [],
+      });
+    }
+    setIsAddDialogOpen(true);
+  };
+
+  const resetAndCloseAddDialog = () => {
+    setNewUser({
+      adi: "",
+      soyadi: "",
+      selectedRol: "Satış Danışmanı",
+      selectedSubeId: Array.isArray(subeler) && subeler.length > 0 ? subeler[0].id : 0,
+      selectedSubeler: [],
+    });
+    setIsAddDialogOpen(false);
+  };
 
   // Seçili şube-rolü listeye ekleme
   const handleAddSubeRol = () => {
     // Eğer bu şube-rol zaten eklenmişse eklemeyi engelle
     if (newUser.selectedSubeler.some(sr => sr.subeId === currentSubeRol.subeId)) {
-      return; // Aynı şube birden fazla eklenemesin
+      toast({
+        title: "Uyarı",
+        description: "Bu şube zaten eklenmiş.",
+        variant: "destructive",
+      });
+      return;
     }
 
     setNewUser({
@@ -203,49 +208,66 @@ const KullanicilarPage = () => {
     });
   };
 
-  // Kullanıcı ekleme fonksiyonu - güncellenmiş
+  // Kullanıcı ekleme
   const handleAddUser = () => {
-    const id = Math.max(0, ...users.map((u) => u.id)) + 1;
-    const now = new Date();
-    const sonGiris = `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
-    
-    // Eğer hiç şube-rol seçilmemişse, şu anki seçili şube-rolü ekle
-    const subeRolleri = newUser.selectedSubeler.length > 0 
-      ? newUser.selectedSubeler
-      : [{ subeId: newUser.selectedSubeId, rol: newUser.selectedRol }];
-    
-    const newUserData: User = {
-      id,
-      ad: newUser.ad,
-      soyad: newUser.soyad,
-      email: newUser.email,
-      subeRolleri,
-      sonGiris,
+    if (!newUser.adi || !newUser.soyadi) {
+      toast({
+        title: "Eksik bilgiler",
+        description: "Ad ve soyad alanları zorunludur.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newUser.selectedSubeler.length === 0) {
+      toast({
+        title: "Eksik bilgiler",
+        description: "En az bir şube ve rol eklemelisiniz.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // API'ye gönderilecek veriyi hazırla
+    const userData = {
+      adi: newUser.adi,
+      soyadi: newUser.soyadi,
+      roller: newUser.selectedSubeler.map(sr => ({
+        subeId: sr.subeId,
+        rol: sr.rol
+      }))
     };
-    
-    setUsers([...users, newUserData]);
-    setNewUser({
-      ad: "",
-      soyad: "",
-      email: "",
-      selectedRol: "Satış Danışmanı" as Rol,
-      selectedSubeId: "merkez",
-      selectedSubeler: [],
-    });
-    setIsAddDialogOpen(false);
+
+    createKullanici(userData);
   };
 
-  // Kullanıcı düzenleme - şube rol işlemleri
-  const [editingSubeRolleri, setEditingSubeRolleri] = useState<SubeRol[]>([]);
-  const [editCurrentSubeRol, setEditCurrentSubeRol] = useState<SubeRol>({
-    subeId: "merkez",
+  // Kullanıcı düzenleme için state
+  const [editingRoller, setEditingRoller] = useState<{subeId: number, rol: Rol}[]>([]);
+  const [editCurrentSubeRol, setEditCurrentSubeRol] = useState<{subeId: number, rol: Rol}>({
+    subeId: 0,
     rol: "Satış Danışmanı"
   });
 
-  // Kullanıcı düzenleme dialogunu açarken şube-rol listesini hazırlama
-  const handleOpenEditDialog = (user: User) => {
+  // Kullanıcı düzenleme dialogunu açma
+  const handleOpenEditDialog = (user: Kullanici) => {
     setSelectedUser(user);
-    setEditingSubeRolleri([...user.subeRolleri]);
+    
+    // Mevcut roller
+    const currentRoles = user.roller.map(rol => ({
+      subeId: rol.subeId,
+      rol: rol.rol as Rol
+    }));
+    
+    setEditingRoller(currentRoles);
+    
+    // İlk şubeyi varsayılan olarak seç
+    if (Array.isArray(subeler) && subeler.length > 0) {
+      setEditCurrentSubeRol({
+        subeId: subeler[0].id,
+        rol: "Satış Danışmanı"
+      });
+    }
+    
     setIsEditDialogOpen(true);
   };
 
@@ -254,58 +276,87 @@ const KullanicilarPage = () => {
     if (!selectedUser) return;
     
     // Eğer bu şube-rol zaten eklenmişse eklemeyi engelle
-    if (editingSubeRolleri.some(sr => sr.subeId === editCurrentSubeRol.subeId)) {
-      return; // Aynı şube birden fazla eklenemesin
+    if (editingRoller.some(sr => sr.subeId === editCurrentSubeRol.subeId)) {
+      toast({
+        title: "Uyarı",
+        description: "Bu şube zaten eklenmiş.",
+        variant: "destructive",
+      });
+      return;
     }
     
-    const updatedSubeRoller = [...editingSubeRolleri, {...editCurrentSubeRol}];
-    setEditingSubeRolleri(updatedSubeRoller);
-    
-    // Kullanıcı nesnesini de güncelle
-    setSelectedUser({
-      ...selectedUser,
-      subeRolleri: updatedSubeRoller
-    });
+    setEditingRoller([...editingRoller, {...editCurrentSubeRol}]);
   };
 
   // Düzenlemede şube-rol silme
   const handleRemoveEditSubeRol = (index: number) => {
     if (!selectedUser) return;
     
-    const updatedSubeRoller = [...editingSubeRolleri];
-    updatedSubeRoller.splice(index, 1);
-    setEditingSubeRolleri(updatedSubeRoller);
-    
-    // Kullanıcı nesnesini de güncelle
-    setSelectedUser({
-      ...selectedUser,
-      subeRolleri: updatedSubeRoller
-    });
+    const updatedRoller = [...editingRoller];
+    updatedRoller.splice(index, 1);
+    setEditingRoller(updatedRoller);
   };
 
-  // Kullanıcı düzenleme fonksiyonu
-  const handleEditUser = () => {
+  // Kullanıcı güncelleme
+  const handleUpdateUser = () => {
     if (!selectedUser) return;
     
-    setUsers(
-      users.map((user) =>
-        user.id === selectedUser.id ? { ...selectedUser } : user
-      )
-    );
+    if (editingRoller.length === 0) {
+      toast({
+        title: "Eksik bilgiler",
+        description: "En az bir şube ve rol eklemelisiniz.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    setIsEditDialogOpen(false);
-    setSelectedUser(null);
-    setEditingSubeRolleri([]);
+    // API'ye gönderilecek veriyi hazırla
+    const userData = {
+      id: selectedUser.id,
+      adi: selectedUser.adi,
+      soyadi: selectedUser.soyadi,
+      roller: editingRoller.map(sr => ({
+        subeId: sr.subeId,
+        rol: sr.rol
+      }))
+    };
+    
+    updateKullanici(userData);
   };
 
-  // Kullanıcı silme fonksiyonu
+  // Kullanıcı silme
   const handleDeleteUser = () => {
     if (!selectedUser) return;
-    
-    setUsers(users.filter((user) => user.id !== selectedUser.id));
-    setIsDeleteDialogOpen(false);
-    setSelectedUser(null);
+    deleteKullanici(selectedUser.id);
   };
+
+  // Kullanıcı arama
+  const filteredKullanicilar = Array.isArray(kullanicilar) 
+    ? kullanicilar.filter((kullanici: Kullanici) => {
+        if (!searchTerm) return true;
+        
+        const searchTermLower = searchTerm.toLowerCase();
+        
+        // Temel bilgiler içinde arama
+        if (
+          kullanici.adi.toLowerCase().includes(searchTermLower) ||
+          kullanici.soyadi.toLowerCase().includes(searchTermLower)
+        ) {
+          return true;
+        }
+        
+        // Rol ve şube bilgisi içinde arama
+        return kullanici.roller?.some(rol => {
+          // Rol içinde arama
+          if (rol.rol.toLowerCase().includes(searchTermLower)) {
+            return true;
+          }
+          
+          // Şube adı içinde arama
+          return rol.subeAdi.toLowerCase().includes(searchTermLower);
+        });
+      }) 
+    : [];
 
   return (
     <div className="container mx-auto py-6">
@@ -313,7 +364,7 @@ const KullanicilarPage = () => {
         <CardHeader className="bg-blue-50">
           <div className="flex justify-between items-center">
             <CardTitle className="text-blue-800">Kullanıcı Yönetimi</CardTitle>
-            <Button className="flex items-center" onClick={() => setIsAddDialogOpen(true)}>
+            <Button className="flex items-center" onClick={openAddDialog}>
               <UserPlus className="h-4 w-4 mr-2" />
               Yeni Kullanıcı
             </Button>
@@ -329,6 +380,26 @@ const KullanicilarPage = () => {
             />
           </div>
 
+          {/* Hata varsa göster */}
+          {kullanicilarError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Hata</AlertTitle>
+              <AlertDescription>
+                Kullanıcılar yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] })}
+                >
+                  Yeniden Dene
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Kullanıcı tablosu */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -336,46 +407,59 @@ const KullanicilarPage = () => {
                   <TableHead className="w-[50px]">ID</TableHead>
                   <TableHead>Ad</TableHead>
                   <TableHead>Soyad</TableHead>
-                  <TableHead>E-posta</TableHead>
                   <TableHead>Şube ve Roller</TableHead>
-                  <TableHead>Son Giriş</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.id}</TableCell>
-                      <TableCell>{user.ad}</TableCell>
-                      <TableCell>{user.soyad}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                {kullanicilarLoading ? (
+                  // Yükleme durumu
+                  Array(5).fill(0).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-full" /></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-8" />
+                          <Skeleton className="h-8 w-8" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredKullanicilar.length > 0 ? (
+                  // Kullanıcıları listele
+                  filteredKullanicilar.map((kullanici: Kullanici) => (
+                    <TableRow key={kullanici.id}>
+                      <TableCell className="font-medium">{kullanici.id}</TableCell>
+                      <TableCell>{kullanici.adi}</TableCell>
+                      <TableCell>{kullanici.soyadi}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {user.subeRolleri.map((subeRol, index) => (
+                          {kullanici.roller?.map((rol, index) => (
                             <div key={index} className="flex items-center mb-1">
                               <span className="px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 mr-1">
-                                {getSubeAdi(subeRol.subeId)}
+                                {rol.subeAdi}
                               </span>
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                subeRol.rol === "Kurucu" 
+                                rol.rol === "Kurucu" 
                                   ? "bg-purple-100 text-purple-800" 
-                                  : subeRol.rol === "Müdür" 
+                                  : rol.rol === "Müdür" 
                                     ? "bg-green-100 text-green-800" 
                                     : "bg-orange-100 text-orange-800"
                               }`}>
-                                {subeRol.rol}
+                                {rol.rol}
                               </span>
                             </div>
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>{user.sonGiris}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleOpenEditDialog(user)}
+                          onClick={() => handleOpenEditDialog(kullanici)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -383,7 +467,7 @@ const KullanicilarPage = () => {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setSelectedUser(user);
+                            setSelectedUser(kullanici);
                             setIsDeleteDialogOpen(true);
                           }}
                         >
@@ -393,9 +477,10 @@ const KullanicilarPage = () => {
                     </TableRow>
                   ))
                 ) : (
+                  // Kullanıcı bulunamadı
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                      Kullanıcı bulunamadı
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      {searchTerm ? 'Arama kriterine uygun kullanıcı bulunamadı' : 'Henüz kullanıcı bulunmuyor'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -418,8 +503,8 @@ const KullanicilarPage = () => {
               </label>
               <Input
                 id="ad"
-                value={newUser.ad}
-                onChange={(e) => setNewUser({ ...newUser, ad: e.target.value })}
+                value={newUser.adi}
+                onChange={(e) => setNewUser({ ...newUser, adi: e.target.value })}
                 className="col-span-3"
               />
             </div>
@@ -429,20 +514,8 @@ const KullanicilarPage = () => {
               </label>
               <Input
                 id="soyad"
-                value={newUser.soyad}
-                onChange={(e) => setNewUser({ ...newUser, soyad: e.target.value })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="email" className="text-right">
-                E-posta
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                value={newUser.soyadi}
+                onChange={(e) => setNewUser({ ...newUser, soyadi: e.target.value })}
                 className="col-span-3"
               />
             </div>
@@ -458,12 +531,12 @@ const KullanicilarPage = () => {
                   id="add-sube"
                   value={currentSubeRol.subeId}
                   onChange={(e) => 
-                    setCurrentSubeRol({ ...currentSubeRol, subeId: e.target.value })
+                    setCurrentSubeRol({ ...currentSubeRol, subeId: Number(e.target.value) })
                   }
                   className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {SUBELER.map(sube => (
-                    <option key={sube.id} value={sube.id}>{sube.ad}</option>
+                  {Array.isArray(subeler) && subeler.map((sube: Sube) => (
+                    <option key={sube.id} value={sube.id}>{sube.subeAdi}</option>
                   ))}
                 </select>
               </div>
@@ -486,58 +559,48 @@ const KullanicilarPage = () => {
                 </select>
               </div>
               
-              <div className="grid grid-cols-4 gap-4">
-                <div className="col-start-2 col-span-3">
-                  <Button 
-                    type="button" 
-                    onClick={handleAddSubeRol}
-                    className="w-full"
-                  >
-                    Şube ve Rol Ekle
-                  </Button>
-                </div>
+              <div className="flex justify-end mb-4">
+                <Button variant="secondary" size="sm" onClick={handleAddSubeRol}>
+                  Ekle
+                </Button>
               </div>
               
-              {/* Eklenen şube ve rollerin listesi */}
-              {newUser.selectedSubeler.length > 0 && (
-                <div className="mt-4 bg-slate-50 p-3 rounded-md">
-                  <h4 className="text-sm font-medium mb-2">Eklenen Şube ve Roller:</h4>
-                  <div className="space-y-2">
-                    {newUser.selectedSubeler.map((subeRol, index) => (
-                      <div key={index} className="flex items-center justify-between bg-white p-2 rounded-md">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                            {getSubeAdi(subeRol.subeId)}
-                          </span>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            subeRol.rol === "Kurucu" 
-                              ? "bg-purple-100 text-purple-800" 
-                              : subeRol.rol === "Müdür" 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-orange-100 text-orange-800"
-                          }`}>
-                            {subeRol.rol}
-                          </span>
+              {/* Eklenmiş şube-rol listesi */}
+              <div className="border rounded-md p-2 mt-2 max-h-40 overflow-y-auto">
+                {newUser.selectedSubeler.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {newUser.selectedSubeler.map((sr, index) => {
+                      const sube = Array.isArray(subeler) ? subeler.find((s: Sube) => s.id === sr.subeId) : null;
+                      return (
+                        <div key={index} className="flex items-center bg-slate-100 rounded-md px-2 py-1">
+                          <span className="mr-1 text-xs">{sube ? sube.subeAdi : sr.subeId} - {sr.rol}</span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-5 w-5 ml-1" 
+                            onClick={() => handleRemoveSubeRol(index)}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
                         </div>
-                        <button 
-                          type="button"
-                          onClick={() => handleRemoveSubeRol(index)}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Kaldır
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground py-2">
+                    Henüz şube eklenmedi
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={resetAndCloseAddDialog}>
               İptal
             </Button>
-            <Button onClick={handleAddUser}>Ekle</Button>
+            <Button onClick={handleAddUser} disabled={isCreatingKullanici}>
+              {isCreatingKullanici ? 'Ekleniyor...' : 'Kullanıcı Ekle'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -548,141 +611,115 @@ const KullanicilarPage = () => {
           <DialogHeader>
             <DialogTitle>Kullanıcı Düzenle</DialogTitle>
           </DialogHeader>
-          {selectedUser && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="edit-ad" className="text-right">
-                  Ad
-                </label>
-                <Input
-                  id="edit-ad"
-                  value={selectedUser.ad}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, ad: e.target.value })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="edit-soyad" className="text-right">
-                  Soyad
-                </label>
-                <Input
-                  id="edit-soyad"
-                  value={selectedUser.soyad}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, soyad: e.target.value })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="edit-email" className="text-right">
-                  E-posta
-                </label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={selectedUser.email}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, email: e.target.value })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="mb-4 border-t pt-4">
-                <h3 className="text-md font-medium mb-2">Şube ve Roller</h3>
-                
-                {/* Şube ve rol ekleme alanı */}
-                <div className="grid grid-cols-4 items-center gap-4 mb-2">
-                  <label htmlFor="edit-add-sube" className="text-right">
-                    Şube
+          <div className="grid gap-4 py-4">
+            {selectedUser && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="edit-ad" className="text-right">
+                    Ad
                   </label>
-                  <select
-                    id="edit-add-sube"
-                    value={editCurrentSubeRol.subeId}
-                    onChange={(e) => 
-                      setEditCurrentSubeRol({ ...editCurrentSubeRol, subeId: e.target.value })
-                    }
-                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {SUBELER.map(sube => (
-                      <option key={sube.id} value={sube.id}>{sube.ad}</option>
-                    ))}
-                  </select>
+                  <Input
+                    id="edit-ad"
+                    value={selectedUser.adi}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, adi: e.target.value })}
+                    className="col-span-3"
+                  />
                 </div>
-                
-                <div className="grid grid-cols-4 items-center gap-4 mb-2">
-                  <label htmlFor="edit-add-rol" className="text-right">
-                    Rol
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="edit-soyad" className="text-right">
+                    Soyad
                   </label>
-                  <select
-                    id="edit-add-rol"
-                    value={editCurrentSubeRol.rol}
-                    onChange={(e) => 
-                      setEditCurrentSubeRol({ ...editCurrentSubeRol, rol: e.target.value as Rol })
-                    }
-                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="Satış Danışmanı">Satış Danışmanı</option>
-                    <option value="Müdür">Müdür</option>
-                    <option value="Kurucu">Kurucu</option>
-                  </select>
+                  <Input
+                    id="edit-soyad"
+                    value={selectedUser.soyadi}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, soyadi: e.target.value })}
+                    className="col-span-3"
+                  />
                 </div>
-                
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-start-2 col-span-3">
-                    <Button 
-                      type="button" 
-                      onClick={handleAddEditSubeRol}
-                      className="w-full"
+                <div className="mb-4 border-t pt-4">
+                  <h3 className="text-md font-medium mb-2">Şube ve Roller</h3>
+                  
+                  {/* Şube ve rol ekleme alanı */}
+                  <div className="grid grid-cols-4 items-center gap-4 mb-2">
+                    <label htmlFor="edit-sube" className="text-right">
+                      Şube
+                    </label>
+                    <select
+                      id="edit-sube"
+                      value={editCurrentSubeRol.subeId}
+                      onChange={(e) => 
+                        setEditCurrentSubeRol({ ...editCurrentSubeRol, subeId: Number(e.target.value) })
+                      }
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Şube ve Rol Ekle
+                      {Array.isArray(subeler) && subeler.map((sube: Sube) => (
+                        <option key={sube.id} value={sube.id}>{sube.subeAdi}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4 mb-2">
+                    <label htmlFor="edit-rol" className="text-right">
+                      Rol
+                    </label>
+                    <select
+                      id="edit-rol"
+                      value={editCurrentSubeRol.rol}
+                      onChange={(e) => 
+                        setEditCurrentSubeRol({ ...editCurrentSubeRol, rol: e.target.value as Rol })
+                      }
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="Satış Danışmanı">Satış Danışmanı</option>
+                      <option value="Müdür">Müdür</option>
+                      <option value="Kurucu">Kurucu</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex justify-end mb-4">
+                    <Button variant="secondary" size="sm" onClick={handleAddEditSubeRol}>
+                      Ekle
                     </Button>
                   </div>
-                </div>
-                
-                {/* Eklenen şube ve rollerin listesi */}
-                {editingSubeRolleri.length > 0 && (
-                  <div className="mt-4 bg-slate-50 p-3 rounded-md">
-                    <h4 className="text-sm font-medium mb-2">Eklenen Şube ve Roller:</h4>
-                    <div className="space-y-2">
-                      {editingSubeRolleri.map((subeRol, index) => (
-                        <div key={index} className="flex items-center justify-between bg-white p-2 rounded-md">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                              {getSubeAdi(subeRol.subeId)}
-                            </span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              subeRol.rol === "Kurucu" 
-                                ? "bg-purple-100 text-purple-800" 
-                                : subeRol.rol === "Müdür" 
-                                  ? "bg-green-100 text-green-800" 
-                                  : "bg-orange-100 text-orange-800"
-                            }`}>
-                              {subeRol.rol}
-                            </span>
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => handleRemoveEditSubeRol(index)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Kaldır
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                  
+                  {/* Eklenmiş şube-rol listesi */}
+                  <div className="border rounded-md p-2 mt-2 max-h-40 overflow-y-auto">
+                    {editingRoller.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {editingRoller.map((sr, index) => {
+                          const sube = Array.isArray(subeler) ? subeler.find((s: Sube) => s.id === sr.subeId) : null;
+                          return (
+                            <div key={index} className="flex items-center bg-slate-100 rounded-md px-2 py-1">
+                              <span className="mr-1 text-xs">{sube ? sube.subeAdi : sr.subeId} - {sr.rol}</span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-5 w-5 ml-1" 
+                                onClick={() => handleRemoveEditSubeRol(index)}
+                              >
+                                <Trash className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-center text-sm text-muted-foreground py-2">
+                        Henüz şube eklenmedi
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+              </>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               İptal
             </Button>
-            <Button onClick={handleEditUser}>Kaydet</Button>
+            <Button onClick={handleUpdateUser} disabled={isUpdatingKullanici}>
+              {isUpdatingKullanici ? 'Kaydediliyor...' : 'Kaydet'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -693,19 +730,24 @@ const KullanicilarPage = () => {
           <DialogHeader>
             <DialogTitle>Kullanıcı Sil</DialogTitle>
           </DialogHeader>
-          <div className="py-6">
+          <div className="py-4">
+            <p>
+              Bu kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+            </p>
             {selectedUser && (
-              <p>
-                <strong>{selectedUser.ad} {selectedUser.soyad}</strong> isimli kullanıcıyı silmek istediğinize emin misiniz?
-              </p>
+              <div className="bg-slate-50 p-3 rounded-md mt-3">
+                <p><span className="font-semibold">ID:</span> {selectedUser.id}</p>
+                <p><span className="font-semibold">Ad Soyad:</span> {selectedUser.adi} {selectedUser.soyadi}</p>
+                <p><span className="font-semibold">Şube ve Roller:</span> {selectedUser.roller.map(r => `${r.subeAdi} (${r.rol})`).join(', ')}</p>
+              </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               İptal
             </Button>
-            <Button variant="destructive" onClick={handleDeleteUser}>
-              Sil
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={isDeletingKullanici}>
+              {isDeletingKullanici ? 'Siliniyor...' : 'Sil'}
             </Button>
           </DialogFooter>
         </DialogContent>
