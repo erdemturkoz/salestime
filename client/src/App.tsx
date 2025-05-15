@@ -9,8 +9,10 @@ import UcretlendirmePage from "@/pages/UcretlendirmePage";
 import HesaplamaPage from "@/pages/HesaplamaPage";
 import KullanicilarPage from "@/pages/KullanicilarPage";
 import SubeKartlari from "@/pages/SubeKartlari";
+import GirisPage from "@/pages/GirisPage";
 import { AppProvider } from "./contexts/AppContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
+import AuthenticationGuard from "@/components/AuthenticationGuard";
 
 function Router() {
   return (
@@ -18,22 +20,31 @@ function Router() {
       <Sidebar />
       <main className="flex-1 md:ml-[5px] min-h-screen w-full">
         <Switch>
-          <Route path="/" component={HesaplamaPage} />
-          <Route path="/ucretlendirme">
-            <PasswordProtectedRoute>
-              <UcretlendirmePage />
-            </PasswordProtectedRoute>
+          <Route path="/giris" component={GirisPage} />
+          <Route path="/">
+            <AuthenticationGuard>
+              <HesaplamaPage />
+            </AuthenticationGuard>
           </Route>
-          <Route path="/hesaplama" component={HesaplamaPage} />
+          <Route path="/ucretlendirme">
+            <AuthenticationGuard adminOnly>
+              <UcretlendirmePage />
+            </AuthenticationGuard>
+          </Route>
+          <Route path="/hesaplama">
+            <AuthenticationGuard>
+              <HesaplamaPage />
+            </AuthenticationGuard>
+          </Route>
           <Route path="/kullanicilar">
-            <PasswordProtectedRoute>
+            <AuthenticationGuard adminOnly>
               <KullanicilarPage />
-            </PasswordProtectedRoute>
+            </AuthenticationGuard>
           </Route>
           <Route path="/subeler">
-            <PasswordProtectedRoute>
+            <AuthenticationGuard adminOnly>
               <SubeKartlari />
-            </PasswordProtectedRoute>
+            </AuthenticationGuard>
           </Route>
           <Route component={NotFound} />
         </Switch>

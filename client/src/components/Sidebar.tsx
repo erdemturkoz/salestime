@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 
 const NAV_ITEMS = [
   {
@@ -40,6 +41,7 @@ const Sidebar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [_, setLocation] = useLocation();
+  const { user, logout, isPending } = useAuth();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   
@@ -88,22 +90,42 @@ const Sidebar = () => {
       </div>
       
       <div className="p-4 border-t mt-auto">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="h-5 w-5" />
-          </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium">Kullanıcı</p>
-            <p className="text-xs text-muted-foreground">Rol Yok</p>
-          </div>
-        </div>
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Çıkış Yap
-        </Button>
+        {user ? (
+          <>
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-5 w-5" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium">{user.adi} {user.soyadi}</p>
+                <p className="text-xs text-muted-foreground">
+                  {'roller' in user && user.roller && user.roller.length > 0 
+                    ? `${user.roller[0].rol} ${user.roller[0].subeAdi ? `(${user.roller[0].subeAdi})` : ''}`
+                    : 'Rol Yok'
+                  }
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => logout()}
+              disabled={isPending}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              {isPending ? 'Çıkış Yapılıyor...' : 'Çıkış Yap'}
+            </Button>
+          </>
+        ) : (
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => setLocation('/giris')}
+          >
+            <User className="h-4 w-4 mr-2" />
+            Giriş Yap
+          </Button>
+        )}
       </div>
     </div>
   );
