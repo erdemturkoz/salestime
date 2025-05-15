@@ -20,10 +20,12 @@ import { eq, and, sql } from "drizzle-orm";
 export interface IStorage {
   // Kampanya operations
   getAllKampanyalar(): Promise<Kampanya[]>;
+  getKampanyasBySubeId(subeId: number): Promise<Kampanya[]>;
   getKampanya(id: number): Promise<Kampanya | undefined>;
   createKampanya(kampanya: InsertKampanya): Promise<Kampanya>;
   updateKampanya(id: number, kampanya: InsertKampanya): Promise<Kampanya | undefined>;
   deleteKampanya(id: number): Promise<boolean>;
+  copyKampanyaToSube(kampanyaId: number, subeId: number): Promise<Kampanya | undefined>;
   
   // Kullanıcı operations
   getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]>;
@@ -65,13 +67,44 @@ export class DatabaseStorage implements IStorage {
           kitap_set_sayisi as "kitapSetSayisi",
           max_kredi_karti_taksit as "maxKrediKartiTaksit",
           max_senet_taksit as "maxSenetTaksit",
-          hediyeler
+          hediyeler,
+          sube_id as "subeId"
         FROM kampanyalar`
       );
 
       return result.rows;
     } catch (error) {
       console.error("Kampanyalar API hatası:", error);
+      return [];
+    }
+  }
+  
+  async getKampanyasBySubeId(subeId: number): Promise<Kampanya[]> {
+    try {
+      const result = await db.execute<Kampanya>(
+        `SELECT 
+          id, 
+          kampanya_adi as "kampanyaAdi", 
+          egitim_tipi as "egitimTipi",
+          kur_sayisi as "kurSayisi",
+          toplam_ders_saati as "toplamDersSaati",
+          liste_fiyati as "listeFiyati",
+          nakit_fiyati as "nakitFiyati",
+          indirim_orani as "indirimOrani",
+          faiz_orani as "faizOrani",
+          kitap_fiyati as "kitapFiyati",
+          kitap_set_sayisi as "kitapSetSayisi",
+          max_kredi_karti_taksit as "maxKrediKartiTaksit",
+          max_senet_taksit as "maxSenetTaksit",
+          hediyeler,
+          sube_id as "subeId"
+        FROM kampanyalar
+        WHERE sube_id = $1`,
+        [subeId]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error(`Şube ${subeId} için kampanyaları getirme hatası:`, error);
       return [];
     }
   }
