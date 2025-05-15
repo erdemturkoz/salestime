@@ -7,7 +7,7 @@ export default function DirectLogin() {
 
   const handleDirectLogin = async () => {
     try {
-      await login({ telefon: "admin", sifre: "admin" });
+      await login({ telefon: "admin", sifre: "123456" });
     } catch (error) {
       console.error("Doğrudan giriş başarısız:", error);
     }
