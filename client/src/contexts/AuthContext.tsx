@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   // Giriş yap
-  const login = async (credentials: { username: string; password: string }) => {
+  const login = async (credentials: { telefon: string; sifre: string }) => {
     try {
       setLoginPending(true);
       const res = await fetch("/api/auth/login", {
