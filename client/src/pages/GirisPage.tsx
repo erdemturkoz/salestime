@@ -10,9 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Backend'in beklediği alan isimleriyle uyumlu form şeması (telefon, sifre)
 const loginSchema = z.object({
-  username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır."),
-  password: z.string().min(6, "Şifre en az 6 karakter olmalıdır."),
+  telefon: z.string().min(1, "Kullanıcı adı zorunludur"),
+  sifre: z.string().min(1, "Şifre zorunludur"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -25,8 +26,8 @@ export default function GirisPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      telefon: "",
+      sifre: "",
     },
   });
 
@@ -64,7 +65,7 @@ export default function GirisPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="telefon"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Kullanıcı Adı</FormLabel>
@@ -77,7 +78,7 @@ export default function GirisPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="password"
+                  name="sifre"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Şifre</FormLabel>

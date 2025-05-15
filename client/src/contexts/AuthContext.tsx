@@ -11,7 +11,7 @@ interface AuthContextType {
   isLoading: boolean;
   error: Error | null;
   isAuthenticated: boolean;
-  login: (credentials: { username: string; password: string }) => Promise<void>;
+  login: (credentials: { telefon: string; sifre: string }) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (data: { oldPassword: string; newPassword: string }) => Promise<void>;
   isAdmin: () => boolean;
