@@ -332,6 +332,12 @@ const UcretlendirmePage = () => {
     setShowCopyDialog(true);
   };
   
+  const openMultiCopyDialog = () => {
+    setSelectedKampanyalar([]);
+    setTargetSubeId(null);
+    setShowMultiCopyDialog(true);
+  };
+  
   // Kampanya kopyalama işlemi
   const handleCopyKampanya = async () => {
     if (!copyingKampanyaId || !targetSubeId) {
