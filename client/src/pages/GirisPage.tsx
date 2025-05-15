@@ -1,170 +1,126 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocation } from "wouter";
 import { z } from "zod";
-import { loginSchema, Login } from "@shared/schema";
-import { useAuth } from "@/hooks/useAuth";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
-const GirisPage = () => {
-  const { isAuthenticated, login, isPending } = useAuth();
-  const [, setLocation] = useLocation();
-  
-  // Kullanıcı zaten giriş yapmışsa ana sayfaya yönlendir
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      setLocation("/");
-    }
-  }, [isAuthenticated, setLocation]);
-  
-  // Şema oluştur
-  const formSchema = loginSchema.extend({
-    telefon: z.string().min(1, "Telefon numarası zorunludur"),
-    sifre: z.string().min(1, "Şifre zorunludur")
-  });
-  
-  // Form işleyicisini oluştur
-  const form = useForm<Login>({
-    resolver: zodResolver(formSchema),
+const loginSchema = z.object({
+  username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır."),
+  password: z.string().min(6, "Şifre en az 6 karakter olmalıdır."),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+export default function GirisPage() {
+  const { user, isLoading, login } = useAuth();
+  const [, navigate] = useLocation();
+
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
-      telefon: "",
-      sifre: ""
-    }
+      username: "",
+      password: "",
+    },
   });
-  
-  // Form gönderme
-  const onSubmit = (data: Login) => {
+
+  // Eğer kullanıcı zaten giriş yapmışsa ana sayfaya yönlendir
+  if (user) {
+    navigate('/');
+    return null;
+  }
+
+  const onSubmit = (data: LoginFormValues) => {
     login(data);
   };
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <div className="w-full max-w-4xl flex flex-col md:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
-        {/* Sol taraf - Giriş formu */}
-        <div className="w-full md:w-1/2 p-8">
-          <Card className="border-0 shadow-none">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-center">GİRİŞ YAP</CardTitle>
-              <CardDescription className="text-center">
-                Fiyat hesaplama sistemine erişmek için giriş yapın
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="telefon"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefon Numarası</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Telefon numaranızı girin" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="sifre"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Şifre</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Şifrenizi girin" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isPending}
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Giriş Yapılıyor...
-                      </>
-                    ) : (
-                      "Giriş Yap"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-            
-            <CardFooter className="flex flex-col items-center">
-              <p className="text-sm text-gray-500 mt-4">
-                Eğer giriş yapamıyorsanız, lütfen yöneticinizle iletişime geçin.
-              </p>
-            </CardFooter>
-          </Card>
-        </div>
-        
-        {/* Sağ taraf - Hero bölümü */}
-        <div className="w-full md:w-1/2 p-8 flex items-center bg-primary text-white">
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold">Dil Kursu Fiyatlandırma</h2>
-            <p className="text-lg">
-              Dil kursu fiyatlarını hesaplamak, ödeme planları oluşturmak ve 
-              kampanyaları yönetmek için kapsamlı çözüm. Satış süreçlerinizi hızlandırın.
-            </p>
-            <ul className="space-y-2">
-              <li className="flex items-center">
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Kolay fiyatlandırma hesaplama
-              </li>
-              <li className="flex items-center">
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Kampanya ve promosyon yönetimi
-              </li>
-              <li className="flex items-center">
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Ödeme planı oluşturma
-              </li>
-              <li className="flex items-center">
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                PDF teklif çıktıları
-              </li>
-            </ul>
-          </div>
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 p-4">
+      <div className="grid w-full max-w-[1000px] grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Sol Kolon - Giriş Formu */}
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Giriş Yap</CardTitle>
+            <CardDescription className="text-center">
+              Hesabınıza giriş yaparak devam edin
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kullanıcı Adı</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Kullanıcı adınızı girin" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Şifre</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Şifrenizi girin" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                >
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Giriş Yapılıyor
+                    </>
+                  ) : (
+                    "Giriş Yap"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* Sağ Kolon - Tanıtım */}
+        <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-lg hidden lg:block">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">Satış Danışmanları için Fiyatlandırma Sistemi</CardTitle>
+            <CardDescription className="text-blue-100 mt-2">
+              Kampanya oluşturma, fiyat hesaplama ve teklif hazırlama süreçlerinizi basitleştirin.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-white/10 p-3">
+              <h3 className="font-medium mb-1">✓ Kolay Fiyat Hesaplama</h3>
+              <p className="text-sm text-blue-100">Tüm kurlar ve kampanyalar için anında fiyat hesaplama</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3">
+              <h3 className="font-medium mb-1">✓ Özel İndirimler</h3>
+              <p className="text-sm text-blue-100">Kampanya ve yönetici indirimlerini kolayca uygulama</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3">
+              <h3 className="font-medium mb-1">✓ PDF Teklif Hazırlama</h3>
+              <p className="text-sm text-blue-100">Tek tıkla profesyonel teklif dokümanları oluşturma</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default GirisPage;
+}

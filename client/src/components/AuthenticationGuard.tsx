@@ -1,39 +1,41 @@
 import React from "react";
-import { Redirect, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useLocation, Redirect } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
-interface Props {
+interface AuthenticationGuardProps {
   children: React.ReactNode;
   adminOnly?: boolean;
 }
 
-const AuthenticationGuard: React.FC<Props> = ({ children, adminOnly = false }) => {
-  const { user, isLoading, isAdmin } = useAuth();
-  const [, setLocation] = useLocation();
+export default function AuthenticationGuard({ children, adminOnly = false }: AuthenticationGuardProps) {
+  const { user, isLoading } = useAuth();
+  const [, navigate] = useLocation();
 
-  // Yükleniyor durumu
+  // Oturum yüklenirken yükleme ekranı göster
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
       </div>
     );
   }
 
-  // Kimlik doğrulama kontrolü
+  // Oturum yoksa giriş sayfasına yönlendir
   if (!user) {
     return <Redirect to="/giris" />;
   }
 
   // Admin yetkisi kontrolü
-  if (adminOnly && !isAdmin()) {
-    // İzin verilmeyen durum - ana sayfaya yönlendir
-    return <Redirect to="/" />;
+  if (adminOnly) {
+    const userRoles = user.roller?.map(r => r.rol) || [];
+    const isAdmin = userRoles.includes("Kurucu") || userRoles.includes("Müdür");
+    
+    if (!isAdmin) {
+      return <Redirect to="/" />;
+    }
   }
 
-  // Yetkilendirme geçildi, children'ı göster
+  // Oturum varsa ve yetkiler uygunsa içeriği göster
   return <>{children}</>;
-};
-
-export default AuthenticationGuard;
+}
