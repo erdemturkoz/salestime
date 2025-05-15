@@ -1103,6 +1103,17 @@ const UcretlendirmePage = () => {
                           >
                             Düzenle
                           </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-emerald-500 hover:text-emerald-700 mr-2"
+                              onClick={() => openCopyDialog(kampanya.id)}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-1" />
+                              Kopyala
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -1126,6 +1137,59 @@ const UcretlendirmePage = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Kampanya Kopyalama Dialog */}
+      <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kampanyayı Başka Şubeye Kopyala</DialogTitle>
+            <DialogDescription>
+              Seçtiğiniz kampanya bilgilerini başka bir şubeye kopyalayabilirsiniz.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-4 py-4">
+            <Label htmlFor="target-sube">Hedef Şube</Label>
+            <Select
+              value={targetSubeId ? targetSubeId.toString() : ""}
+              onValueChange={(value) => {
+                setTargetSubeId(parseInt(value));
+              }}
+            >
+              <SelectTrigger id="target-sube">
+                <SelectValue placeholder="Bir şube seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {subeler
+                  .filter(sube => selectedSubeId !== Number(sube.id)) // Mevcut seçili şubeyi gösterme
+                  .map((sube) => (
+                    <SelectItem key={sube.id} value={sube.id.toString()}>
+                      {sube.subeAdi}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCopyDialog(false)}
+            >
+              İptal
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleCopyKampanya}
+              disabled={!targetSubeId}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Kopyala
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
