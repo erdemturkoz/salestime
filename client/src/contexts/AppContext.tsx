@@ -254,14 +254,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const data = await response.json();
       
       if (data && Array.isArray(data)) {
-        // Kampanyaları formatla ve state'e kaydet
+        // Kampanyaları formatla
         const formattedKampanyalar = data.map((kampanya: any) => ({
           ...kampanya,
           id: kampanya.id.toString(),
           hediyeler: kampanya.hediyeler || []
         }));
         
-        setKampanyalar(formattedKampanyalar);
+        // Kampanyaları sırala: önce eğitim tipine göre grupla, sonra Genel İngilizce içinde "1+1 KAMPANYASI" en başta olsun
+        const sortedKampanyalar = [...formattedKampanyalar].sort((a, b) => {
+          // Önce eğitim tipine göre sırala
+          if (a.egitimTipi !== b.egitimTipi) {
+            return a.egitimTipi.localeCompare(b.egitimTipi);
+          }
+          
+          // Eğer her ikisi de "Genel İngilizce" ise özel sıralama uygula
+          if (a.egitimTipi === "Genel İngilizce" && b.egitimTipi === "Genel İngilizce") {
+            // "1+1 KAMPANYASI" her zaman en başta olsun
+            if (a.kampanyaAdi === "1+1 KAMPANYASI") return -1;
+            if (b.kampanyaAdi === "1+1 KAMPANYASI") return 1;
+          }
+          
+          // Diğer durumlarda kampanya adına göre sırala
+          return a.kampanyaAdi.localeCompare(b.kampanyaAdi);
+        });
+        
+        setKampanyalar(sortedKampanyalar);
       } else {
         setKampanyalar([]);
       }
