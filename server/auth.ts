@@ -25,6 +25,14 @@ export const setupSession = (app: Express) => {
   // Trust first proxy for secure cookies
   app.set('trust proxy', 1);
   
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    next();
+  });
+  
   app.use(
     session({
       store: new PgSession({
@@ -35,11 +43,11 @@ export const setupSession = (app: Express) => {
       secret: process.env.SESSION_SECRET || "fiyathesaplama-gizli-anahtar", // Prodüksiyonda gerçek bir secret kullanın
       resave: true,            // Session bilgilerinin yeniden kaydedilmesini sağlar
       saveUninitialized: true, // Başlatılmamış oturumların kaydedilmesini sağlar
-      name: 'fiyathesaplama.sid', // Özel session ismi
+      name: 'connect.sid',     // Standart session ismi kullanılsın
       cookie: {
         secure: false,         // Geliştirme modunda HTTPS olmadığı için false
         httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün
         path: '/',
         sameSite: 'lax'
       },
@@ -132,7 +140,7 @@ export const logout = (req: Request, res: Response) => {
       return res.status(500).json({ error: "Çıkış yapılırken bir hata oluştu" });
     }
     
-    res.clearCookie("fiyathesaplama.sid", { path: '/' });
+    res.clearCookie("connect.sid", { path: '/' });
     res.json({ message: "Başarıyla çıkış yapıldı" });
   });
 };
