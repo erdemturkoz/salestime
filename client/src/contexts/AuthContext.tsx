@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
+import { saveUser, getUser, clearUser } from "@/lib/authStorage";
 
 type User = KullaniciWithRollerVeSubeler | Kullanici;
 
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     // Sayfa yüklendiğinde localStorage'dan kullanıcı bilgisini al
-    const storedUser = window.getUserData ? window.getUserData() : null;
+    const storedUser = getUser();
     if (storedUser) {
       setLocalUser(storedUser);
     }
@@ -63,9 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await res.json();
         
         // Kullanıcı bilgisi localStorage'a kaydet
-        if (window.setUserData) {
-          window.setUserData(userData);
-        }
+        saveUser(userData);
         
         return userData;
       } catch (error) {
@@ -146,9 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/auth/current-user"], null);
       
       // LocalStorage'dan kullanıcı bilgisini sil
-      if (window.clearUserData) {
-        window.clearUserData();
-      }
+      clearUser();
       
       setLocalUser(null);
       
