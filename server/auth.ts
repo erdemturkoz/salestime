@@ -132,7 +132,7 @@ export const logout = (req: Request, res: Response) => {
       return res.status(500).json({ error: "Çıkış yapılırken bir hata oluştu" });
     }
     
-    res.clearCookie("connect.sid");
+    res.clearCookie("fiyathesaplama.sid", { path: '/' });
     res.json({ message: "Başarıyla çıkış yapıldı" });
   });
 };
