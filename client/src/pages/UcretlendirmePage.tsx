@@ -4,9 +4,10 @@ import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils
 import { calculateInstallments } from "@/utils/calculator";
 import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
-import { RefreshCwIcon, Plus, FileSpreadsheet } from "lucide-react";
+import { RefreshCwIcon, Plus, FileSpreadsheet, Building } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const UcretlendirmePage = () => {
   const { toast } = useToast();
-  const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar } = useAppContext();
+  const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar, 
+    selectedSubeId, setSelectedSubeId, copyKampanyaToSube } = useAppContext();
+  const { user, isAdmin } = useAuth();
+  
+  // Kullanıcının şubeleri
+  const [subeler, setSubeler] = useState<Array<{id: number, subeAdi: string}>>([]);
+  const [targetSubeId, setTargetSubeId] = useState<number | null>(null);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyingKampanyaId, setCopyingKampanyaId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);

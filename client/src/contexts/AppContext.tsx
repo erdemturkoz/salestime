@@ -63,6 +63,7 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [kampanyalar, setKampanyalar] = useState<Kampanya[]>([initialKampanya]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedSubeId, setSelectedSubeId] = useState<number | null>(null);
 
   // DB'den kampanyaları çeken fonksiyon
   const fetchKampanyalar = async () => {
@@ -238,18 +239,94 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Şube ID'sine göre kampanyaları getir
+  const getKampanyalarBySubeId = async (subeId: number) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/kampanyalar?subeId=${subeId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Şube ID ${subeId} için kampanyalar yüklenirken bir hata oluştu`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && Array.isArray(data)) {
+        // Kampanyaları formatla ve state'e kaydet
+        const formattedKampanyalar = data.map((kampanya: any) => ({
+          ...kampanya,
+          id: kampanya.id.toString(),
+          hediyeler: kampanya.hediyeler || []
+        }));
+        
+        setKampanyalar(formattedKampanyalar);
+      } else {
+        setKampanyalar([]);
+      }
+    } catch (error) {
+      console.error('Şubeye göre kampanyaları getirirken bir hata oluştu:', error);
+      setKampanyalar([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Kampanyayı başka bir şubeye kopyala
+  const copyKampanyaToSube = async (kampanyaId: string, subeId: number): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/kampanyalar/${kampanyaId}/copy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ subeId })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Kampanya kopyalanırken bir hata oluştu');
+      }
+      
+      // Kopyalama başarılı oldu, kampanyaları yenile
+      await refreshKampanyalar();
+      return true;
+    } catch (error) {
+      console.error('Kampanya kopyalama hatası:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Kampanyaları yenileme fonksiyonu
   const refreshKampanyalar = async () => {
-    await fetchKampanyalar();
+    if (selectedSubeId) {
+      await getKampanyalarBySubeId(selectedSubeId);
+    } else {
+      await fetchKampanyalar();
+    }
   };
+
+  // useEffect ekleyerek selectedSubeId değiştiğinde kampanyaları güncelleyin
+  useEffect(() => {
+    if (selectedSubeId) {
+      getKampanyalarBySubeId(selectedSubeId);
+    } else {
+      fetchKampanyalar();
+    }
+  }, [selectedSubeId]);
 
   const contextValue = {
     kampanyalar,
     addKampanya,
     deleteKampanya,
     updateKampanya,
+    copyKampanyaToSube,
     loading,
-    refreshKampanyalar
+    refreshKampanyalar,
+    getKampanyalarBySubeId,
+    selectedSubeId,
+    setSelectedSubeId
   };
 
   return (
