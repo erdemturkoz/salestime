@@ -29,6 +29,7 @@ export interface IStorage {
   getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]>;
   getKullanici(id: number): Promise<KullaniciWithRollerVeSubeler | undefined>;
   getKullaniciByTelefon(telefon: string): Promise<Kullanici | undefined>;
+  getKullaniciRoller(kullaniciId: number): Promise<Array<{subeId: number; subeAdi: string; rol: string}>>;
   createKullanici(kullanici: InsertKullanici): Promise<Kullanici>;
   updateKullanici(id: number, kullanici: InsertKullanici): Promise<Kullanici | undefined>;
   updateKullaniciPassword(id: number, hashedPassword: string): Promise<boolean>;
@@ -223,6 +224,27 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Telefona göre kullanıcı getirme hatası:", error);
       return undefined;
+    }
+  }
+  
+  // Kullanıcının şube rollerini getirir
+  async getKullaniciRoller(kullaniciId: number): Promise<Array<{subeId: number; subeAdi: string; rol: string}>> {
+    try {
+      // Kullanıcının şube ve rollerini getir
+      const result = await db
+        .select({
+          subeId: kullaniciSubeRolleri.subeId,
+          subeAdi: subeler.subeAdi,
+          rol: kullaniciSubeRolleri.rol,
+        })
+        .from(kullaniciSubeRolleri)
+        .innerJoin(subeler, eq(kullaniciSubeRolleri.subeId, subeler.id))
+        .where(eq(kullaniciSubeRolleri.kullaniciId, kullaniciId));
+      
+      return result;
+    } catch (error) {
+      console.error("Kullanıcı rolleri getirme hatası:", error);
+      return [];
     }
   }
   
