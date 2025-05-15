@@ -59,7 +59,8 @@ export const kullaniciSubeRolleri = pgTable("kullanici_sube_rolleri", {
 // İlişki tanımlamaları
 export const subelerRelations = relations(subeler, ({ many }) => {
   return {
-    kullanicilar: many(kullaniciSubeRolleri)
+    kullanicilar: many(kullaniciSubeRolleri),
+    kampanyalar: many(kampanyalar)
   };
 });
 
@@ -98,6 +99,17 @@ export const kampanyalar = pgTable("kampanyalar", {
   maxKrediKartiTaksit: integer("max_kredi_karti_taksit").default(10),
   maxSenetTaksit: integer("max_senet_taksit").default(12),
   hediyeler: json("hediyeler").$type<{isim: string, fiyat: number}[]>().default([]),
+  subeId: integer("sube_id").references(() => subeler.id, { onDelete: 'cascade' }),
+});
+
+// Kampanya-Şube ilişkisi
+export const kampanyalarRelations = relations(kampanyalar, ({ one }) => {
+  return {
+    sube: one(subeler, {
+      fields: [kampanyalar.subeId],
+      references: [subeler.id]
+    })
+  };
 });
 
 // Insert şemaları
