@@ -99,6 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const userData = await res.json();
+      
+      // LocalStorage'a kaydet ve state'i güncelle
+      saveUser(userData);
+      setLocalUser(userData);
+      
       queryClient.setQueryData(["/api/auth/current-user"], userData);
       
       toast({

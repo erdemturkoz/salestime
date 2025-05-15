@@ -1,6 +1,7 @@
-// Kullanıcı verilerini localStorage'da saklamak için yardımcı fonksiyonlar
+import { KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
 
-type User = any; // Tip tanımı için importları basitleştirmek adına any kullanıldı
+// Kullanıcı verilerini localStorage'da saklamak için yardımcı fonksiyonlar
+type User = KullaniciWithRollerVeSubeler | Kullanici;
 
 // Kullanıcı bilgilerini kaydet
 export function saveUser(userData: User): void {
