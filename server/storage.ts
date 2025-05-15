@@ -28,8 +28,10 @@ export interface IStorage {
   // Kullanıcı operations
   getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]>;
   getKullanici(id: number): Promise<KullaniciWithRollerVeSubeler | undefined>;
+  getKullaniciByTelefon(telefon: string): Promise<Kullanici | undefined>;
   createKullanici(kullanici: InsertKullanici): Promise<Kullanici>;
   updateKullanici(id: number, kullanici: InsertKullanici): Promise<Kullanici | undefined>;
+  updateKullaniciPassword(id: number, hashedPassword: string): Promise<boolean>;
   deleteKullanici(id: number): Promise<boolean>;
   addKullaniciToSube(kullaniciId: number, subeId: number, rol: string): Promise<KullaniciSubeRol>;
   removeKullaniciFromSube(kullaniciId: number, subeId: number): Promise<boolean>;
@@ -208,6 +210,35 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return result.length > 0;
+  }
+  
+  async getKullaniciByTelefon(telefon: string): Promise<Kullanici | undefined> {
+    try {
+      const [kullanici] = await db
+        .select()
+        .from(kullanicilar)
+        .where(eq(kullanicilar.telefon, telefon));
+      
+      return kullanici;
+    } catch (error) {
+      console.error("Telefona göre kullanıcı getirme hatası:", error);
+      return undefined;
+    }
+  }
+  
+  async updateKullaniciPassword(id: number, hashedPassword: string): Promise<boolean> {
+    try {
+      const result = await db
+        .update(kullanicilar)
+        .set({ sifre: hashedPassword })
+        .where(eq(kullanicilar.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error("Kullanıcı şifre güncelleme hatası:", error);
+      return false;
+    }
   }
 
   async addKullaniciToSube(kullaniciId: number, subeId: number, rol: string): Promise<KullaniciSubeRol> {

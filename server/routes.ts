@@ -7,14 +7,26 @@ import {
   insertSubeSchema, 
   insertKullaniciSchema, 
   insertKullaniciSubeRolSchema,
+  loginSchema,
+  changePasswordSchema,
   Roller,
   kullaniciSubeRolleri
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
+import { setupSession, isAuthenticated, isAdmin, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
+import "./types"; // Session tiplerini yükle
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Şube API routes
+  // Oturum yönetimi kurulumu
+  setupSession(app);
+  
+  // Auth routes
+  app.post("/api/auth/login", login);
+  app.post("/api/auth/logout", logout);
+  app.get("/api/auth/current-user", getCurrentUser);
+  app.post("/api/auth/change-password", isAuthenticated, changePassword);
+  // Şube API routes - Tüm kullanıcılar görebilir
   app.get("/api/subeler", async (req, res) => {
     try {
       const subeler = await storage.getAllSubeler();
