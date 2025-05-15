@@ -21,6 +21,10 @@ export const comparePassword = async (password: string, hashedPassword: string):
 // Session ayarları
 export const setupSession = (app: Express) => {
   const PgSession = connectPgSimple(session);
+
+  // Trust first proxy for secure cookies
+  app.set('trust proxy', 1);
+  
   app.use(
     session({
       store: new PgSession({
@@ -29,12 +33,14 @@ export const setupSession = (app: Express) => {
         createTableIfMissing: true
       }),
       secret: process.env.SESSION_SECRET || "fiyathesaplama-gizli-anahtar", // Prodüksiyonda gerçek bir secret kullanın
-      resave: false,
-      saveUninitialized: false,
+      resave: true,            // Session bilgilerinin yeniden kaydedilmesini sağlar
+      saveUninitialized: true, // Başlatılmamış oturumların kaydedilmesini sağlar
+      name: 'fiyathesaplama.sid', // Özel session ismi
       cookie: {
-        secure: false, // Geliştirme modunda HTTPS olmadığı için false
+        secure: false,         // Geliştirme modunda HTTPS olmadığı için false
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 saat
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
+        path: '/',
         sameSite: 'lax'
       },
     })
