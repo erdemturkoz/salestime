@@ -439,15 +439,17 @@ const UcretlendirmePage = () => {
           </div>
           
           {isAdmin && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={refreshKampanyalar}
-              className="ml-2"
-            >
-              <RefreshCwIcon className="mr-2 h-4 w-4" />
-              Kampanyaları Yenile
-            </Button>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => refreshKampanyalar()}
+                className="ml-2"
+              >
+                <RefreshCwIcon className="mr-2 h-4 w-4" />
+                Kampanyaları Yenile
+              </Button>
+            </div>
           )}
         </div>
 
