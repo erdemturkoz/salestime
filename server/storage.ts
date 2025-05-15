@@ -126,7 +126,8 @@ export class DatabaseStorage implements IStorage {
           kitap_set_sayisi as "kitapSetSayisi",
           max_kredi_karti_taksit as "maxKrediKartiTaksit",
           max_senet_taksit as "maxSenetTaksit",
-          hediyeler
+          hediyeler,
+          sube_id as "subeId"
         FROM kampanyalar
         WHERE id = $1`,
         [id]
@@ -135,6 +136,82 @@ export class DatabaseStorage implements IStorage {
       return result.rows.length > 0 ? result.rows[0] : undefined;
     } catch (error) {
       console.error("Kampanya getirme hatası:", error);
+      return undefined;
+    }
+  }
+  
+  async copyKampanyaToSube(kampanyaId: number, subeId: number): Promise<Kampanya | undefined> {
+    try {
+      // İlk olarak var olan kampanyayı al
+      const kampanya = await this.getKampanya(kampanyaId);
+      
+      if (!kampanya) {
+        console.error(`ID ${kampanyaId} ile kampanya bulunamadı`);
+        return undefined;
+      }
+      
+      // Yeni kampanya verileri oluştur
+      const result = await db.execute<Kampanya>(
+        `INSERT INTO kampanyalar (
+          kampanya_adi,
+          egitim_tipi,
+          kur_sayisi,
+          toplam_ders_saati,
+          liste_fiyati,
+          nakit_fiyati,
+          indirim_orani,
+          faiz_orani,
+          kitap_fiyati,
+          kitap_set_sayisi,
+          max_kredi_karti_taksit,
+          max_senet_taksit,
+          hediyeler,
+          sube_id
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+        )
+        RETURNING 
+          id, 
+          kampanya_adi as "kampanyaAdi", 
+          egitim_tipi as "egitimTipi",
+          kur_sayisi as "kurSayisi",
+          toplam_ders_saati as "toplamDersSaati",
+          liste_fiyati as "listeFiyati",
+          nakit_fiyati as "nakitFiyati",
+          indirim_orani as "indirimOrani",
+          faiz_orani as "faizOrani",
+          kitap_fiyati as "kitapFiyati",
+          kitap_set_sayisi as "kitapSetSayisi",
+          max_kredi_karti_taksit as "maxKrediKartiTaksit",
+          max_senet_taksit as "maxSenetTaksit",
+          hediyeler,
+          sube_id as "subeId"`,
+        [
+          kampanya.kampanyaAdi,
+          kampanya.egitimTipi,
+          kampanya.kurSayisi,
+          kampanya.toplamDersSaati,
+          kampanya.listeFiyati,
+          kampanya.nakitFiyati,
+          kampanya.indirimOrani,
+          kampanya.faizOrani,
+          kampanya.kitapFiyati,
+          kampanya.kitapSetSayisi,
+          kampanya.maxKrediKartiTaksit,
+          kampanya.maxSenetTaksit,
+          kampanya.hediyeler,
+          subeId
+        ]
+      );
+      
+      if (result.rows.length === 0) {
+        console.error("Kampanya kopyalanırken veri döndürülemedi");
+        return undefined;
+      }
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error(`Kampanya ${kampanyaId} şubeye ${subeId} kopyalanırken hata:`, error);
       return undefined;
     }
   }

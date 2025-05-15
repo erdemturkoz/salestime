@@ -271,7 +271,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Kampanya API routes
   app.get("/api/kampanyalar", async (req, res) => {
     try {
-      const kampanyalar = await storage.getAllKampanyalar();
+      const { subeId } = req.query;
+      
+      let kampanyalar;
+      if (subeId) {
+        // Belirli bir şubeye ait kampanyaları getir
+        kampanyalar = await storage.getKampanyasBySubeId(parseInt(subeId as string));
+      } else {
+        // Tüm kampanyaları getir
+        kampanyalar = await storage.getAllKampanyalar();
+      }
+      
       res.json(kampanyalar);
     } catch (error) {
       console.error("Kampanyalar API hatası:", error);
@@ -342,6 +352,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Kampanya silme hatası:", error);
       res.status(500).json({ error: "Kampanya silinirken bir hata oluştu", details: String(error) });
+    }
+  });
+  
+  // Kampanya Kopyalama API endpoint'i
+  app.post("/api/kampanyalar/:id/copy", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { subeId } = req.body;
+      
+      if (!subeId) {
+        return res.status(400).json({ error: "Hedef şube ID'si (subeId) gereklidir" });
+      }
+      
+      const newKampanya = await storage.copyKampanyaToSube(parseInt(id), parseInt(subeId));
+      
+      if (!newKampanya) {
+        return res.status(404).json({ error: "Kopyalanacak kampanya bulunamadı veya kopyalama sırasında hata oluştu" });
+      }
+      
+      res.status(201).json(newKampanya);
+    } catch (error) {
+      console.error("Kampanya kopyalama hatası:", error);
+      res.status(500).json({ error: "Kampanya kopyalanırken bir hata oluştu", details: String(error) });
     }
   });
 
