@@ -135,20 +135,20 @@ export class DatabaseStorage implements IStorage {
       const kullanicilarWithRoller: KullaniciWithRollerVeSubeler[] = [];
       
       for (const kullanici of kullanicilarResult) {
-        const rollerResult = await db.execute(
-          `SELECT 
-            ksr.sube_id as "subeId", 
-            s.sube_adi as "subeAdi", 
-            ksr.rol 
-          FROM kullanici_sube_rolleri ksr
-          JOIN subeler s ON s.id = ksr.sube_id
-          WHERE ksr.kullanici_id = $1`,
-          [kullanici.id]
-        );
+        // Drizzle ORM ile ilişkili verileri çekme
+        const rollerResult = await db
+          .select({
+            subeId: kullaniciSubeRolleri.subeId,
+            subeAdi: subeler.subeAdi,
+            rol: kullaniciSubeRolleri.rol
+          })
+          .from(kullaniciSubeRolleri)
+          .innerJoin(subeler, eq(kullaniciSubeRolleri.subeId, subeler.id))
+          .where(eq(kullaniciSubeRolleri.kullaniciId, kullanici.id));
         
         kullanicilarWithRoller.push({
           ...kullanici,
-          roller: rollerResult.rows
+          roller: rollerResult
         });
       }
       
@@ -165,20 +165,20 @@ export class DatabaseStorage implements IStorage {
       
       if (!kullanici) return undefined;
       
-      const rollerResult = await db.execute(
-        `SELECT 
-          ksr.sube_id as "subeId", 
-          s.sube_adi as "subeAdi", 
-          ksr.rol 
-        FROM kullanici_sube_rolleri ksr
-        JOIN subeler s ON s.id = ksr.sube_id
-        WHERE ksr.kullanici_id = $1`,
-        [id]
-      );
+      // Drizzle ORM ile ilişkili verileri çekme
+      const rollerResult = await db
+        .select({
+          subeId: kullaniciSubeRolleri.subeId,
+          subeAdi: subeler.subeAdi,
+          rol: kullaniciSubeRolleri.rol
+        })
+        .from(kullaniciSubeRolleri)
+        .innerJoin(subeler, eq(kullaniciSubeRolleri.subeId, subeler.id))
+        .where(eq(kullaniciSubeRolleri.kullaniciId, id));
       
       return {
         ...kullanici,
-        roller: rollerResult.rows
+        roller: rollerResult
       };
     } catch (error) {
       console.error("Kullanıcı getirme hatası:", error);
