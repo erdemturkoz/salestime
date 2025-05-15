@@ -40,7 +40,8 @@ export const kullanicilar = pgTable("kullanicilar", {
   adi: text("adi").notNull(),
   soyadi: text("soyadi").notNull(),
   telefon: text("telefon"),
-  sifre: text("sifre").default("1234"),
+  // Şifre için salt ile birlikte hashlenmiş bir şifre depolayacağız
+  sifre: text("sifre").notNull(),
   aktif: boolean("aktif").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -113,6 +114,22 @@ export const insertKullaniciSchema = createInsertSchema(kullanicilar).omit({
   createdAt: true,
 });
 
+// Kullanıcı girişi için login şeması
+export const loginSchema = z.object({
+  telefon: z.string().min(1, "Telefon numarası zorunludur"),
+  sifre: z.string().min(1, "Şifre zorunludur")
+});
+
+// Şifre değiştirme şeması
+export const changePasswordSchema = z.object({
+  eskiSifre: z.string().min(1, "Mevcut şifre zorunludur"),
+  yeniSifre: z.string().min(6, "Yeni şifre en az 6 karakter olmalıdır"),
+  yeniSifreTekrar: z.string().min(6, "Yeni şifre tekrarı en az 6 karakter olmalıdır")
+}).refine(data => data.yeniSifre === data.yeniSifreTekrar, {
+  message: "Şifreler eşleşmiyor",
+  path: ["yeniSifreTekrar"]
+});
+
 export const insertKullaniciSubeRolSchema = createInsertSchema(kullaniciSubeRolleri).omit({
   id: true,
   createdAt: true,
@@ -144,6 +161,10 @@ export type InsertKullanici = z.infer<typeof insertKullaniciSchema>;
 
 export type KullaniciSubeRol = typeof kullaniciSubeRolleri.$inferSelect;
 export type InsertKullaniciSubeRol = z.infer<typeof insertKullaniciSubeRolSchema>;
+
+// Yeni tipler
+export type Login = z.infer<typeof loginSchema>;
+export type ChangePassword = z.infer<typeof changePasswordSchema>;
 
 export type KullaniciWithRollerVeSubeler = Kullanici & {
   roller: Array<{
