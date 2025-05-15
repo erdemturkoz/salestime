@@ -25,9 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [logoutPending, setLogoutPending] = useState(false);
   const [changePwdPending, setChangePwdPending] = useState(false);
   
-  // Kullanıcı bilgilerini getir
+  // LocalStorage'dan kullanıcı bilgisini kontrol et
+  const [localUser, setLocalUser] = useState<User | null>(null);
+  
+  useEffect(() => {
+    // Sayfa yüklendiğinde localStorage'dan kullanıcı bilgisini al
+    const storedUser = window.getUserData ? window.getUserData() : null;
+    if (storedUser) {
+      setLocalUser(storedUser);
+    }
+  }, []);
+  
+  // Sunucudan kullanıcı bilgilerini getir
   const { 
-    data: user, 
+    data: serverUser, 
     isLoading, 
     error,
     refetch 
@@ -49,7 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           throw new Error("Oturum bilgisi alınamadı");
         }
-        return res.json();
+        const userData = await res.json();
+        
+        // Kullanıcı bilgisi localStorage'a kaydet
+        if (window.setUserData) {
+          window.setUserData(userData);
+        }
+        
+        return userData;
       } catch (error) {
         console.error("Oturum bilgisi alınamadı:", error);
         return null;
@@ -58,6 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 dakika
   });
+  
+  // Sunucudan gelen ve localStorage'dan gelen kullanıcı bilgisini birleştir
+  const user = serverUser || localUser;
 
   // Giriş yap
   const login = async (credentials: { telefon: string; sifre: string }) => {

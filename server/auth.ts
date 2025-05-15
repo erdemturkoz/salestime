@@ -38,18 +38,19 @@ export const setupSession = (app: Express) => {
       store: new PgSession({
         pool: pool,
         tableName: "sessions", // Varolan session tablosu
-        createTableIfMissing: true
+        createTableIfMissing: true,
+        ttl: 86400 // 1 gün
       }),
       secret: process.env.SESSION_SECRET || "fiyathesaplama-gizli-anahtar", // Prodüksiyonda gerçek bir secret kullanın
       resave: true,            // Session bilgilerinin yeniden kaydedilmesini sağlar
       saveUninitialized: true, // Başlatılmamış oturumların kaydedilmesini sağlar
-      name: 'connect.sid',     // Standart session ismi kullanılsın
+      name: 'fiyatlama_sid',   // Özel isim
       cookie: {
         secure: false,         // Geliştirme modunda HTTPS olmadığı için false
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün
         path: '/',
-        sameSite: 'lax'
+        sameSite: 'none'       // Embedded iframe için gereklidir
       },
     })
   );
@@ -146,7 +147,11 @@ export const logout = (req: Request, res: Response) => {
       return res.status(500).json({ error: "Çıkış yapılırken bir hata oluştu" });
     }
     
-    res.clearCookie("connect.sid", { path: '/' });
+    res.clearCookie("fiyatlama_sid", { 
+    path: '/', 
+    sameSite: 'none',
+    secure: false
+  });
     res.json({ message: "Başarıyla çıkış yapıldı" });
   });
 };
