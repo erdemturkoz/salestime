@@ -1,15 +1,185 @@
-import React, { createContext, ReactNode, useContext } from "react";
-import { useAuth as useAuthHook } from "@/hooks/useAuth";
+import React, { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { User } from "@shared/schema";
 
-type AuthContextType = ReturnType<typeof useAuthHook>;
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  error: Error | null;
+  isAuthenticated: boolean;
+  login: (credentials: { username: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  changePassword: (data: { oldPassword: string; newPassword: string }) => Promise<void>;
+  isAdmin: () => boolean;
+}
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const auth = useAuthHook();
+  const { toast } = useToast();
+  const [loginPending, setLoginPending] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [changePwdPending, setChangePwdPending] = useState(false);
   
+  // Kullanıcı bilgilerini getir
+  const { 
+    data: user, 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: ["/api/auth/current-user"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/auth/current-user");
+        if (!res.ok) {
+          if (res.status === 401) {
+            // 401 hatası durumunda sessizce null döndür
+            return null;
+          }
+          throw new Error("Oturum bilgisi alınamadı");
+        }
+        return res.json();
+      } catch (error) {
+        console.error("Oturum bilgisi alınamadı:", error);
+        return null;
+      }
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 dakika
+  });
+
+  // Giriş yap
+  const login = async (credentials: { username: string; password: string }) => {
+    try {
+      setLoginPending(true);
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Giriş yapılamadı");
+      }
+      
+      const userData = await res.json();
+      queryClient.setQueryData(["/api/auth/current-user"], userData);
+      
+      toast({
+        title: "Giriş Başarılı",
+        description: "Hoş geldiniz!",
+      });
+      
+      // Kullanıcı verilerini güncelle
+      await refetch();
+    } catch (error: any) {
+      toast({
+        title: "Giriş Başarısız",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoginPending(false);
+    }
+  };
+
+  // Çıkış yap
+  const logout = async () => {
+    try {
+      setLogoutPending(true);
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Çıkış yapılamadı");
+      }
+      
+      queryClient.setQueryData(["/api/auth/current-user"], null);
+      
+      toast({
+        title: "Çıkış Başarılı",
+        description: "Başarıyla çıkış yaptınız.",
+      });
+      
+      await refetch();
+    } catch (error: any) {
+      toast({
+        title: "Çıkış Başarısız",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLogoutPending(false);
+    }
+  };
+
+  // Şifre değiştir
+  const changePassword = async (data: { oldPassword: string; newPassword: string }) => {
+    try {
+      setChangePwdPending(true);
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Şifre değiştirilemedi");
+      }
+      
+      toast({
+        title: "Şifre Değiştirildi",
+        description: "Şifreniz başarıyla değiştirildi.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Şifre Değiştirilemedi",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setChangePwdPending(false);
+    }
+  };
+
+  // Admin yetkisi kontrolü
+  const isAdmin = () => {
+    if (!user || !user.roller) return false;
+    
+    const userRoles = user.roller.map(r => r.rol);
+    return userRoles.includes("Kurucu") || userRoles.includes("Müdür");
+  };
+
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        error,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        changePassword,
+        isAdmin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

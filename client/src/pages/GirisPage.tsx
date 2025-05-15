@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,6 +20,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function GirisPage() {
   const { user, isLoading, login } = useAuth();
   const [, navigate] = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -35,8 +36,16 @@ export default function GirisPage() {
     return null;
   }
 
-  const onSubmit = (data: LoginFormValues) => {
-    login(data);
+  const onSubmit = async (data: LoginFormValues) => {
+    try {
+      setIsSubmitting(true);
+      await login(data);
+      navigate('/');
+    } catch (error) {
+      console.error('Giriş hatası:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -83,7 +92,7 @@ export default function GirisPage() {
                   type="submit" 
                   className="w-full" 
                 >
-                  {form.formState.isSubmitting ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Giriş Yapılıyor

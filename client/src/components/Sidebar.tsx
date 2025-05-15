@@ -41,7 +41,8 @@ const Sidebar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [_, setLocation] = useLocation();
-  const { user, logout, isPending } = useAuth();
+  const { user, logout } = useAuth();
+  const [isPending, setIsPending] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   
