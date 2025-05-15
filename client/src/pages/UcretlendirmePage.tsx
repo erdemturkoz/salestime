@@ -419,9 +419,9 @@ const UcretlendirmePage = () => {
         <div className="mb-6 flex flex-col md:flex-row gap-3 items-start md:items-center">
           <div className="w-full md:w-64">
             <Select
-              value={selectedSubeId ? selectedSubeId.toString() : ""}
+              value={selectedSubeId ? selectedSubeId.toString() : "all"}
               onValueChange={(value) => {
-                setSelectedSubeId(value ? parseInt(value) : null);
+                setSelectedSubeId(value !== "all" ? parseInt(value) : null);
               }}
             >
               <SelectTrigger className="w-full">

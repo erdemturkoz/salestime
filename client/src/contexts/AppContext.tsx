@@ -30,7 +30,7 @@ interface AppContextType {
   updateKampanya: (kampanya: Kampanya) => void;
   copyKampanyaToSube: (kampanyaId: string, subeId: number) => Promise<boolean>;
   loading: boolean;
-  refreshKampanyalar: () => Promise<void>;
+  refreshKampanyalar: (subeId?: number) => Promise<void>;
   getKampanyalarBySubeId: (subeId: number) => Promise<void>;
   selectedSubeId: number | null;
   setSelectedSubeId: (subeId: number | null) => void;
@@ -44,7 +44,7 @@ const defaultContextValue: AppContextType = {
   updateKampanya: () => {},
   copyKampanyaToSube: async () => false,
   loading: false,
-  refreshKampanyalar: async () => {},
+  refreshKampanyalar: async (subeId?: number) => {},
   getKampanyalarBySubeId: async () => {},
   selectedSubeId: null,
   setSelectedSubeId: () => {},
@@ -299,8 +299,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Kampanyaları yenileme fonksiyonu
-  const refreshKampanyalar = async () => {
-    if (selectedSubeId) {
+  const refreshKampanyalar = async (subeId?: number) => {
+    if (subeId) {
+      await getKampanyalarBySubeId(subeId);
+    } else if (selectedSubeId) {
       await getKampanyalarBySubeId(selectedSubeId);
     } else {
       await fetchKampanyalar();
