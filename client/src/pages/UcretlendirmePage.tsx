@@ -868,23 +868,19 @@ const UcretlendirmePage = () => {
 
               <div className="overflow-x-auto">
                 {kampanyalar.length > 0 ? (
-                  kampanyalar.map((kampanya: any) => (
-                    <Card key={kampanya.id} className="mb-4">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
+                  <div className="space-y-4">
+                    {kampanyalar.map((kampanya: any) => (
+                      <div key={kampanya.id} className="border rounded-md p-4 bg-white">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
-                            <CardTitle className="text-lg">{kampanya.kampanyaAdi}</CardTitle>
-                            <CardDescription>
-                              <Badge variant="outline" className="mr-1">
-                                {kampanya.egitimTipi || "Belirtilmemiş"}
-                              </Badge>
-                              <Badge variant="outline" className="mr-1">
-                                {kampanya.kurSayisi} Kur
-                              </Badge>
-                              <Badge variant="outline">
-                                {kampanya.toplamDersSaati} Saat
-                              </Badge>
-                            </CardDescription>
+                            <h3 className="text-lg font-semibold">{kampanya.kampanyaAdi}</h3>
+                            <div className="text-sm text-muted-foreground space-x-2">
+                              <span>{kampanya.egitimTipi || "Belirtilmemiş"}</span>
+                              <span>•</span>
+                              <span>{kampanya.kurSayisi} Kur</span>
+                              <span>•</span>
+                              <span>{kampanya.toplamDersSaati} Saat</span>
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -916,20 +912,16 @@ const UcretlendirmePage = () => {
                             </Button>
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
                           <div>
                             <p className="text-sm font-medium">Liste Fiyatı</p>
-                            <p className="text-lg font-semibold">{formatCurrency(kampanya.listeFiyati)}</p>
+                            <p className="font-semibold">{formatCurrency(kampanya.listeFiyati)}</p>
                           </div>
                           <div>
                             <p className="text-sm font-medium">Nakit Fiyatı</p>
-                            <p className="text-lg font-semibold">{formatCurrency(kampanya.nakitFiyati)}</p>
+                            <p className="font-semibold">{formatCurrency(kampanya.nakitFiyati)}</p>
                           </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <p className="text-sm font-medium">İndirim Oranı</p>
                             <p>{formatPercentage(kampanya.indirimOrani)}</p>
@@ -940,8 +932,7 @@ const UcretlendirmePage = () => {
                           </div>
                         </div>
                         
-                        {/* Kitap bilgileri */}
-                        <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-1">
                           <div>
                             <p className="text-sm font-medium">Kitap Fiyatı</p>
                             <p>{formatCurrency(kampanya.kitapFiyati)}</p>
@@ -954,21 +945,21 @@ const UcretlendirmePage = () => {
                         
                         {/* Hediyeler */}
                         {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
-                          <div className="mt-4">
-                            <p className="text-sm font-medium mb-2">Hediyeler</p>
-                            <div className="space-y-1">
+                          <div className="mt-3">
+                            <p className="text-sm font-medium mb-1">Hediyeler</p>
+                            <div className="flex flex-wrap gap-2">
                               {kampanya.hediyeler.map((hediye: any, index: number) => (
-                                <div key={index} className="text-sm flex justify-between">
+                                <div key={index} className="text-sm bg-muted px-2 py-1 rounded-md">
                                   <span>{hediye.isim}</span>
-                                  <span>{formatCurrency(hediye.fiyat)}</span>
+                                  <span className="ml-2 font-medium">{formatCurrency(hediye.fiyat)}</span>
                                 </div>
                               ))}
                             </div>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  ))
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="py-8 text-center text-neutral-500">
                     Kampanya bulunamadı. Yeni bir kampanya ekleyin.
