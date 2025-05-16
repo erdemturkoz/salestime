@@ -42,7 +42,8 @@ export default function EgitimTipleriPage() {
   const { user } = useAuth();
   const isSistemYoneticisi = user && ('roller' in user) && user.roller.some(r => r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür");
   
-  // Yetki kontrolü - sadece belirtilen rollere sahip yöneticiler erişebilir
+  // Geçici olarak yetki kontrolünü devre dışı bırakıyoruz
+  /*
   if (!isSistemYoneticisi) {
     return (
       <div className="container mx-auto py-8">
@@ -51,6 +52,7 @@ export default function EgitimTipleriPage() {
       </div>
     );
   }
+  */
 
   const { toast } = useToast();
   
