@@ -868,37 +868,37 @@ const UcretlendirmePage = () => {
 
               <div className="overflow-x-auto">
                 {kampanyalar.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {kampanyalar.map((kampanya: any) => (
-                      <div key={kampanya.id} className="border rounded-md p-4 bg-white">
-                        <div className="flex justify-between items-start mb-3">
+                      <div key={kampanya.id} className="border rounded-md bg-white mb-2">
+                        <div className="flex justify-between items-center p-3 border-b">
                           <div>
-                            <h3 className="text-lg font-semibold">{kampanya.kampanyaAdi}</h3>
-                            <div className="text-sm text-muted-foreground space-x-2">
+                            <h3 className="font-semibold text-base">{kampanya.kampanyaAdi}</h3>
+                            <div className="text-xs text-muted-foreground">
                               <span>{kampanya.egitimTipi || "Belirtilmemiş"}</span>
-                              <span>•</span>
+                              <span> • </span>
                               <span>{kampanya.kurSayisi} Kur</span>
-                              <span>•</span>
+                              <span> • </span>
                               <span>{kampanya.toplamDersSaati} Saat</span>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEditKampanya(kampanya)}
+                              className="h-8 px-2"
                             >
                               Düzenle
                             </Button>
                             
-                            {/* Admin ise kopyalama butonunu göster */}
                             {isAdmin && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openCopyDialog(kampanya.id)}
+                                className="h-8 px-2"
                               >
-                                <Building className="mr-2 h-4 w-4" />
                                 Kopyala
                               </Button>
                             )}
@@ -907,51 +907,54 @@ const UcretlendirmePage = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteKampanya(kampanya.id)}
+                              className="h-8 px-2"
                             >
                               Sil
                             </Button>
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
-                          <div>
-                            <p className="text-sm font-medium">Liste Fiyatı</p>
-                            <p className="font-semibold">{formatCurrency(kampanya.listeFiyati)}</p>
+                        <div className="grid grid-cols-2 p-3">
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">Liste Fiyatı</span>
+                              <span className="font-semibold">{formatCurrency(kampanya.listeFiyati)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">İndirim Oranı</span>
+                              <span>{formatPercentage(kampanya.indirimOrani)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">Kitap Fiyatı</span>
+                              <span>{formatCurrency(kampanya.kitapFiyati)}</span>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">Nakit Fiyatı</p>
-                            <p className="font-semibold">{formatCurrency(kampanya.nakitFiyati)}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">İndirim Oranı</p>
-                            <p>{formatPercentage(kampanya.indirimOrani)}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Faiz Oranı</p>
-                            <p>{formatPercentage(kampanya.faizOrani)}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-1">
-                          <div>
-                            <p className="text-sm font-medium">Kitap Fiyatı</p>
-                            <p>{formatCurrency(kampanya.kitapFiyati)}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Kitap Set Sayısı</p>
-                            <p>{kampanya.kitapSetSayisi}</p>
+                          
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">Nakit Fiyatı</span>
+                              <span className="font-semibold">{formatCurrency(kampanya.nakitFiyati)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">Faiz Oranı</span>
+                              <span>{formatPercentage(kampanya.faizOrani)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">Kitap Set Sayısı</span>
+                              <span>{kampanya.kitapSetSayisi}</span>
+                            </div>
                           </div>
                         </div>
                         
                         {/* Hediyeler */}
                         {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
-                          <div className="mt-3">
+                          <div className="border-t p-3">
                             <p className="text-sm font-medium mb-1">Hediyeler</p>
-                            <div className="flex flex-wrap gap-2">
+                            <div>
                               {kampanya.hediyeler.map((hediye: any, index: number) => (
-                                <div key={index} className="text-sm bg-muted px-2 py-1 rounded-md">
+                                <div key={index} className="text-sm flex justify-between">
                                   <span>{hediye.isim}</span>
-                                  <span className="ml-2 font-medium">{formatCurrency(hediye.fiyat)}</span>
+                                  <span>{formatCurrency(hediye.fiyat)}</span>
                                 </div>
                               ))}
                             </div>
@@ -961,7 +964,7 @@ const UcretlendirmePage = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-neutral-500">
+                  <div className="py-4 text-center text-neutral-500">
                     Kampanya bulunamadı. Yeni bir kampanya ekleyin.
                   </div>
                 )}
