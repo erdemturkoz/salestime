@@ -99,7 +99,6 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
             toast({
               title: "Eğitim tipi güncellendi",
               description: "Eğitim tipi başarıyla güncellendi.",
-              variant: "success",
             });
             resetForm();
           },
@@ -119,7 +118,6 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
           toast({
             title: "Eğitim tipi eklendi",
             description: "Yeni eğitim tipi başarıyla eklendi.",
-            variant: "success",
           });
           resetForm();
         },
@@ -142,7 +140,6 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
           toast({
             title: "Eğitim tipi silindi",
             description: "Eğitim tipi başarıyla silindi.",
-            variant: "success",
           });
           setDeleteConfirmOpen(false);
           setDeleteItemId(null);

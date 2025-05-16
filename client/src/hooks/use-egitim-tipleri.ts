@@ -4,13 +4,11 @@ import {
   useQueryClient 
 } from "@tanstack/react-query";
 import { EgitimTipi, InsertEgitimTipi } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 const API_ENDPOINT = "/api/egitim-tipleri";
 
 export function useEgitimTipleri() {
-  const queryClient = useQueryClient();
-  
   // Tüm eğitim tiplerini getir
   const {
     data: egitimTipleri = [],
@@ -23,7 +21,19 @@ export function useEgitimTipleri() {
   // Yeni eğitim tipi ekle
   const createEgitimTipi = useMutation({
     mutationFn: async (data: InsertEgitimTipi) => {
-      const response = await apiRequest("POST", API_ENDPOINT, data);
+      const response = await fetch(API_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Eğitim tipi eklenirken bir hata oluştu");
+      }
+      
       return await response.json();
     },
     onSuccess: () => {
@@ -34,7 +44,19 @@ export function useEgitimTipleri() {
   // Eğitim tipini güncelle
   const updateEgitimTipi = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: InsertEgitimTipi }) => {
-      const response = await apiRequest("PUT", `${API_ENDPOINT}/${id}`, data);
+      const response = await fetch(`${API_ENDPOINT}/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Eğitim tipi güncellenirken bir hata oluştu");
+      }
+      
       return await response.json();
     },
     onSuccess: () => {
@@ -45,7 +67,15 @@ export function useEgitimTipleri() {
   // Eğitim tipini sil
   const deleteEgitimTipi = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `${API_ENDPOINT}/${id}`);
+      const response = await fetch(`${API_ENDPOINT}/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Eğitim tipi silinirken bir hata oluştu");
+      }
+      
       return id;
     },
     onSuccess: () => {
