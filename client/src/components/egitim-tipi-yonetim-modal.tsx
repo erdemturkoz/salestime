@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilIcon, PlusIcon, TrashIcon, XIcon, Edit, Trash, Check, X, Plus } from "lucide-react";
+import { PencilIcon, PlusIcon, TrashIcon, XIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEgitimTipleri } from "@/hooks/use-egitim-tipleri";
 import { insertEgitimTipiSchema, type InsertEgitimTipi } from "@shared/schema";
@@ -69,6 +69,14 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
     isError,
     error
   } = useEgitimTipleri();
+  
+  // Modal kapandığında, eğer bir değişiklik yapıldıysa kampanyaları güncelle
+  useEffect(() => {
+    if (!open && needsRefreshRef.current) {
+      refreshKampanyalar();
+      needsRefreshRef.current = false;
+    }
+  }, [open, refreshKampanyalar]);
 
   const [editId, setEditId] = useState<number | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
