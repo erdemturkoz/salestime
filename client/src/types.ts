@@ -8,7 +8,8 @@ export interface Hediye {
 export interface TaksitOption {
   taksitSayisi: number;
   aylikTutar: number;
-  toplamTutar: number;
+  toplamTutar: number;  // Bu, API kodu için korunacak
+  toplam?: number;      // Geriye uyumluluk için eklenen alan
 }
 
 // Kullanıcı rolleri

@@ -187,28 +187,29 @@ const HesaplamaPage = () => {
     } else if (odemeTipi === "kredi-karti") {
       odemeSekli = "Kredi Kartı";
       
-      // Kredi kartı işlemlerinde %10 fatura bedeli ekle
-      const faturaBedeli = nakitF * 0.1;
-      
       if (taksitSayisi === 1) {
         taksitDetayi = "Tek Çekim";
-        // Tek çekimde faiz uygulanmıyor
-        kampanyaFiyat = nakitF + faturaBedeli;
-        // Kampanyalı fiyat için açıklama ekleyelim
-        kampanyaFiyat = Math.round(kampanyaFiyat); // Yuvarlama yapalım
-        // Taksit hesaplamasında kampanyalı fiyat + hediyeler dahil edilir
-        toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
-        aylikOdeme = toplamFiyat;
+        
+        // Tek çekimde de %10 banka komisyonu uygulanıyor (değişiklik burada)
+        const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [1]);
+        
+        if (taksitHesapla.length > 0) {
+          // Kampanyalı fiyata komisyon ve faiz dahil
+          kampanyaFiyat = Math.round(taksitHesapla[0].toplamTutar); // Yuvarlama yapalım
+          // Toplam fiyat olarak kampanyalı fiyat + hediyeler dahil edilir
+          toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
+          aylikOdeme = toplamFiyat;
+        }
       } else {
         taksitDetayi = `${taksitSayisi} Taksit`;
         
-        // Kredi kartı taksitli ödemede sadece kampanya fiyatına faiz uygulanır
-        const krediKartiTemelFiyat = nakitF + faturaBedeli;
-        const taksitHesapla = calculateInstallments(krediKartiTemelFiyat, selectedKampanya.faizOrani, [taksitSayisi]);
+        // Kredi kartı taksitli ödemede banka komisyonu ve faiz uygulanır
+        // calculator.ts içinde banka komisyonu ekleniyor
+        const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [taksitSayisi]);
         
         if (taksitHesapla.length > 0) {
-          // Kampanyalı fiyata faiz dahil
-          kampanyaFiyat = Math.round(taksitHesapla[0].toplam); // Yuvarlama yapalım
+          // Kampanyalı fiyata komisyon ve faiz dahil
+          kampanyaFiyat = Math.round(taksitHesapla[0].toplamTutar); // Yuvarlama yapalım
           // Toplam fiyat olarak kampanyalı fiyat + hediyeler dahil edilir
           toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
           // Aylık ödeme tüm toplamı taksite böler
@@ -219,12 +220,12 @@ const HesaplamaPage = () => {
       odemeSekli = "Senet";
       taksitDetayi = `${taksitSayisi} Taksit`;
       
-      // Senetli ödemede kampanyalı fiyata faiz uygulanır
-      const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [taksitSayisi]);
+      // Senetli ödemede kampanyalı fiyata faiz uygulanır (banka komisyonu uygulanmaz)
+      const taksitHesapla = calculateInstallments(nakitF, selectedKampanya.faizOrani, [taksitSayisi], 0); // Senet ödemesinde banka komisyonu yok
       
       if (taksitHesapla.length > 0) {
         // Kampanyalı fiyata faiz dahil
-        kampanyaFiyat = Math.round(taksitHesapla[0].toplam); // Yuvarlama yapalım
+        kampanyaFiyat = Math.round(taksitHesapla[0].toplamTutar); // Yuvarlama yapalım
         // Toplam fiyat olarak kampanyalı fiyat + hediyeler dahil edilir
         toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
         // Aylık ödeme tüm toplamı taksite böler
