@@ -7,6 +7,7 @@ import {
   insertSubeSchema, 
   insertKullaniciSchema, 
   insertKullaniciSubeRolSchema,
+  insertEgitimTipiSchema,
   loginSchema,
   changePasswordSchema,
   Roller,
@@ -265,6 +266,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Kullanıcı şubeden çıkarma hatası:", error);
       res.status(500).json({ error: "Kullanıcı şubeden çıkarılırken bir hata oluştu", details: String(error) });
+    }
+  });
+
+  // Eğitim Tipleri API routes
+  app.get("/api/egitim-tipleri", async (req, res) => {
+    try {
+      const egitimTipleri = await storage.getAllEgitimTipleri();
+      res.json(egitimTipleri);
+    } catch (error) {
+      console.error("Eğitim tipleri API hatası:", error);
+      res.status(500).json({ error: "Eğitim tipleri yüklenirken bir hata oluştu", details: String(error) });
+    }
+  });
+
+  app.get("/api/egitim-tipleri/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const egitimTipi = await storage.getEgitimTipi(parseInt(id));
+      
+      if (!egitimTipi) {
+        return res.status(404).json({ error: "Eğitim tipi bulunamadı" });
+      }
+      
+      res.json(egitimTipi);
+    } catch (error) {
+      console.error("Eğitim tipi API hatası:", error);
+      res.status(500).json({ error: "Eğitim tipi yüklenirken bir hata oluştu", details: String(error) });
+    }
+  });
+
+  app.post("/api/egitim-tipleri", async (req, res) => {
+    try {
+      const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
+      const newEgitimTipi = await storage.createEgitimTipi(egitimTipiData);
+      res.status(201).json(newEgitimTipi);
+    } catch (error) {
+      console.error("Eğitim tipi oluşturma hatası:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Eğitim tipi oluşturulurken bir hata oluştu", details: String(error) });
+    }
+  });
+
+  app.put("/api/egitim-tipleri/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
+      const updatedEgitimTipi = await storage.updateEgitimTipi(parseInt(id), egitimTipiData);
+      
+      if (!updatedEgitimTipi) {
+        return res.status(404).json({ error: "Güncellenecek eğitim tipi bulunamadı" });
+      }
+      
+      res.json(updatedEgitimTipi);
+    } catch (error) {
+      console.error("Eğitim tipi güncelleme hatası:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Eğitim tipi güncellenirken bir hata oluştu", details: String(error) });
+    }
+  });
+
+  app.delete("/api/egitim-tipleri/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteEgitimTipi(parseInt(id));
+      
+      if (!success) {
+        return res.status(404).json({ error: "Silinecek eğitim tipi bulunamadı" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Eğitim tipi silme hatası:", error);
+      res.status(500).json({ error: "Eğitim tipi silinirken bir hata oluştu", details: String(error) });
     }
   });
 

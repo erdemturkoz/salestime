@@ -59,6 +59,69 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Eğitim Tipleri operations
+  async getAllEgitimTipleri(): Promise<EgitimTipi[]> {
+    try {
+      const result = await db.select().from(egitimTipleri);
+      return result;
+    } catch (error) {
+      console.error("Eğitim tiplerini getirme hatası:", error);
+      return [];
+    }
+  }
+
+  async getEgitimTipi(id: number): Promise<EgitimTipi | undefined> {
+    try {
+      const [egitimTipi] = await db
+        .select()
+        .from(egitimTipleri)
+        .where(eq(egitimTipleri.id, id));
+      return egitimTipi;
+    } catch (error) {
+      console.error(`Eğitim tipi ID ${id} getirilirken hata:`, error);
+      return undefined;
+    }
+  }
+
+  async createEgitimTipi(insertEgitimTipi: InsertEgitimTipi): Promise<EgitimTipi> {
+    try {
+      const [result] = await db
+        .insert(egitimTipleri)
+        .values(insertEgitimTipi)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Eğitim tipi oluşturulurken hata:", error);
+      throw error;
+    }
+  }
+
+  async updateEgitimTipi(id: number, updateData: InsertEgitimTipi): Promise<EgitimTipi | undefined> {
+    try {
+      const [result] = await db
+        .update(egitimTipleri)
+        .set(updateData)
+        .where(eq(egitimTipleri.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error(`Eğitim tipi ID ${id} güncellenirken hata:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteEgitimTipi(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(egitimTipleri)
+        .where(eq(egitimTipleri.id, id))
+        .returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Eğitim tipi ID ${id} silinirken hata:`, error);
+      return false;
+    }
+  }
   // Kampanya operations
   async getAllKampanyalar(): Promise<Kampanya[]> {
     try {
