@@ -322,6 +322,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const copyManyKampanyalarToSube = async (kampanyaIds: string[], subeId: number): Promise<boolean> => {
     try {
       setLoading(true);
+      console.log('Kopyalanacak kampanya ID\'leri:', kampanyaIds);
+      console.log('Hedef şube ID:', subeId);
+      
       const response = await fetch(`/api/kampanyalar/copy-many`, {
         method: 'POST',
         headers: {
@@ -331,8 +334,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
       
       if (!response.ok) {
-        throw new Error('Kampanyalar kopyalanırken bir hata oluştu');
+        const errorText = await response.text();
+        console.error('Sunucu yanıt detayı:', errorText);
+        throw new Error(`Kampanyalar kopyalanırken bir hata oluştu: ${errorText}`);
       }
+      
+      const result = await response.json();
+      console.log('Kopyalama sonucu:', result);
       
       // Kopyalama başarılı oldu, kampanyaları yenile
       await refreshKampanyalar();

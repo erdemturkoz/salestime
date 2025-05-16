@@ -385,6 +385,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { kampanyaIds, subeId } = req.body;
       
+      console.log("API'ye gelen kampanya ID'leri:", kampanyaIds);
+      console.log("API'ye gelen şube ID:", subeId);
+      
       if (!subeId) {
         return res.status(400).json({ error: "Hedef şube ID'si (subeId) gereklidir" });
       }
@@ -393,8 +396,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Kopyalanacak kampanya ID'leri (kampanyaIds) gereklidir ve en az bir ID içermelidir" });
       }
       
-      // İstemciden gelen ID'leri doğrudan kullan - filtreleme işlemi storage'da yapılacak
-      const newKampanyalar = await storage.copyManyKampanyalarToSube(kampanyaIds, parseInt(subeId));
+      // Kampanya ID'lerini sayıya çevir (NaN değerlerini filtrele)
+      const validIds = kampanyaIds
+        .map(id => typeof id === 'string' ? parseInt(id) : id)
+        .filter(id => !isNaN(id));
+      
+      console.log("Geçerli kampanya ID'leri:", validIds);
+      
+      if (validIds.length === 0) {
+        return res.status(400).json({ error: "Geçerli kampanya ID'si bulunamadı" });
+      }
+      
+      const parsedSubeId = parseInt(subeId);
+      const newKampanyalar = await storage.copyManyKampanyalarToSube(validIds, parsedSubeId);
       
       if (newKampanyalar.length === 0) {
         return res.status(404).json({ error: "Hiçbir kampanya kopyalanamadı" });

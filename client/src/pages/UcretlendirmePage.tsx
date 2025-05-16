@@ -413,6 +413,9 @@ const UcretlendirmePage = () => {
       return;
     }
     
+    console.log("handleMultiKampanyaCopy seçilen kampanyalar:", selectedKampanyalar);
+    console.log("handleMultiKampanyaCopy hedef şube:", targetSubeId);
+    
     try {
       const result = await copyManyKampanyalarToSube(selectedKampanyalar, targetSubeId);
       if (result) {
