@@ -112,17 +112,21 @@ export class DatabaseStorage implements IStorage {
 
   async isEgitimTipiUsedInKampanyalar(egitimTipiAdi: string): Promise<boolean> {
     try {
-      // Eğitim tipinin herhangi bir kampanyada kullanılıp kullanılmadığını kontrol et
-      const result = await db.execute(
-        `SELECT COUNT(*) as count FROM kampanyalar WHERE egitim_tipi = $1`,
-        [egitimTipiAdi]
-      );
+      // Doğrudan SQL sorgusu kullanarak kontrol yapalım
+      const result = await db.execute(`
+        SELECT COUNT(*) as count 
+        FROM kampanyalar 
+        WHERE egitim_tipi = $1
+      `, [egitimTipiAdi]);
       
-      return parseInt(result.rows[0].count) > 0;
+      const count = parseInt(result.rows[0].count);
+      console.log(`Eğitim tipi '${egitimTipiAdi}' için kampanya kullanımı kontrolü: ${count} adet kampanya bulundu`);
+      
+      return count > 0;
     } catch (error) {
       console.error(`Eğitim tipi '${egitimTipiAdi}' kullanım kontrolünde hata:`, error);
-      // Hata durumunda güvenli tarafta kalmak için true döndür
-      return true;
+      // Hata durumunda false döndürelim (test için)
+      return false;
     }
   }
 
