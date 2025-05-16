@@ -4,7 +4,7 @@ import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils
 import { calculateInstallments } from "@/utils/calculator";
 import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
-import { RefreshCwIcon, Plus, FileSpreadsheet, Building, Copy } from "lucide-react";
+import { RefreshCwIcon, Plus, FileSpreadsheet, Building } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -839,15 +839,7 @@ const UcretlendirmePage = () => {
                                   Düzenle
                                 </Button>
                                 
-                                {isAdmin && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openCopyDialog(kampanya.id)}
-                                  >
-                                    Kopyala
-                                  </Button>
-                                )}
+
                                 
                                 <Button
                                   variant="outline"

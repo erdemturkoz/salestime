@@ -28,8 +28,7 @@ interface AppContextType {
   addKampanya: (kampanya: Omit<Kampanya, 'id'>) => void;
   deleteKampanya: (id: string) => void;
   updateKampanya: (kampanya: Kampanya) => void;
-  copyKampanyaToSube: (kampanyaId: string, subeId: number) => Promise<boolean>;
-  copyManyKampanyalarToSube: (kampanyaIds: string[], subeId: number) => Promise<boolean>;
+
   loading: boolean;
   refreshKampanyalar: (subeId?: number) => Promise<void>;
   getKampanyalarBySubeId: (subeId: number) => Promise<void>;
@@ -43,8 +42,7 @@ const defaultContextValue: AppContextType = {
   addKampanya: () => {},
   deleteKampanya: () => {},
   updateKampanya: () => {},
-  copyKampanyaToSube: async () => false,
-  copyManyKampanyalarToSube: async () => false,
+
   loading: false,
   refreshKampanyalar: async (subeId?: number) => {},
   getKampanyalarBySubeId: async () => {},
@@ -291,67 +289,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Kampanyayı başka bir şubeye kopyala
-  const copyKampanyaToSube = async (kampanyaId: string, subeId: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/kampanyalar/${kampanyaId}/copy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ subeId })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Kampanya kopyalanırken bir hata oluştu');
-      }
-      
-      // Kopyalama başarılı oldu, kampanyaları yenile
-      await refreshKampanyalar();
-      return true;
-    } catch (error) {
-      console.error('Kampanya kopyalama hatası:', error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Birden fazla kampanyayı başka bir şubeye kopyala
-  const copyManyKampanyalarToSube = async (kampanyaIds: string[], subeId: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-      console.log('Kopyalanacak kampanya ID\'leri:', kampanyaIds);
-      console.log('Hedef şube ID:', subeId);
-      
-      const response = await fetch(`/api/kampanyalar/copy-many`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ kampanyaIds, subeId })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Sunucu yanıt detayı:', errorText);
-        throw new Error(`Kampanyalar kopyalanırken bir hata oluştu: ${errorText}`);
-      }
-      
-      const result = await response.json();
-      console.log('Kopyalama sonucu:', result);
-      
-      // Kopyalama başarılı oldu, kampanyaları yenile
-      await refreshKampanyalar();
-      return true;
-    } catch (error) {
-      console.error('Toplu kampanya kopyalama hatası:', error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // Kampanyaları yenileme fonksiyonu
   const refreshKampanyalar = async (subeId?: number) => {
@@ -376,8 +314,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addKampanya,
     deleteKampanya,
     updateKampanya,
-    copyKampanyaToSube,
-    copyManyKampanyalarToSube,
+
     loading,
     refreshKampanyalar,
     getKampanyalarBySubeId,
