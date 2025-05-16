@@ -553,7 +553,7 @@ const UcretlendirmePage = () => {
   };
   
   return (
-    <div className="container mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="container mx-auto p-4 grid grid-cols-1 gap-8">
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
