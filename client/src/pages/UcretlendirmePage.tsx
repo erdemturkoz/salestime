@@ -8,7 +8,7 @@ import { RefreshCwIcon, Plus, FileSpreadsheet, Building, Settings } from "lucide
 import { useAppContext } from "@/contexts/AppContext";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
 import { EgitimTipiYonetimModal } from "@/components/egitim-tipi-yonetim-modal";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
