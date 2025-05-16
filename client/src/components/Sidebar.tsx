@@ -8,7 +8,8 @@ import {
   LogOut,
   Menu, 
   X,
-  Building
+  Building,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -24,6 +25,12 @@ const NAV_ITEMS = [
     label: 'Kampanya Ekle',
     href: '/ucretlendirme',
     icon: <DollarSign className="h-5 w-5" />,
+  },
+  {
+    label: 'Eğitim Tipleri',
+    href: '/egitim-tipleri',
+    icon: <BookOpen className="h-5 w-5" />,
+    adminOnly: true,
   },
   {
     label: 'Kullanıcılar',
@@ -73,20 +80,22 @@ const Sidebar = () => {
 
       <div className="flex-1 p-4">
         <nav className="space-y-2">
-          {NAV_ITEMS.map((item) => {
-            const [isActive] = useRoute(item.href);
-            return (
-              <Button
-                key={item.href}
-                variant={isActive ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => handleNavigation(item.href)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
-              </Button>
-            );
-          })}
+          {NAV_ITEMS
+            .filter(item => !item.adminOnly || (user && ('roller' in user) && user.roller.some(r => r.rol === "Sistem Yöneticisi")))
+            .map((item) => {
+              const [isActive] = useRoute(item.href);
+              return (
+                <Button
+                  key={item.href}
+                  variant={isActive ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation(item.href)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.label}</span>
+                </Button>
+              );
+            })}
         </nav>
       </div>
       
