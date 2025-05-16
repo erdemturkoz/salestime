@@ -145,11 +145,33 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
           setDeleteItemId(null);
         },
         onError: (error) => {
-          toast({
-            title: "Hata",
-            description: "Eğitim tipi silinirken bir hata oluştu: " + String(error),
-            variant: "destructive",
-          });
+          // Hata mesajını analiz et
+          const errorMsg = String(error);
+          
+          if (errorMsg.includes("kampanyada kullanıldığı")) {
+            // Kampanya kullanımı hatası
+            toast({
+              title: "Silme İşlemi Başarısız",
+              description: "Bu eğitim tipi bir veya daha fazla kampanyada kullanıldığı için silinemez. Önce ilgili kampanyaları güncelleyiniz.",
+              variant: "destructive",
+            });
+          } else if (errorMsg.includes("bulunamadı")) {
+            // Kayıt bulunamaması hatası
+            toast({
+              title: "Eğitim Tipi Bulunamadı",
+              description: "Silinecek eğitim tipi sistemde bulunamadı.",
+              variant: "destructive",
+            });
+          } else {
+            // Genel hata
+            toast({
+              title: "Hata",
+              description: "Eğitim tipi silinirken bir hata oluştu: " + errorMsg,
+              variant: "destructive",
+            });
+          }
+          
+          setDeleteConfirmOpen(false);
         },
       });
     }
@@ -279,9 +301,14 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eğitim Tipini Sil</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bu eğitim tipini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve 
-              mevcut kampanyalarda kullanılıyorsa sorunlara yol açabilir.
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Bu eğitim tipini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              </p>
+              <p className="text-amber-600 bg-amber-50 p-2 rounded-md border border-amber-200 text-sm">
+                <strong>Not:</strong> Eğer bu eğitim tipi herhangi bir kampanyada kullanılıyorsa, silme işlemi başarısız olacaktır. 
+                Bir eğitim tipini silmeden önce, onu kullanan tüm kampanyaları başka bir eğitim tipine güncellemeniz gerekir.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
