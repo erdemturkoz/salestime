@@ -799,7 +799,7 @@ const UcretlendirmePage = () => {
                         <SelectValue placeholder="Tüm Şubeler" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Tüm Şubeler</SelectItem>
+                        <SelectItem value="0">Tüm Şubeler</SelectItem>
                         {subeler.map((sube) => (
                           <SelectItem key={sube.id} value={sube.id.toString()}>
                             {sube.subeAdi}
