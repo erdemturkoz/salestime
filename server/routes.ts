@@ -393,10 +393,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Kopyalanacak kampanya ID'leri (kampanyaIds) gereklidir ve en az bir ID içermelidir" });
       }
       
-      // ID'leri sayıya dönüştür
-      const numericIds = kampanyaIds.map(id => parseInt(id));
-      
-      const newKampanyalar = await storage.copyManyKampanyalarToSube(numericIds, parseInt(subeId));
+      // İstemciden gelen ID'leri doğrudan kullan - filtreleme işlemi storage'da yapılacak
+      const newKampanyalar = await storage.copyManyKampanyalarToSube(kampanyaIds, parseInt(subeId));
       
       if (newKampanyalar.length === 0) {
         return res.status(404).json({ error: "Hiçbir kampanya kopyalanamadı" });

@@ -26,7 +26,7 @@ export interface IStorage {
   updateKampanya(id: number, kampanya: InsertKampanya): Promise<Kampanya | undefined>;
   deleteKampanya(id: number): Promise<boolean>;
   copyKampanyaToSube(kampanyaId: number, subeId: number): Promise<Kampanya | undefined>;
-  copyManyKampanyalarToSube(kampanyaIds: number[], subeId: number): Promise<Kampanya[]>;
+  copyManyKampanyalarToSube(kampanyaIds: (number | string)[], subeId: number): Promise<Kampanya[]>;
   
   // Kullanıcı operations
   getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]>;
@@ -218,14 +218,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async copyManyKampanyalarToSube(kampanyaIds: number[], subeId: number): Promise<Kampanya[]> {
+  async copyManyKampanyalarToSube(kampanyaIds: (number | string)[], subeId: number): Promise<Kampanya[]> {
     const results: Kampanya[] = [];
-    const errors: number[] = [];
+    const errors: (number | string)[] = [];
     
     // Her bir kampanya için kopyalama işlemi yapılır
     for (const kampanyaId of kampanyaIds) {
       try {
-        const newKampanya = await this.copyKampanyaToSube(kampanyaId, subeId);
+        // Kampanya ID'sinin geçerli bir sayı olduğundan emin olalım
+        const validKampanyaId = typeof kampanyaId === 'string' ? parseInt(kampanyaId) : kampanyaId;
+        
+        // NaN kontrolü yap
+        if (isNaN(validKampanyaId)) {
+          console.error(`Geçersiz kampanya ID'si: ${kampanyaId}`);
+          errors.push(kampanyaId);
+          continue;
+        }
+        
+        const newKampanya = await this.copyKampanyaToSube(validKampanyaId, subeId);
         if (newKampanya) {
           results.push(newKampanya);
         } else {
