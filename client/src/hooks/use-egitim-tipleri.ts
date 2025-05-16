@@ -4,11 +4,12 @@ import {
   useQueryClient 
 } from "@tanstack/react-query";
 import { EgitimTipi, InsertEgitimTipi } from "@shared/schema";
-import { queryClient } from "@/lib/queryClient";
 
 const API_ENDPOINT = "/api/egitim-tipleri";
 
 export function useEgitimTipleri() {
+  const queryClient = useQueryClient();
+  
   // Tüm eğitim tiplerini getir
   const {
     data: egitimTipleri = [],

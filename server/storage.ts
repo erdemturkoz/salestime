@@ -611,7 +611,10 @@ export class DatabaseStorage implements IStorage {
           kitapSetSayisi: 2,
           maxKrediKartiTaksit: 10,
           maxSenetTaksit: 12,
-          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi"],
+          hediyeler: [
+            { isim: "Konuşma Kulübü", fiyat: 0 }, 
+            { isim: "Çevrimiçi Kaynak Erişimi", fiyat: 0 }
+          ],
           subeId: subeId
         },
         {
@@ -627,7 +630,11 @@ export class DatabaseStorage implements IStorage {
           kitapSetSayisi: 3,
           maxKrediKartiTaksit: 10,
           maxSenetTaksit: 12,
-          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Yurtdışı Eğitim Danışmanlığı"],
+          hediyeler: [
+            { isim: "Konuşma Kulübü", fiyat: 0 },
+            { isim: "Çevrimiçi Kaynak Erişimi", fiyat: 0 },
+            { isim: "Yurtdışı Eğitim Danışmanlığı", fiyat: 0 }
+          ],
           subeId: subeId
         },
         {
