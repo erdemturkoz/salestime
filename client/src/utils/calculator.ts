@@ -1,3 +1,5 @@
+import { TaksitOption } from "@/types";
+
 /**
  * Taksit seçeneklerini hesaplayan utility fonksiyonu
  * 
@@ -10,7 +12,7 @@ export const calculateInstallments = (
   nakitFiyat: number,
   faizOrani: number,
   taksitAdedleri: number[]
-): Array<{taksit: number; aylik: number; toplam: number}> => {
+): TaksitOption[] => {
   if (nakitFiyat <= 0 || faizOrani < 0) {
     return [];
   }
@@ -22,9 +24,9 @@ export const calculateInstallments = (
     const aylik = toplam / taksit;
 
     return {
-      taksit,
-      aylik: parseFloat(aylik.toFixed(2)),
-      toplam: parseFloat(toplam.toFixed(2))
+      taksitSayisi: taksit,
+      aylikTutar: parseFloat(aylik.toFixed(2)),
+      toplamTutar: parseFloat(toplam.toFixed(2))
     };
   });
 };

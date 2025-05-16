@@ -745,14 +745,14 @@ const UcretlendirmePage = () => {
               </div>
               <div className="flex flex-col md:flex-row gap-2">
                 <Select
-                  value={selectedSubeId?.toString() || ""}
-                  onValueChange={(value) => setSelectedSubeId(value ? parseInt(value) : null)}
+                  value={selectedSubeId?.toString() || "all"}
+                  onValueChange={(value) => setSelectedSubeId(value === "all" ? null : parseInt(value))}
                 >
                   <SelectTrigger className="h-8 w-[200px]">
                     <SelectValue placeholder="Tüm şubeler" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tüm şubeler</SelectItem>
+                    <SelectItem value="all">Tüm şubeler</SelectItem>
                     {subeler.map((sube) => (
                       <SelectItem key={sube.id} value={sube.id.toString()}>
                         {sube.subeAdi}
