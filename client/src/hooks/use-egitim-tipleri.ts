@@ -74,7 +74,17 @@ export function useEgitimTipleri() {
       });
       
       if (!response.ok) {
-        throw new Error("Eğitim tipi silinirken bir hata oluştu");
+        // Sunucudan gelen hata mesajını alma
+        const errorData = await response.json().catch(() => ({ error: "Bilinmeyen hata" }));
+        
+        if (response.status === 409) {
+          // 409 Conflict - Eğitim tipi kullanımda
+          throw new Error(errorData.error || "Bu eğitim tipi bir veya daha fazla kampanyada kullanıldığı için silinemez");
+        } else if (response.status === 404) {
+          throw new Error("Silinecek eğitim tipi bulunamadı");
+        } else {
+          throw new Error(errorData.error || "Eğitim tipi silinirken bir hata oluştu");
+        }
       }
       
       return id;

@@ -110,12 +110,49 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async isEgitimTipiUsedInKampanyalar(egitimTipiAdi: string): Promise<boolean> {
+    try {
+      // Eğitim tipinin herhangi bir kampanyada kullanılıp kullanılmadığını kontrol et
+      const result = await db.execute(
+        `SELECT COUNT(*) as count FROM kampanyalar WHERE egitim_tipi = $1`,
+        [egitimTipiAdi]
+      );
+      
+      return parseInt(result.rows[0].count) > 0;
+    } catch (error) {
+      console.error(`Eğitim tipi '${egitimTipiAdi}' kullanım kontrolünde hata:`, error);
+      // Hata durumunda güvenli tarafta kalmak için true döndür
+      return true;
+    }
+  }
+
   async deleteEgitimTipi(id: number): Promise<boolean> {
     try {
+      // Önce eğitim tipini al
+      const [egitimTipi] = await db
+        .select()
+        .from(egitimTipleri)
+        .where(eq(egitimTipleri.id, id));
+      
+      if (!egitimTipi) {
+        console.warn(`Silinecek eğitim tipi bulunamadı: ID ${id}`);
+        return false;
+      }
+      
+      // Eğitim tipinin herhangi bir kampanyada kullanılıp kullanılmadığını kontrol et
+      const isUsed = await this.isEgitimTipiUsedInKampanyalar(egitimTipi.egitimTipi);
+      
+      if (isUsed) {
+        console.warn(`Eğitim tipi '${egitimTipi.egitimTipi}' kampanyalarda kullanımda olduğu için silinemez.`);
+        return false;
+      }
+      
+      // Kullanılmıyorsa sil
       const result = await db
         .delete(egitimTipleri)
         .where(eq(egitimTipleri.id, id))
         .returning();
+      
       return result.length > 0;
     } catch (error) {
       console.error(`Eğitim tipi ID ${id} silinirken hata:`, error);

@@ -333,10 +333,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/egitim-tipleri/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // Önce ilgili eğitim tipini al
+      const egitimTipi = await storage.getEgitimTipi(parseInt(id));
+      
+      if (!egitimTipi) {
+        return res.status(404).json({ error: "Silinecek eğitim tipi bulunamadı" });
+      }
+      
+      // Eğitim tipinin kullanımda olup olmadığını kontrol et
+      const isUsed = await storage.isEgitimTipiUsedInKampanyalar(egitimTipi.egitimTipi);
+      
+      if (isUsed) {
+        return res.status(409).json({ 
+          error: "Bu eğitim tipi bir veya daha fazla kampanyada kullanıldığı için silinemez", 
+          details: "Eğitim tipini silmek için önce bu eğitim tipini kullanan tüm kampanyaları güncelleyin veya silin."
+        });
+      }
+      
+      // Kullanımda değilse silme işlemini gerçekleştir
       const success = await storage.deleteEgitimTipi(parseInt(id));
       
       if (!success) {
-        return res.status(404).json({ error: "Silinecek eğitim tipi bulunamadı" });
+        return res.status(500).json({ error: "Eğitim tipi silinemedi" });
       }
       
       res.status(204).send();
