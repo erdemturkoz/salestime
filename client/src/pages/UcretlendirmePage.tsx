@@ -10,6 +10,7 @@ import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
 // Artık sadece tamamen bağımsız sayfamız olduğu için bu import kaldırıldı
 // import { EgitimTipiYonetimModal } from "@/components/egitim-tipi-yonetim-modal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEgitimTipleri } from "@/hooks/use-egitim-tipleri";
 
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,9 @@ const UcretlendirmePage = () => {
   const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar, 
     selectedSubeId, setSelectedSubeId } = useAppContext();
   const { user, isAdmin } = useAuth();
+  
+  // Eğitim tiplerini API'den çekelim
+  const { egitimTipleri, isLoading: egitimTipleriLoading } = useEgitimTipleri();
   
   // Kullanıcının şubeleri
   const [subeler, setSubeler] = useState<Array<{id: number, subeAdi: string}>>([]);
@@ -660,16 +664,17 @@ const UcretlendirmePage = () => {
                     <SelectValue placeholder="Eğitim tipi seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
-                    <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
-                    <SelectItem value="Junior İngilizce">Junior İngilizce</SelectItem>
-                    <SelectItem value="Teenage İngilizce">Teenage İngilizce</SelectItem>
-                    <SelectItem value="Yds Hazırlık">Yds Hazırlık</SelectItem>
-                    <SelectItem value="Toefl Hazırlık">Toefl Hazırlık</SelectItem>
-                    <SelectItem value="İspanyolca">İspanyolca</SelectItem>
-                    <SelectItem value="Fransızca">Fransızca</SelectItem>
-                    <SelectItem value="İtalyanca">İtalyanca</SelectItem>
-                    <SelectItem value="Rusça">Rusça</SelectItem>
+                    {egitimTipleriLoading ? (
+                      <SelectItem value="" disabled>Yükleniyor...</SelectItem>
+                    ) : egitimTipleri.length === 0 ? (
+                      <SelectItem value="" disabled>Eğitim tipi bulunamadı</SelectItem>
+                    ) : (
+                      egitimTipleri.map((tip) => (
+                        <SelectItem key={tip.id} value={tip.egitimTipi}>
+                          {tip.egitimTipi}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
