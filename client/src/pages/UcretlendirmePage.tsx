@@ -800,7 +800,14 @@ const UcretlendirmePage = () => {
                   name="maxKrediKartiTaksit"
                   type="number"
                   value={formData.maxKrediKartiTaksit || ""}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    // String değil, sayı olarak kaydet
+                    const value = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      maxKrediKartiTaksit: value === "" ? 0 : parseInt(value)
+                    }));
+                  }}
                   className="h-8"
                   min={1}
                   max={12}
@@ -814,7 +821,14 @@ const UcretlendirmePage = () => {
                   name="maxSenetTaksit"
                   type="number"
                   value={formData.maxSenetTaksit || ""}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    // String değil, sayı olarak kaydet
+                    const value = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      maxSenetTaksit: value === "" ? 0 : parseInt(value)
+                    }));
+                  }}
                   className="h-8"
                   min={1}
                   max={12}
