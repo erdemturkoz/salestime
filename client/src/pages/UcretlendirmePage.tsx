@@ -657,7 +657,8 @@ const UcretlendirmePage = () => {
                       size="sm" 
                       className="h-6 text-xs"
                       onClick={() => {
-                        setShowEgitimTipiModal(true);
+                        // Eğitim Tipleri sayfasına yönlendir
+                        window.location.href = "/egitim-tipleri";
                       }}
                     >
                       <Settings className="h-3 w-3 mr-1" />
@@ -1067,11 +1068,7 @@ const UcretlendirmePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Eğitim Tipi Yönetim Modalı */}
-      <EgitimTipiYonetimModal 
-        open={showEgitimTipiModal}
-        onOpenChange={setShowEgitimTipiModal}
-      />
+      {/* Artık bağımsız sayfa olduğu için burada modal yok */}
 
       {/* Excel İçe Aktarma Bilgi Modalı */}
       <ExcelImportInfoDialog 
