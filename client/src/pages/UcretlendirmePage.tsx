@@ -556,36 +556,51 @@ const UcretlendirmePage = () => {
     <div className="container mx-auto p-4 grid grid-cols-1 gap-8">
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>{isEditing ? "Kampanya Düzenle" : "Yeni Kampanya Ekle"}</CardTitle>
-            <CardDescription>Kampanya bilgilerini girin</CardDescription>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>{isEditing ? "Kampanya Düzenle" : "Yeni Kampanya Ekle"}</CardTitle>
+                <CardDescription>Kampanya bilgilerini girin</CardDescription>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="button" variant="outline" size="sm" onClick={resetForm}>
+                  Temizle
+                </Button>
+                <Button type="submit" size="sm">
+                  {isEditing ? "Güncelle" : "Kaydet"}
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="kampanyaAdi">Kampanya Adı</Label>
-              <Input
-                id="kampanyaAdi"
-                name="kampanyaAdi"
-                value={formData.kampanyaAdi}
-                onChange={handleInputChange}
-                placeholder="Örn: 2+1 KAMPANYASI"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="egitimTipi">Eğitim Tipi</Label>
-              <Input
-                id="egitimTipi"
-                name="egitimTipi"
-                value={formData.egitimTipi}
-                onChange={handleInputChange}
-                placeholder="Örn: Genel İngilizce"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="kurSayisi">Kur Sayısı</Label>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+              {/* İlk satır - genel bilgiler */}
+              <div className="space-y-1">
+                <Label htmlFor="kampanyaAdi" className="text-xs">Kampanya Adı</Label>
+                <Input
+                  id="kampanyaAdi"
+                  name="kampanyaAdi"
+                  value={formData.kampanyaAdi}
+                  onChange={handleInputChange}
+                  placeholder="Örn: 2+1 KAMPANYASI"
+                  className="h-8"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="egitimTipi" className="text-xs">Eğitim Tipi</Label>
+                <Input
+                  id="egitimTipi"
+                  name="egitimTipi"
+                  value={formData.egitimTipi}
+                  onChange={handleInputChange}
+                  placeholder="Örn: Genel İngilizce"
+                  className="h-8"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="kurSayisi" className="text-xs">Kur Sayısı</Label>
                 <Input
                   id="kurSayisi"
                   name="kurSayisi"
@@ -593,10 +608,12 @@ const UcretlendirmePage = () => {
                   value={formData.kurSayisi}
                   onChange={handleInputChange}
                   min="1"
+                  className="h-8"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="toplamDersSaati">Toplam Ders Saati</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="toplamDersSaati" className="text-xs">Toplam Ders Saati</Label>
                 <Input
                   id="toplamDersSaati"
                   name="toplamDersSaati"
@@ -604,13 +621,13 @@ const UcretlendirmePage = () => {
                   value={formData.toplamDersSaati}
                   onChange={handleInputChange}
                   min="1"
+                  className="h-8"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="listeFiyati">Liste Fiyatı (TL)</Label>
+              {/* İkinci satır - fiyatlar */}
+              <div className="space-y-1">
+                <Label htmlFor="listeFiyati" className="text-xs">Liste Fiyatı (TL)</Label>
                 <Input
                   id="listeFiyati"
                   name="listeFiyati"
@@ -619,10 +636,12 @@ const UcretlendirmePage = () => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
+                  className="h-8"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="nakitFiyati">Nakit Fiyatı (TL)</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="nakitFiyati" className="text-xs">Nakit Fiyatı (TL)</Label>
                 <Input
                   id="nakitFiyati"
                   name="nakitFiyati"
@@ -631,13 +650,12 @@ const UcretlendirmePage = () => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
+                  className="h-8"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="indirimOrani">İndirim Oranı (%)</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="indirimOrani" className="text-xs">İndirim Oranı (%)</Label>
                 <Input
                   id="indirimOrani"
                   name="indirimOrani"
@@ -648,10 +666,12 @@ const UcretlendirmePage = () => {
                   max="100"
                   step="0.1"
                   readOnly
+                  className="h-8"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="faizOrani">Faiz Oranı (%)</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="faizOrani" className="text-xs">Faiz Oranı (%)</Label>
                 <Input
                   id="faizOrani"
                   name="faizOrani"
@@ -661,13 +681,13 @@ const UcretlendirmePage = () => {
                   min="0"
                   max="100"
                   step="0.1"
+                  className="h-8"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="kitapFiyati">Kitap Fiyatı (TL)</Label>
+              {/* Üçüncü satır - kitap ve taksit bilgileri */}
+              <div className="space-y-1">
+                <Label htmlFor="kitapFiyati" className="text-xs">Kitap Fiyatı (TL)</Label>
                 <Input
                   id="kitapFiyati"
                   name="kitapFiyati"
@@ -676,10 +696,12 @@ const UcretlendirmePage = () => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
+                  className="h-8"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="kitapSetSayisi">Kitap Set Sayısı</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="kitapSetSayisi" className="text-xs">Kitap Set Sayısı</Label>
                 <Input
                   id="kitapSetSayisi"
                   name="kitapSetSayisi"
@@ -687,13 +709,12 @@ const UcretlendirmePage = () => {
                   value={formData.kitapSetSayisi}
                   onChange={handleInputChange}
                   min="1"
+                  className="h-8"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxKrediKartiTaksit">Max Kredi Kartı Taksit</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="maxKrediKartiTaksit" className="text-xs">Max Kredi Kartı Taksit</Label>
                 <Input
                   id="maxKrediKartiTaksit"
                   name="maxKrediKartiTaksit"
@@ -702,10 +723,12 @@ const UcretlendirmePage = () => {
                   onChange={handleInputChange}
                   min="1"
                   max="12"
+                  className="h-8"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxSenetTaksit">Max Senet Taksit</Label>
+              
+              <div className="space-y-1">
+                <Label htmlFor="maxSenetTaksit" className="text-xs">Max Senet Taksit</Label>
                 <Input
                   id="maxSenetTaksit"
                   name="maxSenetTaksit"
@@ -714,18 +737,21 @@ const UcretlendirmePage = () => {
                   onChange={handleInputChange}
                   min="1"
                   max="12"
+                  className="h-8"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Hediyeler</Label>
-              <div className="flex gap-2">
+            {/* Hediyeler Bölümü */}
+            <div className="mt-4">
+              <Label className="text-xs">Hediyeler</Label>
+              <div className="flex gap-2 mt-1">
                 <Input
                   placeholder="Hediye adı"
                   value={hediyeAdi}
                   onChange={(e) => setHediyeAdi(e.target.value)}
                   onKeyDown={handleHediyeKeyDown}
+                  className="h-8"
                 />
                 <Input
                   placeholder="Fiyatı"
@@ -735,16 +761,17 @@ const UcretlendirmePage = () => {
                   min="0"
                   step="0.01"
                   onKeyDown={handleHediyeKeyDown}
+                  className="h-8"
                 />
-                <Button type="button" size="icon" onClick={handleAddHediye}>
+                <Button type="button" size="sm" className="h-8" onClick={handleAddHediye}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
               
-              <div className="space-y-2 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
                 {formData.hediyeler.map((hediye, index) => (
                   <div key={index} className="flex justify-between items-center p-2 bg-accent rounded">
-                    <span>{hediye.isim} - {formatCurrency(hediye.fiyat)}</span>
+                    <span className="text-sm">{hediye.isim} - {formatCurrency(hediye.fiyat)}</span>
                     <Button 
                       type="button" 
                       size="sm" 
