@@ -320,7 +320,33 @@ const UcretlendirmePage = () => {
       e.preventDefault();
     }
   };
-
+  
+  // Çoklu kampanya kopyalama için kampanya seçme işlevi
+  const handleKampanyaSelect = (kampanyaId: string) => {
+    setSelectedKampanyalar(prev => {
+      if (prev.includes(kampanyaId)) {
+        return prev.filter(id => id !== kampanyaId);
+      } else {
+        return [...prev, kampanyaId];
+      }
+    });
+  };
+  
+  // Tüm kampanyaları seçme işlevi
+  const handleSelectAllKampanyalar = () => {
+    // Eğer tüm kampanyalar seçiliyse, seçimi kaldır
+    if (selectedKampanyalar.length === kampanyalar.length) {
+      setSelectedKampanyalar([]);
+    } 
+    // Değilse tüm kampanyaları seç
+    else {
+      const allKampanyaIds = kampanyalar.map(k => k.id);
+      setSelectedKampanyalar(allKampanyaIds);
+    }
+  };
+  
+  // Kampanya işleme fonksiyonları
+  
   // Excel İşlevleri
   const handleExportToExcel = () => {
     if (kampanyalar.length === 0) {
@@ -487,8 +513,8 @@ const UcretlendirmePage = () => {
                   type="number"
                   value={formData.kurSayisi}
                   onChange={handleInputChange}
+                  min="1"
                   className="h-8"
-                  min={1}
                 />
               </div>
               
@@ -500,37 +526,37 @@ const UcretlendirmePage = () => {
                   type="number"
                   value={formData.toplamDersSaati}
                   onChange={handleInputChange}
+                  min="1"
                   className="h-8"
-                  min={1}
                 />
               </div>
-              
-              {/* İkinci satır - fiyat bilgileri */}
+
+              {/* İkinci satır - fiyatlar */}
               <div className="space-y-1">
-                <Label htmlFor="listeFiyati" className="text-xs">Liste Fiyatı (₺)</Label>
+                <Label htmlFor="listeFiyati" className="text-xs">Liste Fiyatı (TL)</Label>
                 <Input
                   id="listeFiyati"
                   name="listeFiyati"
                   type="number"
-                  value={formData.listeFiyati || ""}
+                  value={formData.listeFiyati}
                   onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
                   className="h-8"
-                  min={0}
-                  step={0.01}
                 />
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="nakitFiyati" className="text-xs">Nakit Fiyatı (₺)</Label>
+                <Label htmlFor="nakitFiyati" className="text-xs">Nakit Fiyatı (TL)</Label>
                 <Input
                   id="nakitFiyati"
                   name="nakitFiyati"
                   type="number"
-                  value={formData.nakitFiyati || ""}
+                  value={formData.nakitFiyati}
                   onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
                   className="h-8"
-                  min={0}
-                  step={0.01}
                 />
               </div>
               
@@ -540,42 +566,43 @@ const UcretlendirmePage = () => {
                   id="indirimOrani"
                   name="indirimOrani"
                   type="number"
-                  value={formData.indirimOrani || ""}
+                  value={formData.indirimOrani}
                   onChange={handleInputChange}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  readOnly
                   className="h-8"
-                  min={0}
-                  max={100}
-                  step={0.01}
                 />
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="faizOrani" className="text-xs">Taksit Faiz Oranı (%)</Label>
+                <Label htmlFor="faizOrani" className="text-xs">Faiz Oranı (%)</Label>
                 <Input
                   id="faizOrani"
                   name="faizOrani"
                   type="number"
-                  value={formData.faizOrani || ""}
+                  value={formData.faizOrani}
                   onChange={handleInputChange}
+                  min="0"
+                  max="100"
+                  step="0.1"
                   className="h-8"
-                  min={0}
-                  max={100}
-                  step={0.01}
                 />
               </div>
-              
+
               {/* Üçüncü satır - kitap ve taksit bilgileri */}
               <div className="space-y-1">
-                <Label htmlFor="kitapFiyati" className="text-xs">Kitap Fiyatı (₺)</Label>
+                <Label htmlFor="kitapFiyati" className="text-xs">Kitap Fiyatı (TL)</Label>
                 <Input
                   id="kitapFiyati"
                   name="kitapFiyati"
                   type="number"
-                  value={formData.kitapFiyati || ""}
+                  value={formData.kitapFiyati}
                   onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
                   className="h-8"
-                  min={0}
-                  step={0.01}
                 />
               </div>
               
@@ -585,412 +612,458 @@ const UcretlendirmePage = () => {
                   id="kitapSetSayisi"
                   name="kitapSetSayisi"
                   type="number"
-                  value={formData.kitapSetSayisi || ""}
+                  value={formData.kitapSetSayisi}
                   onChange={handleInputChange}
+                  min="1"
                   className="h-8"
-                  min={0}
                 />
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="maxKrediKartiTaksit" className="text-xs">Maks. Kredi Kartı Taksit</Label>
+                <Label htmlFor="maxKrediKartiTaksit" className="text-xs">Max Kredi Kartı Taksit</Label>
                 <Input
                   id="maxKrediKartiTaksit"
                   name="maxKrediKartiTaksit"
                   type="number"
-                  value={formData.maxKrediKartiTaksit || ""}
+                  value={formData.maxKrediKartiTaksit}
                   onChange={handleInputChange}
+                  min="1"
+                  max="12"
                   className="h-8"
-                  min={1}
-                  max={12}
                 />
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="maxSenetTaksit" className="text-xs">Maks. Senet Taksit</Label>
+                <Label htmlFor="maxSenetTaksit" className="text-xs">Max Senet Taksit</Label>
                 <Input
                   id="maxSenetTaksit"
                   name="maxSenetTaksit"
                   type="number"
-                  value={formData.maxSenetTaksit || ""}
+                  value={formData.maxSenetTaksit}
                   onChange={handleInputChange}
+                  min="1"
+                  max="12"
                   className="h-8"
-                  min={1}
-                  max={12}
                 />
               </div>
             </div>
-            
-            {/* Hediyeler */}
+
+            {/* Hediyeler Bölümü */}
             <div className="mt-4">
               <Label className="text-xs">Hediyeler</Label>
-              <div className="flex gap-2 mb-2">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Hediye Adı"
-                    value={hediyeAdi}
-                    onChange={(e) => setHediyeAdi(e.target.value)}
-                    className="h-8"
-                    onKeyDown={handleHediyeKeyDown}
-                  />
-                </div>
-                <div className="w-32">
-                  <Input
-                    placeholder="Fiyat (₺)"
-                    type="number"
-                    value={hediyeFiyati}
-                    onChange={(e) => setHediyeFiyati(e.target.value)}
-                    className="h-8"
-                    min={0}
-                    step={0.01}
-                    onKeyDown={handleHediyeKeyDown}
-                  />
-                </div>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAddHediye}
-                  className="h-8 px-2"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Ekle
+              <div className="flex gap-2 mt-1">
+                <Input
+                  placeholder="Hediye adı"
+                  value={hediyeAdi}
+                  onChange={(e) => setHediyeAdi(e.target.value)}
+                  onKeyDown={handleHediyeKeyDown}
+                  className="h-8"
+                />
+                <Input
+                  placeholder="Fiyatı"
+                  type="number"
+                  value={hediyeFiyati}
+                  onChange={(e) => setHediyeFiyati(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  onKeyDown={handleHediyeKeyDown}
+                  className="h-8"
+                />
+                <Button type="button" size="sm" className="h-8" onClick={handleAddHediye}>
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
               
-              {formData.hediyeler.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                  {formData.hediyeler.map((hediye, index) => (
-                    <div 
-                      key={index} 
-                      className="flex justify-between items-center p-2 border rounded-md"
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                {formData.hediyeler.map((hediye, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-accent rounded">
+                    <span className="text-sm">{hediye.isim} - {formatCurrency(hediye.fiyat)}</span>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => handleRemoveHediye(index)}
+                      className="px-2 h-7"
                     >
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{hediye.isim}</div>
-                        <div className="text-xs text-muted-foreground">{formatCurrency(hediye.fiyat)}</div>
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleRemoveHediye(index)}
-                        className="h-7 px-2 hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        Kaldır
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-2 text-sm text-muted-foreground">
-                  Eklenmiş hediye bulunmuyor.
-                </div>
-              )}
-            </div>
-            
-            {/* Taksit Özeti */}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Kredi Kartı Taksit Seçenekleri */}
-              <div>
-                <h3 className="text-sm font-medium mb-2">Kredi Kartı Taksit Seçenekleri</h3>
-                {krediKartiTaksitler.length > 0 ? (
-                  <div className="space-y-1">
-                    {krediKartiTaksitler.map((taksit) => (
-                      <div key={taksit.taksitSayisi} className="flex justify-between text-sm py-1 border-b">
-                        <span>{taksit.taksitSayisi} Taksit:</span>
-                        <span className="font-medium">{formatCurrency(taksit.aylikTutar)} x {taksit.taksitSayisi} = {formatCurrency(taksit.toplamTutar)}</span>
-                      </div>
-                    ))}
+                      Sil
+                    </Button>
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    Henüz hesaplanmış taksit bulunmuyor. Lütfen nakit fiyat ve faiz oranı girin.
-                  </div>
-                )}
-              </div>
-              
-              {/* Senet Taksit Seçenekleri */}
-              <div>
-                <h3 className="text-sm font-medium mb-2">Senet Taksit Seçenekleri</h3>
-                {senetTaksitler.length > 0 ? (
-                  <div className="space-y-1">
-                    {senetTaksitler.map((taksit) => (
-                      <div key={taksit.taksitSayisi} className="flex justify-between text-sm py-1 border-b">
-                        <span>{taksit.taksitSayisi} Taksit:</span>
-                        <span className="font-medium">{formatCurrency(taksit.aylikTutar)} x {taksit.taksitSayisi} = {formatCurrency(taksit.toplamTutar)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    Henüz hesaplanmış taksit bulunmuyor. Lütfen nakit fiyat ve faiz oranı girin.
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           </CardContent>
+
+          <CardFooter className="justify-between">
+            <Button type="button" variant="outline" onClick={resetForm}>
+              {isEditing ? "İptal" : "Temizle"}
+            </Button>
+            <Button type="submit">
+              {isEditing ? "Güncelle" : "Kaydet"}
+            </Button>
+          </CardFooter>
         </Card>
       </form>
-      
-      {/* Kampanya Yönetimi */}
-      <div>
+
+      <div className="space-y-6">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Mevcut Kampanyalar</CardTitle>
-                <CardDescription>
-                  Kampanyaları görüntüle, düzenle veya sil
-                </CardDescription>
-              </div>
-              <div className="flex flex-col md:flex-row gap-2">
-                <Select
-                  value={selectedSubeId?.toString() || ""}
-                  onValueChange={(value) => setSelectedSubeId(value ? parseInt(value) : null)}
-                >
-                  <SelectTrigger className="h-8 w-[200px]">
-                    <SelectValue placeholder="Tüm şubeler" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Tüm şubeler</SelectItem>
-                    {subeler.map((sube) => (
-                      <SelectItem key={sube.id} value={sube.id.toString()}>
-                        {sube.subeAdi}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <CardTitle>Mevcut Kampanyalar</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleAddNewClick}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Ekle
+                </Button>
                 
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-8 w-8" 
-                    onClick={() => refreshKampanyalar(selectedSubeId || undefined)}
-                  >
-                    <RefreshCwIcon className="h-4 w-4" />
-                  </Button>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={handleExportToExcel}
-                        >
-                          <FileSpreadsheet className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Excel'e Aktar</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".xlsx,.xls"
-                    style={{ display: 'none' }}
-                  />
-                  
-                  <Button variant="outline" size="sm" onClick={handleImportClick} className="h-8">
-                    Excel'den İçe Aktar
-                  </Button>
-                  
-                  <Button variant="outline" size="sm" onClick={handleExcelInfoClick} className="h-8">
-                    ?
-                  </Button>
-                  
-                  <Button variant="default" size="sm" onClick={handleAddNewClick} className="h-8">
-                    <Plus className="mr-1 h-4 w-4" />
-                    Yeni Ekle
-                  </Button>
-                </div>
+                {/* Sadece admin ise şube filtreleme ve toplu kopyalama göster */}
+                {isAdmin && (
+                  <>
+                    <Select 
+                      value={selectedSubeId ? selectedSubeId.toString() : ""} 
+                      onValueChange={(value) => {
+                        if (value === "") {
+                          setSelectedSubeId(null);
+                        } else {
+                          setSelectedSubeId(Number(value));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Tüm Şubeler" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Tüm Şubeler</SelectItem>
+                        {subeler.map((sube) => (
+                          <SelectItem key={sube.id} value={sube.id.toString()}>
+                            {sube.subeAdi}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+
+                  </>
+                )}
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" onClick={handleExcelInfoClick}>
+                        <FileSpreadsheet className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Excel İşlemleri</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </CardHeader>
+
           <CardContent>
-            <div className="space-y-2">
-              {kampanyalar.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Kayıtlı kampanya bulunmuyor. Yeni bir kampanya ekleyebilirsiniz.
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={refreshKampanyalar}>
+                        <RefreshCwIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Yenile</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportToExcel}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Dışa Aktar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleImportClick}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    İçe Aktar
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".xlsx"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {kampanyalar.map((kampanya: any) => {
-                    // Eğitim tipine göre arka plan rengi belirleme
-                    let bgColor = "bg-blue-50";
-                    if (kampanya.egitimTipi?.includes("Genel Almanca")) {
-                      bgColor = "bg-green-50";
-                    } else if (kampanya.egitimTipi?.includes("Junior")) {
-                      bgColor = "bg-yellow-50";
-                    } else if (kampanya.egitimTipi?.includes("Teenage")) {
-                      bgColor = "bg-red-50";
-                    } else if (kampanya.egitimTipi?.includes("Yds")) {
-                      bgColor = "bg-purple-50";
-                    } else if (kampanya.egitimTipi?.includes("Toefl")) {
-                      bgColor = "bg-orange-50";
-                    }
-                    
-                    return (
-                      <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
-                        <div className="flex flex-col">
-                          {/* Üst kısım - Kampanya adı ve butonlar */}
-                          <div className="flex justify-between items-center">
-                            <div className="p-2">
-                              <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
-                              <div className="text-sm">
-                                {kampanya.egitimTipi || "Belirtilmemiş"}
-                                <span className="mx-1">•</span>
-                                <span>{kampanya.kurSayisi} Kur</span>
-                                <span className="mx-1">•</span>
-                                <span>{kampanya.toplamDersSaati} Saat</span>
+              </div>
+
+              <div className="mt-4">
+                {kampanyalar.length > 0 ? (
+                  <div className="space-y-2">
+                    {kampanyalar.map((kampanya: any) => {
+                      // Eğitim tipine göre arka plan rengi belirleme
+                      let bgColor = "bg-blue-50";
+                      if (kampanya.egitimTipi?.includes("Genel Almanca")) {
+                        bgColor = "bg-green-50";
+                      } else if (kampanya.egitimTipi?.includes("Junior")) {
+                        bgColor = "bg-yellow-50";
+                      } else if (kampanya.egitimTipi?.includes("Teenage")) {
+                        bgColor = "bg-red-50";
+                      } else if (kampanya.egitimTipi?.includes("Yds")) {
+                        bgColor = "bg-purple-50";
+                      } else if (kampanya.egitimTipi?.includes("Toefl")) {
+                        bgColor = "bg-orange-50";
+                      }
+                      
+                      return (
+                        <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
+                          <div className="flex flex-col">
+                            {/* Üst kısım - Kampanya adı ve butonlar */}
+                            <div className="flex justify-between items-center">
+                              <div className="p-2">
+                                <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
+                                <div className="text-sm">
+                                  {kampanya.egitimTipi || "Belirtilmemiş"}
+                                  <span className="mx-1">•</span>
+                                  <span>{kampanya.kurSayisi} Kur</span>
+                                  <span className="mx-1">•</span>
+                                  <span>{kampanya.toplamDersSaati} Saat</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex gap-1 p-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditKampanya(kampanya)}
+                                >
+                                  Düzenle
+                                </Button>
+                                
+
+                                
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteKampanya(kampanya.id)}
+                                >
+                                  Sil
+                                </Button>
                               </div>
                             </div>
                             
-                            <div className="flex gap-1 p-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditKampanya(kampanya)}
-                              >
-                                Düzenle
-                              </Button>
-                              
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteKampanya(kampanya.id)}
-                              >
-                                Sil
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {/* Alt kısım - Detaylar */}
-                          <div className="p-2 pt-0 grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <div>
-                              <div className="mb-1">
-                                <span className="text-sm font-medium">Fiyat Bilgileri:</span>
-                              </div>
-                              <div className="text-sm">
+                            {/* Bilgi kısmı */}
+                            <div className="grid grid-cols-2 text-sm border-t">
+                              <div className="p-2 border-r">
                                 <div className="flex justify-between">
                                   <span>Liste Fiyatı:</span>
-                                  <span>{formatCurrency(kampanya.listeFiyati)}</span>
+                                  <span className="font-medium">{formatCurrency(kampanya.listeFiyati)}</span>
                                 </div>
-                                <div className="flex justify-between font-medium">
+                                <div className="flex justify-between">
                                   <span>Nakit Fiyatı:</span>
-                                  <span>{formatCurrency(kampanya.nakitFiyati)}</span>
+                                  <span className="font-medium">{formatCurrency(kampanya.nakitFiyati)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>İndirim Oranı:</span>
-                                  <span>{formatPercentage(kampanya.indirimOrani)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Kitap Fiyatı:</span>
-                                  <span>{formatCurrency(kampanya.kitapFiyati)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Kitap Set Sayısı:</span>
-                                  <span>{kampanya.kitapSetSayisi}</span>
+                                  <span>İndirim/Faiz:</span>
+                                  <span>{formatPercentage(kampanya.indirimOrani)} / {formatPercentage(kampanya.faizOrani)}</span>
                                 </div>
                               </div>
-                            </div>
-                            
-                            <div>
-                              <div className="mb-1">
-                                <span className="text-sm font-medium">Taksit Bilgileri:</span>
-                              </div>
-                              <div className="text-sm">
+                              
+                              <div className="p-2">
                                 <div className="flex justify-between">
-                                  <span>Faiz Oranı:</span>
-                                  <span>{formatPercentage(kampanya.faizOrani)}</span>
+                                  <span>Kitap:</span>
+                                  <span>{formatCurrency(kampanya.kitapFiyati)} / {kampanya.kitapSetSayisi} set</span>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span>Maks. KK Taksit:</span>
-                                  <span>{kampanya.maxKrediKartiTaksit} Taksit</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Maks. Senet Taksit:</span>
-                                  <span>{kampanya.maxSenetTaksit} Taksit</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="mb-1">
-                                <span className="text-sm font-medium">Hediyeler:</span>
-                              </div>
-                              {kampanya.hediyeler && kampanya.hediyeler.length > 0 ? (
-                                <div className="text-sm space-y-1">
-                                  {kampanya.hediyeler.map((hediye: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between">
-                                      <span>{hediye.isim}:</span>
-                                      <span>{formatCurrency(hediye.fiyat)}</span>
+                                
+                                {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
+                                  <div>
+                                    <span>Hediyeler:</span>
+                                    <div>
+                                      {kampanya.hediyeler.map((hediye: any, i: number) => (
+                                        <div key={i} className="flex justify-between">
+                                          <span>{hediye.isim}</span>
+                                          <span>{formatCurrency(hediye.fiyat)}</span>
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  Hediye bulunmuyor
-                                </div>
-                              )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-4 text-center text-neutral-500">
+                    Kampanya bulunamadı. Yeni bir kampanya ekleyin.
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Kampanya Kopyalama Modal */}
       {/* Excel Bilgi Dialogu */}
-      <Dialog open={showExcelInfoDialog} onOpenChange={setShowExcelInfoDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Excel İçe Aktarma Bilgisi</DialogTitle>
+            <DialogTitle>Şubeye Kampanya Kopyala</DialogTitle>
             <DialogDescription>
-              Excel dosyasında olması gereken sütunlar:
+              Seçtiğiniz kampanyayı başka bir şubeye kopyalayabilirsiniz.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <ul className="list-disc pl-5 space-y-1">
-              <li>kampanyaAdi (zorunlu)</li>
-              <li>egitimTipi</li>
-              <li>kurSayisi</li>
-              <li>toplamDersSaati</li>
-              <li>listeFiyati (zorunlu)</li>
-              <li>nakitFiyati (zorunlu)</li>
-              <li>indirimOrani</li>
-              <li>faizOrani</li>
-              <li>kitapFiyati</li>
-              <li>kitapSetSayisi</li>
-              <li>maxKrediKartiTaksit</li>
-              <li>maxSenetTaksit</li>
-            </ul>
-            <p className="text-sm text-muted-foreground mt-4">
-              Not: Dosyada 'hediyeler' bilgisi bulunmayacaktır, içe aktarma sonrası 
-              kampanyalara manuel olarak hediye ekleyebilirsiniz.
-            </p>
+          
+          <div className="flex flex-col gap-4 py-4">
+            <Label htmlFor="target-sube">Hedef Şube</Label>
+            <Select
+              value={targetSubeId ? targetSubeId.toString() : ""}
+              onValueChange={(value) => {
+                setTargetSubeId(parseInt(value));
+              }}
+            >
+              <SelectTrigger id="target-sube">
+                <SelectValue placeholder="Bir şube seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {subeler
+                  .filter(sube => selectedSubeId !== Number(sube.id)) // Mevcut seçili şubeyi gösterme
+                  .map((sube) => (
+                    <SelectItem key={sube.id} value={sube.id.toString()}>
+                      {sube.subeAdi}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
+          
+          <DialogFooter className="sm:justify-between">
             <Button 
               variant="outline" 
-              onClick={() => setShowExcelInfoDialog(false)}
+              onClick={() => setShowCopyDialog(false)}
             >
-              Tamam
+              İptal
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleCopyKampanya}
+              disabled={!targetSubeId}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Kopyala
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Çoklu Kampanya Kopyalama Modal */}
+      <Dialog open={showMultiCopyDialog} onOpenChange={setShowMultiCopyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kampanyaları Toplu Kopyala</DialogTitle>
+            <DialogDescription>
+              Seçtiğiniz kampanyaları başka bir şubeye toplu olarak kopyalayabilirsiniz.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-4 py-4">
+            {/* Kampanyalar Seçim Listesi */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Kopyalanacak Kampanyalar</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSelectAllKampanyalar}
+                  className="h-7 text-xs"
+                >
+                  {selectedKampanyalar.length === kampanyalar.length 
+                    ? "Tümünü Temizle" 
+                    : "Tümünü Seç"}
+                </Button>
+              </div>
+              
+              <div className="max-h-60 overflow-y-auto border rounded-md p-2">
+                {kampanyalar.length > 0 ? (
+                  <div className="space-y-2">
+                    {kampanyalar.map((kampanya) => (
+                      <div 
+                        key={kampanya.id} 
+                        className="flex items-center p-2 hover:bg-slate-100 rounded-md"
+                      >
+                        <Checkbox
+                          id={`kampanya-${kampanya.id}`}
+                          className="mr-3"
+                          checked={selectedKampanyalar.includes(kampanya.id)}
+                          onCheckedChange={() => handleKampanyaSelect(kampanya.id)}
+                        />
+                        <label 
+                          htmlFor={`kampanya-${kampanya.id}`}
+                          className="flex-grow cursor-pointer"
+                        >
+                          {kampanya.kampanyaAdi}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-3">
+                    Kopyalanacak kampanya bulunamadı.
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* Hedef Şube Seçimi */}
+            <Label htmlFor="multi-target-sube">Hedef Şube</Label>
+            <Select
+              value={targetSubeId ? targetSubeId.toString() : ""}
+              onValueChange={(value) => {
+                setTargetSubeId(parseInt(value));
+              }}
+            >
+              <SelectTrigger id="multi-target-sube">
+                <SelectValue placeholder="Bir şube seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {subeler
+                  .filter(sube => selectedSubeId !== Number(sube.id)) // Mevcut seçili şubeyi gösterme
+                  .map((sube) => (
+                    <SelectItem key={sube.id} value={sube.id.toString()}>
+                      {sube.subeAdi}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowMultiCopyDialog(false)}
+            >
+              İptal
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleMultiKampanyaCopy}
+              disabled={!targetSubeId || selectedKampanyalar.length === 0}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Toplu Kopyala ({selectedKampanyalar.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Excel Bilgi Modalı */}
+      <ExcelImportInfoDialog
+        open={showExcelInfoDialog}
+        onOpenChange={setShowExcelInfoDialog}
+      />
     </div>
   );
 };
