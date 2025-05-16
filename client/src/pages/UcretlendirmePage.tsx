@@ -665,9 +665,9 @@ const UcretlendirmePage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {egitimTipleriLoading ? (
-                      <SelectItem value="" disabled>Yükleniyor...</SelectItem>
+                      <SelectItem value="loading" disabled>Yükleniyor...</SelectItem>
                     ) : egitimTipleri.length === 0 ? (
-                      <SelectItem value="" disabled>Eğitim tipi bulunamadı</SelectItem>
+                      <SelectItem value="no-data" disabled>Eğitim tipi bulunamadı</SelectItem>
                     ) : (
                       egitimTipleri.map((tip) => (
                         <SelectItem key={tip.id} value={tip.egitimTipi}>
