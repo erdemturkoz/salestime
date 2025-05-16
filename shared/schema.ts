@@ -197,3 +197,18 @@ export type SubeWithKullanicilar = Sube & {
 };
 
 export type InsertKampanya = z.infer<typeof insertKampanyaSchema>;
+
+// Eğitim Tipleri tablosu
+export const egitimTipleri = pgTable("egitim_tipleri", {
+  id: serial("id").primaryKey(),
+  egitimTipi: text("egitim_tipi").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Eğitim tipi insert şeması
+export const insertEgitimTipiSchema = createInsertSchema(egitimTipleri, {
+  egitimTipi: z.string().min(2, "Eğitim tipi en az 2 karakter olmalıdır"),
+}).omit({ id: true, createdAt: true });
+
+export type InsertEgitimTipi = z.infer<typeof insertEgitimTipiSchema>;
+export type EgitimTipi = typeof egitimTipleri.$inferSelect;

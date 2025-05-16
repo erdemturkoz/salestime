@@ -3,6 +3,7 @@ import {
   kullanicilar,
   subeler,
   kullaniciSubeRolleri,
+  egitimTipleri,
   type Kampanya, 
   type InsertKampanya,
   type Kullanici,
@@ -12,12 +13,21 @@ import {
   type KullaniciSubeRol,
   type InsertKullaniciSubeRol,
   type KullaniciWithRollerVeSubeler,
-  type SubeWithKullanicilar
+  type SubeWithKullanicilar,
+  type EgitimTipi,
+  type InsertEgitimTipi
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
 export interface IStorage {
+  // Eğitim Tipleri operations
+  getAllEgitimTipleri(): Promise<EgitimTipi[]>;
+  getEgitimTipi(id: number): Promise<EgitimTipi | undefined>;
+  createEgitimTipi(egitimTipi: InsertEgitimTipi): Promise<EgitimTipi>;
+  updateEgitimTipi(id: number, egitimTipi: InsertEgitimTipi): Promise<EgitimTipi | undefined>;
+  deleteEgitimTipi(id: number): Promise<boolean>;
+  
   // Kampanya operations
   getAllKampanyalar(): Promise<Kampanya[]>;
   getKampanyasBySubeId(subeId: number): Promise<Kampanya[]>;
