@@ -432,6 +432,177 @@ const UcretlendirmePage = () => {
     setShowExcelInfoDialog(true);
   };
   
+  // Kampanyaları kategorilere ayırma ve sıralama fonksiyonu
+  const renderGroupedKampanyalar = () => {
+    if (kampanyalar.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          Kayıtlı kampanya bulunmuyor. Yeni bir kampanya ekleyebilirsiniz.
+        </div>
+      );
+    }
+    
+    // Kampanyaları eğitim tipine göre grupla
+    const groupedKampanyalar: Record<string, any[]> = {};
+    
+    // Önce grupla
+    kampanyalar.forEach((kampanya: any) => {
+      const tip = kampanya.egitimTipi || "Diğer";
+      if (!groupedKampanyalar[tip]) {
+        groupedKampanyalar[tip] = [];
+      }
+      groupedKampanyalar[tip].push(kampanya);
+    });
+    
+    // "1+1 KAMPANYASI"nı Genel İngilizce grubunda en başa getir
+    Object.keys(groupedKampanyalar).forEach(tip => {
+      if (tip.includes("Genel İngilizce")) {
+        groupedKampanyalar[tip].sort((a, b) => {
+          if (a.kampanyaAdi.includes("1+1")) return -1;
+          if (b.kampanyaAdi.includes("1+1")) return 1;
+          return 0;
+        });
+      }
+    });
+    
+    // Grupları listele
+    return (
+      <div className="space-y-6">
+        {Object.entries(groupedKampanyalar).map(([tip, kampanyaGrup]) => (
+          <div key={tip} className="mb-4">
+            <h3 className="font-bold text-lg mb-2 px-2 py-1 bg-gray-100 rounded-md">{tip}</h3>
+            <div className="space-y-2">
+              {kampanyaGrup.map((kampanya: any) => {
+                // Eğitim tipine göre arka plan rengi belirleme
+                let bgColor = "bg-blue-50";
+                if (kampanya.egitimTipi?.includes("Genel Almanca")) {
+                  bgColor = "bg-green-50";
+                } else if (kampanya.egitimTipi?.includes("Junior")) {
+                  bgColor = "bg-yellow-50";
+                } else if (kampanya.egitimTipi?.includes("Teenage")) {
+                  bgColor = "bg-red-50";
+                } else if (kampanya.egitimTipi?.includes("Yds")) {
+                  bgColor = "bg-purple-50";
+                } else if (kampanya.egitimTipi?.includes("Toefl")) {
+                  bgColor = "bg-orange-50";
+                }
+                
+                return (
+                  <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
+                    <div className="flex flex-col">
+                      {/* Üst kısım - Kampanya adı ve butonlar */}
+                      <div className="flex justify-between items-center">
+                        <div className="p-2">
+                          <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
+                          <div className="text-sm">
+                            {kampanya.egitimTipi || "Belirtilmemiş"}
+                            <span className="mx-1">•</span>
+                            <span>{kampanya.kurSayisi} Kur</span>
+                            <span className="mx-1">•</span>
+                            <span>{kampanya.toplamDersSaati} Saat</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-1 p-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditKampanya(kampanya)}
+                          >
+                            Düzenle
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteKampanya(kampanya.id)}
+                          >
+                            Sil
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Alt kısım - Detaylar */}
+                      <div className="p-2 pt-0 grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div>
+                          <div className="mb-1">
+                            <span className="text-sm font-medium">Fiyat Bilgileri:</span>
+                          </div>
+                          <div className="text-sm">
+                            <div className="flex justify-between">
+                              <span>Liste Fiyatı:</span>
+                              <span>{formatCurrency(kampanya.listeFiyati)}</span>
+                            </div>
+                            <div className="flex justify-between font-medium">
+                              <span>Nakit Fiyatı:</span>
+                              <span>{formatCurrency(kampanya.nakitFiyati)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>İndirim Oranı:</span>
+                              <span>{formatPercentage(kampanya.indirimOrani)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Kitap Fiyatı:</span>
+                              <span>{formatCurrency(kampanya.kitapFiyati)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Kitap Set Sayısı:</span>
+                              <span>{kampanya.kitapSetSayisi}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="mb-1">
+                            <span className="text-sm font-medium">Taksit Bilgileri:</span>
+                          </div>
+                          <div className="text-sm">
+                            <div className="flex justify-between">
+                              <span>Faiz Oranı:</span>
+                              <span>{formatPercentage(kampanya.faizOrani)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Maks. KK Taksit:</span>
+                              <span>{kampanya.maxKrediKartiTaksit} Taksit</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Maks. Senet Taksit:</span>
+                              <span>{kampanya.maxSenetTaksit} Taksit</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="mb-1">
+                            <span className="text-sm font-medium">Hediyeler:</span>
+                          </div>
+                          {kampanya.hediyeler && kampanya.hediyeler.length > 0 ? (
+                            <div className="text-sm space-y-1">
+                              {kampanya.hediyeler.map((hediye: any, idx: number) => (
+                                <div key={idx} className="flex justify-between">
+                                  <span>{hediye.isim}:</span>
+                                  <span>{formatCurrency(hediye.fiyat)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">
+                              Hediye bulunmuyor
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
   return (
     <div className="container mx-auto p-4 grid grid-cols-1 gap-8">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -814,140 +985,7 @@ const UcretlendirmePage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {kampanyalar.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Kayıtlı kampanya bulunmuyor. Yeni bir kampanya ekleyebilirsiniz.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {kampanyalar.map((kampanya: any) => {
-                    // Eğitim tipine göre arka plan rengi belirleme
-                    let bgColor = "bg-blue-50";
-                    if (kampanya.egitimTipi?.includes("Genel Almanca")) {
-                      bgColor = "bg-green-50";
-                    } else if (kampanya.egitimTipi?.includes("Junior")) {
-                      bgColor = "bg-yellow-50";
-                    } else if (kampanya.egitimTipi?.includes("Teenage")) {
-                      bgColor = "bg-red-50";
-                    } else if (kampanya.egitimTipi?.includes("Yds")) {
-                      bgColor = "bg-purple-50";
-                    } else if (kampanya.egitimTipi?.includes("Toefl")) {
-                      bgColor = "bg-orange-50";
-                    }
-                    
-                    return (
-                      <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
-                        <div className="flex flex-col">
-                          {/* Üst kısım - Kampanya adı ve butonlar */}
-                          <div className="flex justify-between items-center">
-                            <div className="p-2">
-                              <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
-                              <div className="text-sm">
-                                {kampanya.egitimTipi || "Belirtilmemiş"}
-                                <span className="mx-1">•</span>
-                                <span>{kampanya.kurSayisi} Kur</span>
-                                <span className="mx-1">•</span>
-                                <span>{kampanya.toplamDersSaati} Saat</span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-1 p-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditKampanya(kampanya)}
-                              >
-                                Düzenle
-                              </Button>
-                              
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteKampanya(kampanya.id)}
-                              >
-                                Sil
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {/* Alt kısım - Detaylar */}
-                          <div className="p-2 pt-0 grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <div>
-                              <div className="mb-1">
-                                <span className="text-sm font-medium">Fiyat Bilgileri:</span>
-                              </div>
-                              <div className="text-sm">
-                                <div className="flex justify-between">
-                                  <span>Liste Fiyatı:</span>
-                                  <span>{formatCurrency(kampanya.listeFiyati)}</span>
-                                </div>
-                                <div className="flex justify-between font-medium">
-                                  <span>Nakit Fiyatı:</span>
-                                  <span>{formatCurrency(kampanya.nakitFiyati)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>İndirim Oranı:</span>
-                                  <span>{formatPercentage(kampanya.indirimOrani)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Kitap Fiyatı:</span>
-                                  <span>{formatCurrency(kampanya.kitapFiyati)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Kitap Set Sayısı:</span>
-                                  <span>{kampanya.kitapSetSayisi}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="mb-1">
-                                <span className="text-sm font-medium">Taksit Bilgileri:</span>
-                              </div>
-                              <div className="text-sm">
-                                <div className="flex justify-between">
-                                  <span>Faiz Oranı:</span>
-                                  <span>{formatPercentage(kampanya.faizOrani)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Maks. KK Taksit:</span>
-                                  <span>{kampanya.maxKrediKartiTaksit} Taksit</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Maks. Senet Taksit:</span>
-                                  <span>{kampanya.maxSenetTaksit} Taksit</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="mb-1">
-                                <span className="text-sm font-medium">Hediyeler:</span>
-                              </div>
-                              {kampanya.hediyeler && kampanya.hediyeler.length > 0 ? (
-                                <div className="text-sm space-y-1">
-                                  {kampanya.hediyeler.map((hediye: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between">
-                                      <span>{hediye.isim}:</span>
-                                      <span>{formatCurrency(hediye.fiyat)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  Hediye bulunmuyor
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {renderGroupedKampanyalar()}
           </CardContent>
         </Card>
       </div>
