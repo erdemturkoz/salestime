@@ -233,7 +233,11 @@ const UcretlendirmePage = () => {
           description: "Kampanya başarıyla güncellendi.",
         });
       } else {
-        addKampanya(formData);
+        // Şube ID'sini ekle
+        addKampanya({
+          ...formData,
+          subeId: currentUser?.primarySubeId || null
+        });
         toast({
           title: "Başarılı",
           description: "Kampanya başarıyla eklendi.",
@@ -401,9 +405,10 @@ const UcretlendirmePage = () => {
             faizOrani: kampanya.faizOrani || 0,
             kitapFiyati: kampanya.kitapFiyati || 0,
             kitapSetSayisi: kampanya.kitapSetSayisi || 1,
-            maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
-            maxSenetTaksit: kampanya.maxSenetTaksit || 12,
+            maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ? parseInt(kampanya.maxKrediKartiTaksit.toString()) : 8,
+            maxSenetTaksit: kampanya.maxSenetTaksit ? parseInt(kampanya.maxSenetTaksit.toString()) : 12,
             hediyeler: kampanya.hediyeler || [],
+            subeId: currentUser?.primarySubeId || null
           };
           
           addKampanya(newKampanya);
