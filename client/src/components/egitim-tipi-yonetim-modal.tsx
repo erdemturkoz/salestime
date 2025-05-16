@@ -57,6 +57,8 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
     createEgitimTipi,
     updateEgitimTipi,
     deleteEgitimTipi,
+    isError,
+    error
   } = useEgitimTipleri();
 
   const [editId, setEditId] = useState<number | null>(null);
@@ -134,13 +136,18 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
   
   // Silme işlemi
   const handleDelete = () => {
-    if (deleteItemId) {
+    if (deleteItemId === null) return;
+    
+    try {
       deleteEgitimTipi.mutate(deleteItemId, {
         onSuccess: () => {
+          // Başarılı olursa
           toast({
             title: "Eğitim tipi silindi",
             description: "Eğitim tipi başarıyla silindi.",
           });
+          
+          // Dialog'u kapat ve state'i temizle
           setDeleteConfirmOpen(false);
           setDeleteItemId(null);
         },
@@ -152,7 +159,7 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
             // Kampanya kullanımı hatası
             toast({
               title: "Silme İşlemi Başarısız",
-              description: "Bu eğitim tipi bir veya daha fazla kampanyada kullanıldığı için silinemez. Önce ilgili kampanyaları güncelleyiniz.",
+              description: "Bu eğitim tipi kampanyalarda kullanıldığı için silinemez. Önce ilgili kampanyaları güncelleyin.",
               variant: "destructive",
             });
           } else if (errorMsg.includes("bulunamadı")) {
@@ -166,14 +173,24 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
             // Genel hata
             toast({
               title: "Hata",
-              description: "Eğitim tipi silinirken bir hata oluştu: " + errorMsg,
+              description: "Eğitim tipi silinirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
               variant: "destructive",
             });
+            console.error("Silme hatası:", errorMsg);
           }
           
+          // Hatada da dialolu kapatalım
           setDeleteConfirmOpen(false);
         },
       });
+    } catch (err) {
+      console.error("Beklenmeyen hata:", err);
+      toast({
+        title: "Beklenmeyen Hata",
+        description: "İşlem sırasında beklenmeyen bir hata oluştu. Lütfen sayfayı yenileyin.",
+        variant: "destructive",
+      });
+      setDeleteConfirmOpen(false);
     }
   };
   

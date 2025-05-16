@@ -7,16 +7,29 @@ import { EgitimTipi, InsertEgitimTipi } from "@shared/schema";
 
 const API_ENDPOINT = "/api/egitim-tipleri";
 
-export function useEgitimTipleri() {
+export interface EgitimTipleriResult {
+  egitimTipleri: EgitimTipi[];
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  createEgitimTipi: ReturnType<typeof useMutation>;
+  updateEgitimTipi: ReturnType<typeof useMutation>;
+  deleteEgitimTipi: ReturnType<typeof useMutation>;
+}
+
+export function useEgitimTipleri(): EgitimTipleriResult {
   const queryClient = useQueryClient();
   
   // Tüm eğitim tiplerini getir
   const {
     data: egitimTipleri = [],
     isLoading,
+    isError,
     error
   } = useQuery<EgitimTipi[]>({
     queryKey: [API_ENDPOINT],
+    retryOnMount: true,
+    staleTime: 1000 * 60 * 5, // 5 dakika
   });
 
   // Yeni eğitim tipi ekle
@@ -97,6 +110,7 @@ export function useEgitimTipleri() {
   return {
     egitimTipleri,
     isLoading,
+    isError,
     error,
     createEgitimTipi,
     updateEgitimTipi,
