@@ -10,6 +10,7 @@ import HesaplamaPage from "@/pages/HesaplamaPage";
 import KullanicilarPage from "@/pages/KullanicilarPage";
 import SubeKartlari from "@/pages/SubeKartlari";
 import GirisPage from "@/pages/GirisPage";
+import EgitimTipleriPage from "@/pages/EgitimTipleriPage";
 import { AppProvider } from "./contexts/AppContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
@@ -48,6 +49,11 @@ function Router() {
           <Route path="/subeler">
             <AuthenticationGuard adminOnly>
               <SubeKartlari />
+            </AuthenticationGuard>
+          </Route>
+          <Route path="/egitim-tipleri">
+            <AuthenticationGuard adminOnly>
+              <EgitimTipleriPage />
             </AuthenticationGuard>
           </Route>
           <Route component={NotFound} />
