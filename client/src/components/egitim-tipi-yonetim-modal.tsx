@@ -304,11 +304,11 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
             <AlertDialogDescription>
               Bu eğitim tipini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
             </AlertDialogDescription>
-            <div className="text-amber-600 bg-amber-50 p-2 mt-2 rounded-md border border-amber-200 text-sm">
-              <strong>Not:</strong> Eğer bu eğitim tipi herhangi bir kampanyada kullanılıyorsa, silme işlemi başarısız olacaktır. 
-              Bir eğitim tipini silmeden önce, onu kullanan tüm kampanyaları başka bir eğitim tipine güncellemeniz gerekir.
-            </div>
           </AlertDialogHeader>
+          <div className="text-amber-600 bg-amber-50 p-2 mb-4 rounded-md border border-amber-200 text-sm">
+            <strong>Not:</strong> Eğer bu eğitim tipi herhangi bir kampanyada kullanılıyorsa, silme işlemi başarısız olacaktır. 
+            Bir eğitim tipini silmeden önce, onu kullanan tüm kampanyaları başka bir eğitim tipine güncellemeniz gerekir.
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction 
