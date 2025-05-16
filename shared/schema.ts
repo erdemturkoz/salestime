@@ -164,6 +164,7 @@ export type Kampanya = {
   maxKrediKartiTaksit: number;
   maxSenetTaksit: number;
   hediyeler: Array<{isim: string, fiyat: number}>;
+  subeId: number | null;
 };
 
 export type Sube = typeof subeler.$inferSelect;
