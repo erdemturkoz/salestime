@@ -649,7 +649,7 @@ const UcretlendirmePage = () => {
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="egitimTipi" className="text-xs">Eğitim Tipi</Label>
-                  {isAdmin && (
+                  {isAdmin() && (
                     <Button 
                       variant="outline" 
                       size="sm" 
