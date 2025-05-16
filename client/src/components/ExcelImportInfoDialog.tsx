@@ -12,20 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 
 interface ExcelImportInfoDialogProps {
-  onImportClick: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onImportClick?: () => void;
 }
 
 export const ExcelImportInfoDialog: React.FC<ExcelImportInfoDialogProps> = ({
+  open,
+  onOpenChange,
   onImportClick,
 }) => {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center gap-1">
-          <Upload className="h-4 w-4" />
-          <span>Excel'den İçe Aktar</span>
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle className="text-center text-xl">

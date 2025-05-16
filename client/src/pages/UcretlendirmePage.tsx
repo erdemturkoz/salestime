@@ -4,9 +4,10 @@ import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils
 import { calculateInstallments } from "@/utils/calculator";
 import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
-import { RefreshCwIcon, Plus, FileSpreadsheet, Building } from "lucide-react";
+import { RefreshCwIcon, Plus, FileSpreadsheet, Building, Settings } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
+import { EgitimTipiYonetimModal } from "@/components/egitim-tipi-yonetim-modal";
 import { useAuth } from "@/hooks/useAuth";
 
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const UcretlendirmePage = () => {
   const [hediyeAdi, setHediyeAdi] = useState("");
   const [hediyeFiyati, setHediyeFiyati] = useState("");
   const [showExcelInfoDialog, setShowExcelInfoDialog] = useState(false);
+  const [showEgitimTipiModal, setShowEgitimTipiModal] = useState(false);
   const [formData, setFormData] = useState({
     kampanyaAdi: "",
     egitimTipi: "",
@@ -645,7 +647,20 @@ const UcretlendirmePage = () => {
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="egitimTipi" className="text-xs">Eğitim Tipi</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="egitimTipi" className="text-xs">Eğitim Tipi</Label>
+                  {isAdmin && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-6 text-xs"
+                      onClick={() => setShowEgitimTipiModal(true)}
+                    >
+                      <Settings className="h-3 w-3 mr-1" />
+                      Eğitim Tipleri Yönetimi
+                    </Button>
+                  )}
+                </div>
                 <Select
                   value={formData.egitimTipi}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, egitimTipi: value }))}
@@ -1047,6 +1062,18 @@ const UcretlendirmePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Eğitim Tipi Yönetim Modalı */}
+      <EgitimTipiYonetimModal 
+        open={showEgitimTipiModal}
+        onOpenChange={setShowEgitimTipiModal}
+      />
+
+      {/* Excel İçe Aktarma Bilgi Modalı */}
+      <ExcelImportInfoDialog 
+        open={showExcelInfoDialog} 
+        onOpenChange={setShowExcelInfoDialog} 
+      />
     </div>
   );
 };
