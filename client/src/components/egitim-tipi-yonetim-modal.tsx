@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilIcon, PlusIcon, TrashIcon, XIcon } from "lucide-react";
+import { PencilIcon, PlusIcon, TrashIcon, XIcon, Edit, Trash, Check, X, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEgitimTipleri } from "@/hooks/use-egitim-tipleri";
 import { insertEgitimTipiSchema, type InsertEgitimTipi } from "@shared/schema";
+import { useAppContext } from "@/contexts/AppContext";
 
 import {
   Dialog,
@@ -49,14 +50,21 @@ interface EgitimTipiYonetimModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Eğitim tipi modalının açılıp kapanması
+// Eğitim tipi modalının açılıp kapanması - performans optimizasyonu ile
 export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetimModalProps) {
   const { toast } = useToast();
+  const { refreshKampanyalar } = useAppContext();
+  
+  // Modal kapanırken kampanyaları güncellememiz gerekiyor
+  const needsRefreshRef = useRef(false);
+  
+  // useEgitimTipleri hook'u modalın açık olduğu durumda kullan
+  // bu sayede modal kapalıyken gereksiz API çağrıları yapılmaz
   const {
     egitimTipleri,
     isLoading,
     createEgitimTipi,
-    updateEgitimTipi,
+    updateEgitimTipi, 
     deleteEgitimTipi,
     isError,
     error
@@ -104,6 +112,8 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
               description: "Eğitim tipi başarıyla güncellendi.",
             });
             resetForm();
+            // İşlem başarılı olduysa, kampanya listesini güncelleyeceğimizi işaretle
+            needsRefreshRef.current = true;
           },
           onError: (error) => {
             toast({
@@ -123,6 +133,8 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
             description: "Yeni eğitim tipi başarıyla eklendi.",
           });
           resetForm();
+          // İşlem başarılı olduysa, kampanya listesini güncelleyeceğimizi işaretle
+          needsRefreshRef.current = true;
         },
         onError: (error) => {
           toast({
@@ -151,6 +163,9 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
           // Dialog'u kapat ve state'i temizle
           setDeleteConfirmOpen(false);
           setDeleteItemId(null);
+          
+          // İşlem başarılı olduysa, kampanya listesini güncelleyeceğimizi işaretle
+          needsRefreshRef.current = true;
         },
         onError: (error) => {
           // Hata mesajını analiz et
