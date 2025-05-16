@@ -650,7 +650,12 @@ export class DatabaseStorage implements IStorage {
           kitapSetSayisi: 4,
           maxKrediKartiTaksit: 10,
           maxSenetTaksit: 12,
-          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Yurtdışı Eğitim Danışmanlığı", "Sınav Hazırlık Seti"],
+          hediyeler: [
+            { isim: "Konuşma Kulübü", fiyat: 0 },
+            { isim: "Çevrimiçi Kaynak Erişimi", fiyat: 0 },
+            { isim: "Yurtdışı Eğitim Danışmanlığı", fiyat: 0 },
+            { isim: "Sınav Hazırlık Seti", fiyat: 0 }
+          ],
           subeId: subeId
         },
         {
@@ -666,7 +671,9 @@ export class DatabaseStorage implements IStorage {
           kitapSetSayisi: 1,
           maxKrediKartiTaksit: 8,
           maxSenetTaksit: 10,
-          hediyeler: ["Çevrimiçi Kaynak Erişimi"],
+          hediyeler: [
+            { isim: "Çevrimiçi Kaynak Erişimi", fiyat: 0 }
+          ],
           subeId: subeId
         },
         {
@@ -682,7 +689,12 @@ export class DatabaseStorage implements IStorage {
           kitapSetSayisi: 4,
           maxKrediKartiTaksit: 10,
           maxSenetTaksit: 12,
-          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Kariyer Danışmanlığı", "Sektörel Eğitim Seti"],
+          hediyeler: [
+            { isim: "Konuşma Kulübü", fiyat: 0 },
+            { isim: "Çevrimiçi Kaynak Erişimi", fiyat: 0 },
+            { isim: "Kariyer Danışmanlığı", fiyat: 0 },
+            { isim: "Sektörel Eğitim Seti", fiyat: 0 }
+          ],
           subeId: subeId
         },
         {
@@ -698,7 +710,13 @@ export class DatabaseStorage implements IStorage {
           kitapSetSayisi: 5,
           maxKrediKartiTaksit: 10,
           maxSenetTaksit: 12,
-          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Kariyer Danışmanlığı", "Sektörel Eğitim Seti", "Yurtdışı Staj İmkanı"],
+          hediyeler: [
+            { isim: "Konuşma Kulübü", fiyat: 0 },
+            { isim: "Çevrimiçi Kaynak Erişimi", fiyat: 0 },
+            { isim: "Kariyer Danışmanlığı", fiyat: 0 },
+            { isim: "Sektörel Eğitim Seti", fiyat: 0 },
+            { isim: "Yurtdışı Staj İmkanı", fiyat: 0 }
+          ],
           subeId: subeId
         }
       ];
