@@ -124,7 +124,7 @@ const UcretlendirmePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Liste fiyatı veya nakit fiyatı değiştiğinde, indirim oranını hesapla
+  // Liste fiyatı veya nakit fiyatı değiştiğinde, indirim oranını otomatik hesapla
   useEffect(() => {
     if (formData.listeFiyati > 0 && formData.nakitFiyati > 0) {
       const discount = calculateDiscount(formData.listeFiyati, formData.nakitFiyati);
@@ -134,6 +134,12 @@ const UcretlendirmePage = () => {
       }));
     }
   }, [formData.listeFiyati, formData.nakitFiyati]);
+  
+  // İndirim Oranı alanının manuel değiştirilmesini önle
+  const handleIndirimOraniChange = () => {
+    // Bu fonksiyon boş - alan sadece okunabilir
+    // İndirim oranı liste fiyatı ve nakit fiyatı üzerinden otomatik hesaplanıyor
+  };
 
   // İndirim oranı, nakit fiyatı veya faiz oranı değiştiğinde taksit seçeneklerini hesapla
   useEffect(() => {
@@ -640,14 +646,26 @@ const UcretlendirmePage = () => {
               
               <div className="space-y-1">
                 <Label htmlFor="egitimTipi" className="text-xs">Eğitim Tipi</Label>
-                <Input
-                  id="egitimTipi"
-                  name="egitimTipi"
+                <Select
                   value={formData.egitimTipi}
-                  onChange={handleInputChange}
-                  placeholder="Örn: Genel İngilizce"
-                  className="h-8"
-                />
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, egitimTipi: value }))}
+                >
+                  <SelectTrigger id="egitimTipi" className="h-8">
+                    <SelectValue placeholder="Eğitim tipi seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
+                    <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
+                    <SelectItem value="Junior İngilizce">Junior İngilizce</SelectItem>
+                    <SelectItem value="Teenage İngilizce">Teenage İngilizce</SelectItem>
+                    <SelectItem value="Yds Hazırlık">Yds Hazırlık</SelectItem>
+                    <SelectItem value="Toefl Hazırlık">Toefl Hazırlık</SelectItem>
+                    <SelectItem value="İspanyolca">İspanyolca</SelectItem>
+                    <SelectItem value="Fransızca">Fransızca</SelectItem>
+                    <SelectItem value="İtalyanca">İtalyanca</SelectItem>
+                    <SelectItem value="Rusça">Rusça</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-1">
@@ -706,14 +724,14 @@ const UcretlendirmePage = () => {
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="indirimOrani" className="text-xs">İndirim Oranı (%)</Label>
+                <Label htmlFor="indirimOrani" className="text-xs">İndirim Oranı (%) - Otomatik Hesaplanır</Label>
                 <Input
                   id="indirimOrani"
                   name="indirimOrani"
                   type="number"
                   value={formData.indirimOrani || ""}
-                  onChange={handleInputChange}
-                  className="h-8"
+                  readOnly
+                  className="h-8 bg-gray-50"
                   min={0}
                   max={100}
                   step={0.01}
