@@ -520,9 +520,143 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Varsayılan kampanyaları oluşturan yardımcı fonksiyon
+  private async createDefaultKampanyalar(subeId: number): Promise<Kampanya[]> {
+    try {
+      // Varsayılan kampanya şablonları
+      const defaultKampanyalar: Partial<InsertKampanya>[] = [
+        {
+          kampanyaAdi: "1+1 KAMPANYASI",
+          egitimTipi: "Genel İngilizce",
+          kurSayisi: 2,
+          toplamDersSaati: 480,
+          listeFiyati: 14000,
+          nakitFiyati: 12000,
+          indirimOrani: 14.29,
+          faizOrani: 2.5,
+          kitapFiyati: 1000,
+          kitapSetSayisi: 2,
+          maxKrediKartiTaksit: 10,
+          maxSenetTaksit: 12,
+          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi"],
+          subeId: subeId
+        },
+        {
+          kampanyaAdi: "2+1 KAMPANYASI",
+          egitimTipi: "Genel İngilizce",
+          kurSayisi: 3,
+          toplamDersSaati: 720,
+          listeFiyati: 21000,
+          nakitFiyati: 18000,
+          indirimOrani: 14.29,
+          faizOrani: 2.5,
+          kitapFiyati: 1500,
+          kitapSetSayisi: 3,
+          maxKrediKartiTaksit: 10,
+          maxSenetTaksit: 12,
+          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Yurtdışı Eğitim Danışmanlığı"],
+          subeId: subeId
+        },
+        {
+          kampanyaAdi: "3+1 KAMPANYASI",
+          egitimTipi: "Genel İngilizce",
+          kurSayisi: 4,
+          toplamDersSaati: 960,
+          listeFiyati: 28000,
+          nakitFiyati: 24000,
+          indirimOrani: 14.29,
+          faizOrani: 2.5,
+          kitapFiyati: 2000,
+          kitapSetSayisi: 4,
+          maxKrediKartiTaksit: 10,
+          maxSenetTaksit: 12,
+          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Yurtdışı Eğitim Danışmanlığı", "Sınav Hazırlık Seti"],
+          subeId: subeId
+        },
+        {
+          kampanyaAdi: "1 KUR",
+          egitimTipi: "Genel İngilizce",
+          kurSayisi: 1,
+          toplamDersSaati: 240,
+          listeFiyati: 7000,
+          nakitFiyati: 6000,
+          indirimOrani: 14.29,
+          faizOrani: 2.5,
+          kitapFiyati: 500,
+          kitapSetSayisi: 1,
+          maxKrediKartiTaksit: 8,
+          maxSenetTaksit: 10,
+          hediyeler: ["Çevrimiçi Kaynak Erişimi"],
+          subeId: subeId
+        },
+        {
+          kampanyaAdi: "2+2 KUR +MESLEKİ EĞİTİM",
+          egitimTipi: "Mesleki İngilizce",
+          kurSayisi: 4,
+          toplamDersSaati: 960,
+          listeFiyati: 28000,
+          nakitFiyati: 24000,
+          indirimOrani: 14.29,
+          faizOrani: 2.5,
+          kitapFiyati: 2000,
+          kitapSetSayisi: 4,
+          maxKrediKartiTaksit: 10,
+          maxSenetTaksit: 12,
+          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Kariyer Danışmanlığı", "Sektörel Eğitim Seti"],
+          subeId: subeId
+        },
+        {
+          kampanyaAdi: "3+2 KUR +MESLEKİ EĞİTİM",
+          egitimTipi: "Mesleki İngilizce",
+          kurSayisi: 5,
+          toplamDersSaati: 1200,
+          listeFiyati: 35000,
+          nakitFiyati: 30000,
+          indirimOrani: 14.29,
+          faizOrani: 2.5,
+          kitapFiyati: 2500,
+          kitapSetSayisi: 5,
+          maxKrediKartiTaksit: 10,
+          maxSenetTaksit: 12,
+          hediyeler: ["Konuşma Kulübü", "Çevrimiçi Kaynak Erişimi", "Kariyer Danışmanlığı", "Sektörel Eğitim Seti", "Yurtdışı Staj İmkanı"],
+          subeId: subeId
+        }
+      ];
+      
+      const createdKampanyalar: Kampanya[] = [];
+      
+      // Her bir varsayılan kampanyayı veritabanına ekle
+      for (const kampanya of defaultKampanyalar) {
+        const result = await db.insert(kampanyalar).values(kampanya as InsertKampanya).returning();
+        if (result.length > 0) {
+          createdKampanyalar.push(result[0]);
+        }
+      }
+      
+      console.log(`Şube ${subeId} için ${createdKampanyalar.length} varsayılan kampanya oluşturuldu`);
+      return createdKampanyalar;
+    } catch (error) {
+      console.error(`Şube ${subeId} için varsayılan kampanyalar oluşturulurken hata:`, error);
+      return [];
+    }
+  }
+
   async createSube(sube: InsertSube): Promise<Sube> {
-    const result = await db.insert(subeler).values(sube).returning();
-    return result[0];
+    try {
+      // Şubeyi oluştur
+      const result = await db.insert(subeler).values(sube).returning();
+      const newSube = result[0];
+      
+      if (newSube) {
+        // Yeni şube için varsayılan kampanyaları oluştur
+        await this.createDefaultKampanyalar(newSube.id);
+      }
+      
+      return newSube;
+    } catch (error) {
+      console.error("Şube oluşturma hatası:", error);
+      throw error;
+    }
   }
 
   async updateSube(id: number, updateData: InsertSube): Promise<Sube | undefined> {
