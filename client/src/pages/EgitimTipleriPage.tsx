@@ -40,9 +40,9 @@ import { cn } from "@/lib/utils";
 
 export default function EgitimTipleriPage() {
   const { user } = useAuth();
-  const isSistemYoneticisi = user?.rol === "Sistem Yöneticisi";
+  const isSistemYoneticisi = user && ('roller' in user) && user.roller.some(r => r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür");
   
-  // Yetki kontrolü - sadece sistem yöneticileri erişebilir
+  // Yetki kontrolü - sadece belirtilen rollere sahip yöneticiler erişebilir
   if (!isSistemYoneticisi) {
     return (
       <div className="container mx-auto py-8">
