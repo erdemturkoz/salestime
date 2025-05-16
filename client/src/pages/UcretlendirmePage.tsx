@@ -649,22 +649,8 @@ const UcretlendirmePage = () => {
               </div>
               
               <div className="space-y-1">
-                <div className="flex justify-between items-center">
+                <div>
                   <Label htmlFor="egitimTipi" className="text-xs">Eğitim Tipi</Label>
-                  {isAdmin() && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-6 text-xs"
-                      onClick={() => {
-                        // Eğitim Tipleri sayfasına yönlendir
-                        window.location.href = "/egitim-tipleri";
-                      }}
-                    >
-                      <Settings className="h-3 w-3 mr-1" />
-                      Eğitim Tipleri Yönetimi
-                    </Button>
-                  )}
                 </div>
                 <Select
                   value={formData.egitimTipi}
