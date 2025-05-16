@@ -866,15 +866,13 @@ const UcretlendirmePage = () => {
                 </div>
               </div>
 
-              <div className="space-y-2 mt-4">
+              <div className="mt-4">
                 {kampanyalar.length > 0 ? (
-                  <div>
+                  <div className="space-y-2">
                     {kampanyalar.map((kampanya: any) => {
                       // Eğitim tipine göre arka plan rengi belirleme
-                      let bgColor = "bg-white";
-                      if (kampanya.egitimTipi?.includes("Genel İngilizce")) {
-                        bgColor = "bg-blue-50";
-                      } else if (kampanya.egitimTipi?.includes("Genel Almanca")) {
+                      let bgColor = "bg-blue-50";
+                      if (kampanya.egitimTipi?.includes("Genel Almanca")) {
                         bgColor = "bg-green-50";
                       } else if (kampanya.egitimTipi?.includes("Junior")) {
                         bgColor = "bg-yellow-50";
@@ -887,76 +885,87 @@ const UcretlendirmePage = () => {
                       }
                       
                       return (
-                        <div key={kampanya.id} className={`border rounded-md ${bgColor} mb-2`}>
-                          <div className="grid grid-cols-12 gap-1">
-                            {/* Sol kısım - Kampanya adı ve detayları */}
-                            <div className="col-span-3 p-2">
-                              <h3 className="font-bold text-base">{kampanya.kampanyaAdi}</h3>
-                              <div className="text-xs">
-                                <div>{kampanya.egitimTipi || "Belirtilmemiş"}</div>
-                                <div>{kampanya.kurSayisi} Kur • {kampanya.toplamDersSaati} Saat</div>
+                        <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
+                          <div className="flex flex-col">
+                            {/* Üst kısım - Kampanya adı ve butonlar */}
+                            <div className="flex justify-between items-center">
+                              <div className="p-2">
+                                <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
+                                <div className="text-sm">
+                                  {kampanya.egitimTipi || "Belirtilmemiş"}
+                                  <span className="mx-1">•</span>
+                                  <span>{kampanya.kurSayisi} Kur</span>
+                                  <span className="mx-1">•</span>
+                                  <span>{kampanya.toplamDersSaati} Saat</span>
+                                </div>
                               </div>
-                            </div>
-                            
-                            {/* Orta kısım - Fiyat bilgileri */}
-                            <div className="col-span-7 grid grid-cols-2 gap-x-4 p-2 pr-4 text-sm">
-                              <div className="text-right">
-                                <div>Liste Fiyatı:</div>
-                                <div>Nakit Fiyatı:</div>
-                                <div>İndirim/Faiz:</div>
-                                <div>Kitap:</div>
-                                {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
-                                  <div>Hediyeler:</div>
-                                )}
-                              </div>
-                              <div>
-                                <div>{formatCurrency(kampanya.listeFiyati)}</div>
-                                <div>{formatCurrency(kampanya.nakitFiyati)}</div>
-                                <div>{formatPercentage(kampanya.indirimOrani)} / {formatPercentage(kampanya.faizOrani)}</div>
-                                <div>{formatCurrency(kampanya.kitapFiyati)} / {kampanya.kitapSetSayisi} set</div>
-                                {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
-                                  <div>
-                                    {kampanya.hediyeler.map((hediye: any, i: number) => (
-                                      <span key={i}>
-                                        {hediye.isim} ({formatCurrency(hediye.fiyat)})
-                                        {i < kampanya.hediyeler.length - 1 ? ', ' : ''}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Sağ kısım - Butonlar */}
-                            <div className="col-span-2 flex items-center justify-end gap-1 p-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditKampanya(kampanya)}
-                                className="h-7 px-2 text-xs"
-                              >
-                                Düzenle
-                              </Button>
                               
-                              {isAdmin && (
+                              <div className="flex gap-1 p-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => openCopyDialog(kampanya.id)}
-                                  className="h-7 px-2 text-xs"
+                                  onClick={() => handleEditKampanya(kampanya)}
                                 >
-                                  Kopyala
+                                  Düzenle
                                 </Button>
-                              )}
+                                
+                                {isAdmin && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openCopyDialog(kampanya.id)}
+                                  >
+                                    Kopyala
+                                  </Button>
+                                )}
+                                
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteKampanya(kampanya.id)}
+                                >
+                                  Sil
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {/* Bilgi kısmı */}
+                            <div className="grid grid-cols-2 text-sm border-t">
+                              <div className="p-2 border-r">
+                                <div className="flex justify-between">
+                                  <span>Liste Fiyatı:</span>
+                                  <span className="font-medium">{formatCurrency(kampanya.listeFiyati)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Nakit Fiyatı:</span>
+                                  <span className="font-medium">{formatCurrency(kampanya.nakitFiyati)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>İndirim/Faiz:</span>
+                                  <span>{formatPercentage(kampanya.indirimOrani)} / {formatPercentage(kampanya.faizOrani)}</span>
+                                </div>
+                              </div>
                               
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteKampanya(kampanya.id)}
-                                className="h-7 px-2 text-xs"
-                              >
-                                Sil
-                              </Button>
+                              <div className="p-2">
+                                <div className="flex justify-between">
+                                  <span>Kitap:</span>
+                                  <span>{formatCurrency(kampanya.kitapFiyati)} / {kampanya.kitapSetSayisi} set</span>
+                                </div>
+                                
+                                {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
+                                  <div>
+                                    <span>Hediyeler:</span>
+                                    <div>
+                                      {kampanya.hediyeler.map((hediye: any, i: number) => (
+                                        <div key={i} className="flex justify-between">
+                                          <span>{hediye.isim}</span>
+                                          <span>{formatCurrency(hediye.fiyat)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
