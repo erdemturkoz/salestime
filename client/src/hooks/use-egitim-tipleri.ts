@@ -20,7 +20,7 @@ export interface EgitimTipleriResult {
 export function useEgitimTipleri(): EgitimTipleriResult {
   const queryClient = useQueryClient();
   
-  // Tüm eğitim tiplerini getir - performans için staleTime ve cacheTime uzun tutuldu
+  // Tüm eğitim tiplerini getir - performans için staleTime uzun tutuldu
   const {
     data: egitimTipleri = [],
     isLoading,
@@ -33,7 +33,7 @@ export function useEgitimTipleri(): EgitimTipleriResult {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: 1000 * 60 * 10, // 10 dakika
-    cacheTime: 1000 * 60 * 60, // 1 saat
+    gcTime: 1000 * 60 * 60, // 1 saat - cacheTime yerine TanStack Query v5'te gcTime kullanılıyor
   });
 
   // Yeni eğitim tipi ekle

@@ -100,12 +100,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Kampanya verilerini yüklemek için bir kere çalışacak etki
+  // Kampanya verilerini bir kere yükle, ancak modalın açılıp kapanması ile
+  // gereksiz yenilemeyi engellemek için modalState'e bağlı olma
+  const [kampanyaVerisiYuklendi, setKampanyaVerisiYuklendi] = useState(false);
+  
   useEffect(() => {
-    // Component mount olduğunda bir kere çalışacak
-    fetchKampanyalar();
+    // İlk yüklemede bir kere çalışsın
+    if (!kampanyaVerisiYuklendi) {
+      fetchKampanyalar();
+      setKampanyaVerisiYuklendi(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [kampanyaVerisiYuklendi]);
 
   // Kampanya ekleme fonksiyonu
   const addKampanya = async (kampanya: Omit<Kampanya, 'id'>) => {
@@ -304,12 +310,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // İlk yükleme için kampanyaları getir
-  useEffect(() => {
-    // Başlangıçta bir kez kampanyaları yükle
-    fetchKampanyalar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Bu useEffect kaldırıldı, yukarıda kampanyaVerisiYuklendi state'i ile kontrol edilen bir useEffect kullanıldı
 
   const contextValue = {
     kampanyalar,
