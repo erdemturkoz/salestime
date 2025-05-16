@@ -896,38 +896,63 @@ const UcretlendirmePage = () => {
               <div className="mt-4">
                 {kampanyalar.length > 0 ? (
                   <div className="space-y-2">
-                    {kampanyalar.map((kampanya: any) => {
-                      // Eğitim tipine göre arka plan rengi belirleme
-                      let bgColor = "bg-blue-50";
-                      if (kampanya.egitimTipi?.includes("Genel Almanca")) {
-                        bgColor = "bg-green-50";
-                      } else if (kampanya.egitimTipi?.includes("Junior")) {
-                        bgColor = "bg-yellow-50";
-                      } else if (kampanya.egitimTipi?.includes("Teenage")) {
-                        bgColor = "bg-red-50";
-                      } else if (kampanya.egitimTipi?.includes("Yds")) {
-                        bgColor = "bg-purple-50";
-                      } else if (kampanya.egitimTipi?.includes("Toefl")) {
-                        bgColor = "bg-orange-50";
-                      }
+                    {/* Önce kampanyaları eğitim tipine göre gruplandır ve sırala */}
+                    {(() => {
+                      // Benzersiz eğitim tiplerini oluştur
+                      const egitimTipleri = Array.from(
+                        new Set(kampanyalar.map((k: any) => k.egitimTipi || "Belirtilmemiş"))
+                      ).sort((a, b) => {
+                        // "Genel İngilizce" her zaman başta olsun
+                        if (a.includes("Genel İngilizce")) return -1;
+                        if (b.includes("Genel İngilizce")) return 1;
+                        return a.localeCompare(b);
+                      });
                       
-                      return (
-                        <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
-                          <div className="flex flex-col">
-                            {/* Üst kısım - Kampanya adı ve butonlar */}
-                            <div className="flex justify-between items-center">
-                              <div className="p-2">
-                                <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
-                                <div className="text-sm">
-                                  {kampanya.egitimTipi || "Belirtilmemiş"}
-                                  <span className="mx-1">•</span>
-                                  <span>{kampanya.kurSayisi} Kur</span>
-                                  <span className="mx-1">•</span>
-                                  <span>{kampanya.toplamDersSaati} Saat</span>
-                                </div>
-                              </div>
-                              
-                              <div className="flex gap-1 p-2">
+                      // Her eğitim tipi için kampanyaları gruplandır ve göster
+                      return egitimTipleri.map(egitimTipi => (
+                        <div key={egitimTipi} className="mb-6">
+                          <h3 className="font-bold text-xl mb-2">{egitimTipi}</h3>
+                          <div className="space-y-2">
+                            {kampanyalar
+                              .filter((k: any) => (k.egitimTipi || "Belirtilmemiş") === egitimTipi)
+                              .sort((a: any, b: any) => {
+                                // İngilizce kampanyalarda "1+1 KAMPANYASI" ilk sırada olsun
+                                if (egitimTipi.includes("Genel İngilizce")) {
+                                  if (a.kampanyaAdi === "1+1 KAMPANYASI") return -1;
+                                  if (b.kampanyaAdi === "1+1 KAMPANYASI") return 1;
+                                }
+                                return a.kampanyaAdi.localeCompare(b.kampanyaAdi);
+                              })
+                              .map((kampanya: any) => {
+                                // Eğitim tipine göre arka plan rengi belirleme
+                                let bgColor = "bg-blue-50";
+                                if (kampanya.egitimTipi?.includes("Genel Almanca")) {
+                                  bgColor = "bg-green-50";
+                                } else if (kampanya.egitimTipi?.includes("Junior")) {
+                                  bgColor = "bg-yellow-50";
+                                } else if (kampanya.egitimTipi?.includes("Teenage")) {
+                                  bgColor = "bg-red-50";
+                                } else if (kampanya.egitimTipi?.includes("Yds")) {
+                                  bgColor = "bg-purple-50";
+                                } else if (kampanya.egitimTipi?.includes("Toefl")) {
+                                  bgColor = "bg-orange-50";
+                                }
+                                
+                                return (
+                                  <div key={kampanya.id} className={`border rounded-md ${bgColor}`}>
+                                    <div className="flex flex-col">
+                                      {/* Üst kısım - Kampanya adı ve butonlar */}
+                                      <div className="flex justify-between items-center">
+                                        <div className="p-2">
+                                          <h3 className="font-bold text-lg">{kampanya.kampanyaAdi}</h3>
+                                          <div className="text-sm">
+                                            <span>{kampanya.kurSayisi} Kur</span>
+                                            <span className="mx-1">•</span>
+                                            <span>{kampanya.toplamDersSaati} Saat</span>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex gap-1 p-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
