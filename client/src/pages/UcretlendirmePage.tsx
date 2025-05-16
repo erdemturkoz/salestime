@@ -866,57 +866,69 @@ const UcretlendirmePage = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="space-y-2 mt-4">
                 {kampanyalar.length > 0 ? (
-                  <div className="space-y-1">
-                    {kampanyalar.map((kampanya: any) => (
-                      <div key={kampanya.id} className="border rounded-md bg-white mb-1">
-                        <div className="flex justify-between items-center p-2">
-                          <div>
-                            <h3 className="font-semibold">{kampanya.kampanyaAdi}</h3>
-                            <div className="text-xs text-muted-foreground">
-                              <span>{kampanya.egitimTipi || "Belirtilmemiş"}</span>
-                              <span> • </span>
-                              <span>{kampanya.kurSayisi} Kur</span>
-                              <span> • </span>
-                              <span>{kampanya.toplamDersSaati} Saat</span>
+                  <div>
+                    {kampanyalar.map((kampanya: any) => {
+                      // Eğitim tipine göre arka plan rengi belirleme
+                      let bgColor = "bg-white";
+                      if (kampanya.egitimTipi?.includes("Genel İngilizce")) {
+                        bgColor = "bg-blue-50";
+                      } else if (kampanya.egitimTipi?.includes("Genel Almanca")) {
+                        bgColor = "bg-green-50";
+                      } else if (kampanya.egitimTipi?.includes("Junior")) {
+                        bgColor = "bg-yellow-50";
+                      } else if (kampanya.egitimTipi?.includes("Teenage")) {
+                        bgColor = "bg-red-50";
+                      } else if (kampanya.egitimTipi?.includes("Yds")) {
+                        bgColor = "bg-purple-50";
+                      } else if (kampanya.egitimTipi?.includes("Toefl")) {
+                        bgColor = "bg-orange-50";
+                      }
+                      
+                      return (
+                        <div key={kampanya.id} className={`border rounded-md ${bgColor} mb-2`}>
+                          <div className="grid grid-cols-12 gap-1">
+                            {/* Sol kısım - Kampanya adı ve detayları */}
+                            <div className="col-span-3 p-2">
+                              <h3 className="font-bold text-base">{kampanya.kampanyaAdi}</h3>
+                              <div className="text-xs">
+                                <div>{kampanya.egitimTipi || "Belirtilmemiş"}</div>
+                                <div>{kampanya.kurSayisi} Kur • {kampanya.toplamDersSaati} Saat</div>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <div className="flex gap-1">
-                            <div className="text-sm text-right mr-4">
-                              <div>
-                                <span className="mr-2">Liste Fiyatı:</span>
-                                <span className="font-semibold">{formatCurrency(kampanya.listeFiyati)}</span>
+                            
+                            {/* Orta kısım - Fiyat bilgileri */}
+                            <div className="col-span-7 grid grid-cols-2 gap-x-4 p-2 pr-4 text-sm">
+                              <div className="text-right">
+                                <div>Liste Fiyatı:</div>
+                                <div>Nakit Fiyatı:</div>
+                                <div>İndirim/Faiz:</div>
+                                <div>Kitap:</div>
+                                {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
+                                  <div>Hediyeler:</div>
+                                )}
                               </div>
                               <div>
-                                <span className="mr-2">Nakit Fiyatı:</span>
-                                <span className="font-semibold">{formatCurrency(kampanya.nakitFiyati)}</span>
-                              </div>
-                              <div>
-                                <span className="mr-2">İndirim/Faiz:</span>
-                                <span>{formatPercentage(kampanya.indirimOrani)} / {formatPercentage(kampanya.faizOrani)}</span>
-                              </div>
-                              <div>
-                                <span className="mr-2">Kitap:</span>
-                                <span>{formatCurrency(kampanya.kitapFiyati)} / {kampanya.kitapSetSayisi} set</span>
-                              </div>
-                              {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
-                                <div>
-                                  <span className="mr-2">Hediyeler:</span>
-                                  <span>
+                                <div>{formatCurrency(kampanya.listeFiyati)}</div>
+                                <div>{formatCurrency(kampanya.nakitFiyati)}</div>
+                                <div>{formatPercentage(kampanya.indirimOrani)} / {formatPercentage(kampanya.faizOrani)}</div>
+                                <div>{formatCurrency(kampanya.kitapFiyati)} / {kampanya.kitapSetSayisi} set</div>
+                                {kampanya.hediyeler && kampanya.hediyeler.length > 0 && (
+                                  <div>
                                     {kampanya.hediyeler.map((hediye: any, i: number) => (
                                       <span key={i}>
                                         {hediye.isim} ({formatCurrency(hediye.fiyat)})
                                         {i < kampanya.hediyeler.length - 1 ? ', ' : ''}
                                       </span>
                                     ))}
-                                  </span>
-                                </div>
-                              )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             
-                            <div className="flex gap-1">
+                            {/* Sağ kısım - Butonlar */}
+                            <div className="col-span-2 flex items-center justify-end gap-1 p-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -948,8 +960,8 @@ const UcretlendirmePage = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="py-4 text-center text-neutral-500">
