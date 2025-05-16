@@ -7,7 +7,8 @@ import { TaksitOption, Hediye } from "@/types";
 import { RefreshCwIcon, Plus, FileSpreadsheet, Building, Settings } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
-import { EgitimTipiYonetimModal } from "@/components/egitim-tipi-yonetim-modal";
+// Artık sadece tamamen bağımsız sayfamız olduğu için bu import kaldırıldı
+// import { EgitimTipiYonetimModal } from "@/components/egitim-tipi-yonetim-modal";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -35,7 +36,8 @@ const UcretlendirmePage = () => {
   const [hediyeAdi, setHediyeAdi] = useState("");
   const [hediyeFiyati, setHediyeFiyati] = useState("");
   const [showExcelInfoDialog, setShowExcelInfoDialog] = useState(false);
-  const [showEgitimTipiModal, setShowEgitimTipiModal] = useState(false);
+  // Artık Eğitim Tipi modal kullanımını kaldırdık
+  // const [showEgitimTipiModal, setShowEgitimTipiModal] = useState(false);
   const [formData, setFormData] = useState({
     kampanyaAdi: "",
     egitimTipi: "",
