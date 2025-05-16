@@ -838,10 +838,7 @@ const UcretlendirmePage = () => {
                       </SelectContent>
                     </Select>
                     
-                    <Button variant="outline" size="sm" onClick={() => openMultiCopyDialog()}>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Toplu Kopyala
-                    </Button>
+
                   </>
                 )}
                 
