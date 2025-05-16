@@ -171,7 +171,8 @@ const UcretlendirmePage = () => {
       const senetOpts = calculateInstallments(
         formData.nakitFiyati,
         formData.faizOrani,
-        senetAdedleri
+        senetAdedleri,
+        0 // Senet ödemelerinde banka komisyonu uygulanmaz
       );
       setSenetTaksitler(senetOpts);
     } else {
