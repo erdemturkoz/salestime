@@ -80,10 +80,20 @@ const Sidebar = () => {
 
       <div className="flex-1 p-4">
         <nav className="space-y-2">
-          {NAV_ITEMS
-            .filter(item => !item.adminOnly || (user && ('roller' in user) && user.roller.some(r => r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür")))
-            .map((item) => {
+          {NAV_ITEMS.map((item) => {
+              // Adminlik kontrolü
+              const isAdmin = !item.adminOnly || (user && ('roller' in user) && user.roller.some(r => 
+                r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür"
+              ));
+              
+              // Her bir öğe için useRoute hook'unu çağırıyoruz
               const [isActive] = useRoute(item.href);
+              
+              // Eğer admin değilse ve adminOnly öğesiyse gösterme
+              if (!isAdmin && item.adminOnly) {
+                return null;
+              }
+              
               return (
                 <Button
                   key={item.href}
