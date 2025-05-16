@@ -22,16 +22,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 const UcretlendirmePage = () => {
   const { toast } = useToast();
   const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar, 
-    selectedSubeId, setSelectedSubeId, copyKampanyaToSube, copyManyKampanyalarToSube } = useAppContext();
+    selectedSubeId, setSelectedSubeId } = useAppContext();
   const { user, isAdmin } = useAuth();
   
   // Kullanıcının şubeleri
   const [subeler, setSubeler] = useState<Array<{id: number, subeAdi: string}>>([]);
-  const [targetSubeId, setTargetSubeId] = useState<number | null>(null);
-  const [showCopyDialog, setShowCopyDialog] = useState(false);
-  const [showMultiCopyDialog, setShowMultiCopyDialog] = useState(false);
-  const [copyingKampanyaId, setCopyingKampanyaId] = useState<string | null>(null);
-  const [selectedKampanyalar, setSelectedKampanyalar] = useState<string[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -350,99 +345,7 @@ const UcretlendirmePage = () => {
     }
   };
   
-  // Kampanya kopyalama modalı açma
-  const openCopyDialog = (kampanyaId: string) => {
-    setCopyingKampanyaId(kampanyaId);
-    setTargetSubeId(null); // Hedef şubeyi sıfırla
-    setShowCopyDialog(true);
-  };
-  
-  const openMultiCopyDialog = () => {
-    setSelectedKampanyalar([]);
-    setTargetSubeId(null);
-    setShowMultiCopyDialog(true);
-  };
-  
-  // Kampanya kopyalama işlemi
-  const handleCopyKampanya = async () => {
-    if (!copyingKampanyaId || !targetSubeId) {
-      toast({
-        title: 'Hata',
-        description: 'Lütfen hedef şubeyi seçin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    try {
-      const result = await copyKampanyaToSube(copyingKampanyaId, targetSubeId);
-      if (result) {
-        toast({
-          title: 'Başarılı',
-          description: 'Kampanya başarıyla kopyalandı.',
-        });
-        await refreshKampanyalar(selectedSubeId || undefined);
-        setShowCopyDialog(false);
-        setCopyingKampanyaId(null);
-        setTargetSubeId(null);
-      } else {
-        toast({
-          title: 'Hata',
-          description: 'Kampanya kopyalanırken bir hata oluştu.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Kampanya kopyalama hatası:', error);
-      toast({
-        title: 'Hata',
-        description: 'Kampanya kopyalanırken bir hata oluştu.',
-        variant: 'destructive',
-      });
-    }
-  };
-  
-  // Çoklu kampanya kopyalama işlemi
-  const handleMultiKampanyaCopy = async () => {
-    if (selectedKampanyalar.length === 0 || !targetSubeId) {
-      toast({
-        title: 'Hata',
-        description: 'Lütfen kopyalanacak kampanyaları ve hedef şubeyi seçin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    console.log("handleMultiKampanyaCopy seçilen kampanyalar:", selectedKampanyalar);
-    console.log("handleMultiKampanyaCopy hedef şube:", targetSubeId);
-    
-    try {
-      const result = await copyManyKampanyalarToSube(selectedKampanyalar, targetSubeId);
-      if (result) {
-        toast({
-          title: 'Başarılı',
-          description: `${selectedKampanyalar.length} kampanya başarıyla kopyalandı.`,
-        });
-        await refreshKampanyalar(selectedSubeId || undefined);
-        setShowMultiCopyDialog(false);
-        setSelectedKampanyalar([]);
-        setTargetSubeId(null);
-      } else {
-        toast({
-          title: 'Hata',
-          description: 'Kampanyalar kopyalanırken bir hata oluştu.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Çoklu kampanya kopyalama hatası:', error);
-      toast({
-        title: 'Hata',
-        description: 'Kampanyalar kopyalanırken bir hata oluştu.',
-        variant: 'destructive',
-      });
-    }
-  };
+  // Kampanya işleme fonksiyonları
   
   // Excel İşlevleri
   const handleExportToExcel = () => {
