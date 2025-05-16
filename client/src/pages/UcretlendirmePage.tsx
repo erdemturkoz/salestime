@@ -655,8 +655,6 @@ const UcretlendirmePage = () => {
                       size="sm" 
                       className="h-6 text-xs"
                       onClick={() => {
-                        // Mevcut kampanya verisi yüklemesini duraklat
-                        setLoading(false);
                         setShowEgitimTipiModal(true);
                       }}
                     >

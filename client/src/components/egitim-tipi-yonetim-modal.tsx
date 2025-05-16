@@ -49,6 +49,7 @@ interface EgitimTipiYonetimModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Eğitim tipi modalının açılıp kapanması
 export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetimModalProps) {
   const { toast } = useToast();
   const {
@@ -194,9 +195,11 @@ export function EgitimTipiYonetimModal({ open, onOpenChange }: EgitimTipiYonetim
     }
   };
   
-  // Modal kapatılıyor
+  // Modal kapatılıyor - kapanırken silme işlemlerini ve formu temizle
   const handleClose = () => {
     resetForm();
+    setDeleteItemId(null); 
+    setDeleteConfirmOpen(false);
     onOpenChange(false);
   };
 

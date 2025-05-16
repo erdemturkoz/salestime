@@ -20,7 +20,7 @@ export interface EgitimTipleriResult {
 export function useEgitimTipleri(): EgitimTipleriResult {
   const queryClient = useQueryClient();
   
-  // Tüm eğitim tiplerini getir
+  // Tüm eğitim tiplerini getir - performans için staleTime ve cacheTime uzun tutuldu
   const {
     data: egitimTipleri = [],
     isLoading,
@@ -28,8 +28,12 @@ export function useEgitimTipleri(): EgitimTipleriResult {
     error
   } = useQuery<EgitimTipi[]>({
     queryKey: [API_ENDPOINT],
-    retryOnMount: true,
-    staleTime: 1000 * 60 * 5, // 5 dakika
+    retry: 1,
+    retryOnMount: false, 
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    staleTime: 1000 * 60 * 10, // 10 dakika
+    cacheTime: 1000 * 60 * 60, // 1 saat
   });
 
   // Yeni eğitim tipi ekle
