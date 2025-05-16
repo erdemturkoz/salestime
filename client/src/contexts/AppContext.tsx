@@ -100,10 +100,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Uygulama ilk yüklendiğinde kampanyaları çek
+  // Uygulama ilk yüklendiğinde kampanyaları çek - veri yüklemesini kontrol altına al
   useEffect(() => {
-    fetchKampanyalar();
-  }, []);
+    // İlk yükleme sırasında loading true ise çalışsın
+    if (loading) {
+      fetchKampanyalar();
+    }
+  }, [loading]);
 
   // Kampanya ekleme fonksiyonu
   const addKampanya = async (kampanya: Omit<Kampanya, 'id'>) => {

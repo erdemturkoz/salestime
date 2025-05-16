@@ -654,7 +654,11 @@ const UcretlendirmePage = () => {
                       variant="outline" 
                       size="sm" 
                       className="h-6 text-xs"
-                      onClick={() => setShowEgitimTipiModal(true)}
+                      onClick={() => {
+                        // Mevcut kampanya verisi yüklemesini duraklat
+                        setLoading(false);
+                        setShowEgitimTipiModal(true);
+                      }}
                     >
                       <Settings className="h-3 w-3 mr-1" />
                       Eğitim Tipleri Yönetimi
