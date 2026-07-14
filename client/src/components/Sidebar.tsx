@@ -9,7 +9,8 @@ import {
   Menu, 
   X,
   Building,
-  BookOpen
+  BookOpen,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -25,6 +26,11 @@ const NAV_ITEMS = [
     label: 'Kampanya Ekle',
     href: '/ucretlendirme',
     icon: <DollarSign className="h-5 w-5" />,
+  },
+  {
+    label: 'WhatsApp İstatistikleri',
+    href: '/whatsapp-istatistikleri',
+    icon: <MessageCircle className="h-5 w-5 text-green-600" />,
   },
   {
     label: 'Eğitim Tipleri',
@@ -43,6 +49,45 @@ const NAV_ITEMS = [
     icon: <Building className="h-5 w-5" />,
   },
 ];
+
+type NavItemDef = {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  adminOnly?: boolean;
+};
+
+const NavItem = ({
+  item,
+  user,
+  onNavigate,
+}: {
+  item: NavItemDef;
+  user: any;
+  onNavigate: (href: string) => void;
+}) => {
+  const [isActive] = useRoute(item.href);
+  const isAdmin =
+    !item.adminOnly ||
+    (user &&
+      "roller" in user &&
+      user.roller.some((r: any) =>
+        ["Sistem Yöneticisi", "Kurucu", "Müdür"].includes(r.rol)
+      ));
+
+  if (!isAdmin && item.adminOnly) return null;
+
+  return (
+    <Button
+      variant={isActive ? "default" : "ghost"}
+      className="w-full justify-start"
+      onClick={() => onNavigate(item.href)}
+    >
+      {item.icon}
+      <span className="ml-2">{item.label}</span>
+    </Button>
+  );
+};
 
 const Sidebar = () => {
   const isMobile = useIsMobile();
@@ -80,32 +125,14 @@ const Sidebar = () => {
 
       <div className="flex-1 p-4">
         <nav className="space-y-2">
-          {NAV_ITEMS.map((item) => {
-              // Adminlik kontrolü
-              const isAdmin = !item.adminOnly || (user && ('roller' in user) && user.roller.some(r => 
-                r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür"
-              ));
-              
-              // Her bir öğe için useRoute hook'unu çağırıyoruz
-              const [isActive] = useRoute(item.href);
-              
-              // Eğer admin değilse ve adminOnly öğesiyse gösterme
-              if (!isAdmin && item.adminOnly) {
-                return null;
-              }
-              
-              return (
-                <Button
-                  key={item.href}
-                  variant={isActive ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => handleNavigation(item.href)}
-                >
-                  {item.icon}
-                  <span className="ml-2">{item.label}</span>
-                </Button>
-              );
-            })}
+          {NAV_ITEMS.map((item) => (
+            <NavItem
+              key={item.href}
+              item={item}
+              user={user}
+              onNavigate={handleNavigation}
+            />
+          ))}
         </nav>
       </div>
       

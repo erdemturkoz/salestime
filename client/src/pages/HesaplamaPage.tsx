@@ -23,10 +23,19 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, MessageCircle, Send } from "lucide-react";
 import { downloadPDFWithTurkishSupport } from "@/utils/pdf-with-turkish";
 import { generateTeklifPDF } from "@/utils/teklif-pdf-generator";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
@@ -47,6 +56,9 @@ const HesaplamaPage = () => {
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
   const [ogrenciAdi, setOgrenciAdi] = useState<string>("");
   const [gecerlilikGunu, setGecerlilikGunu] = useState<number>(2);
+  const [wpModalAcik, setWpModalAcik] = useState<boolean>(false);
+  const [wpOgrenciAdi, setWpOgrenciAdi] = useState<string>("");
+  const [wpTelefon, setWpTelefon] = useState<string>("");
   const [mudurIndirimTipi, setMudurIndirimTipi] = useState<"miktar" | "yuzde">("yuzde");
   const [mudurIndirimDegeri, setMudurIndirimDegeri] = useState<number>(0);
   const [mudurIndirimUygulandi, setMudurIndirimUygulandi] = useState<boolean>(false);
@@ -364,6 +376,75 @@ const HesaplamaPage = () => {
     }
     
     setIsCalculated(true);
+  };
+
+  // WhatsApp gönderim mutation
+  const wpGonderimMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/whatsapp-gonderimleri", data);
+    },
+  });
+
+  const handleWhatsappGonder = () => {
+    if (!wpTelefon.trim()) {
+      toast({ title: "Hata", description: "Telefon numarası zorunludur.", variant: "destructive" });
+      return;
+    }
+    if (!wpOgrenciAdi.trim()) {
+      toast({ title: "Hata", description: "Öğrenci adı soyadı zorunludur.", variant: "destructive" });
+      return;
+    }
+
+    const roller = (user as any)?.roller;
+    const ilkRol = roller?.[0];
+
+    const odemeTipiLabel =
+      odemeTipi === "nakit" ? "Nakit" :
+      odemeTipi === "kredi-karti" ? "Kredi Kartı" :
+      odemeTipi === "senet" ? "Senet" : "";
+
+    const mesaj = [
+      `Merhaba ${wpOgrenciAdi} 👋`,
+      ``,
+      `🎓 *${sonuclar.kampanyaAdi}* kampanyası için hazırladığım özel teklif:`,
+      ``,
+      `📚 Eğitim: ${sonuclar.egitimTipi || selectedEgitimTipi}`,
+      `⏱ Toplam: ${sonuclar.kurSayisi} Kur / ${sonuclar.dersSaati} Saat`,
+      ``,
+      `💰 *Teklif Tutarı: ${formatCurrency(sonuclar.genelToplam)}*`,
+      odemeTipi === "nakit"
+        ? `✅ Ödeme: Nakit`
+        : `📆 Ödeme: ${odemeTipiLabel} ${taksitSayisi} Taksit × ${formatCurrency(sonuclar.aylikOdeme)}`,
+      ``,
+      `Bu teklifimiz ${gecerlilikGunu} gün geçerlidir.`,
+      ``,
+      `📞 Sorularınız için: ${(user as any)?.telefon || ""}`,
+      `🏫 ${ilkRol?.subeAdi || ""}`,
+    ].join("\n");
+
+    const temizTelefon = wpTelefon.replace(/\D/g, "");
+    const waUrl = `https://wa.me/${temizTelefon}?text=${encodeURIComponent(mesaj)}`;
+
+    // Kaydet
+    wpGonderimMutation.mutate({
+      ogrenciAdi: wpOgrenciAdi,
+      ogrenciTelefon: temizTelefon,
+      kampanyaAdi: sonuclar.kampanyaAdi,
+      egitimTipi: sonuclar.egitimTipi || selectedEgitimTipi,
+      genelToplam: sonuclar.genelToplam,
+      odemeTipi: odemeTipiLabel,
+      taksitSayisi: taksitSayisi,
+      danismanAdi: (user as any)?.adi || "",
+      danismanSoyadi: (user as any)?.soyadi || "",
+      subeAdi: ilkRol?.subeAdi || "",
+      subeId: ilkRol?.subeId || null,
+      danismanId: (user as any)?.id || null,
+    });
+
+    window.open(waUrl, "_blank");
+    setWpModalAcik(false);
+    setWpTelefon("");
+    toast({ title: "WhatsApp açıldı", description: "Mesaj hazırlandı, göndermek için WhatsApp'ta Gönder'e tıklayın." });
   };
 
   // PDF oluşturup indirme fonksiyonu - İSO Türkçe karakterli sürüm
@@ -1053,11 +1134,70 @@ const HesaplamaPage = () => {
                 </div>
               )}
             </CardContent>
+            {/* WhatsApp Modal */}
+            <Dialog open={wpModalAcik} onOpenChange={setWpModalAcik}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-green-500" />
+                    WhatsApp'tan Teklif Gönder
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
+                    <strong>Teklif:</strong> {sonuclar.kampanyaAdi} — {formatCurrency(sonuclar.genelToplam)}
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="wp-ad">Öğrenci Adı Soyadı</Label>
+                    <Input
+                      id="wp-ad"
+                      placeholder="Örn: Ahmet Yılmaz"
+                      value={wpOgrenciAdi}
+                      onChange={(e) => setWpOgrenciAdi(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="wp-tel">WhatsApp Telefon Numarası</Label>
+                    <Input
+                      id="wp-tel"
+                      placeholder="Örn: 905321234567 (başında + olmadan)"
+                      value={wpTelefon}
+                      onChange={(e) => setWpTelefon(e.target.value)}
+                    />
+                    <p className="text-xs text-gray-500">Uluslararası format: 905xxxxxxxxx (TR için 90 ile başlayın)</p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setWpModalAcik(false)}>İptal</Button>
+                  <Button
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                    onClick={handleWhatsappGonder}
+                    disabled={wpGonderimMutation.isPending}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    WhatsApp'ı Aç ve Gönder
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             {isCalculated && (
-              <CardFooter className="flex justify-end gap-2 bg-neutral-50 border-t border-neutral-100 p-3">
+              <CardFooter className="flex justify-end gap-2 bg-neutral-50 border-t border-neutral-100 p-3 flex-wrap">
                 <Button variant="outline" size="sm" onClick={handleGeneratePDF}>
                   <Download className="h-4 w-4 mr-2" />
                   PDF İndir (Eski)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-400 text-green-700 hover:bg-green-50"
+                  onClick={() => {
+                    setWpOgrenciAdi(ogrenciAdi || "");
+                    setWpModalAcik(true);
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2 text-green-500" />
+                  WhatsApp'tan Gönder
                 </Button>
                 <Button
                   size="sm"

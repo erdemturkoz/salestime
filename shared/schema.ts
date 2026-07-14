@@ -199,6 +199,32 @@ export type SubeWithKullanicilar = Sube & {
 
 export type InsertKampanya = z.infer<typeof insertKampanyaSchema>;
 
+// WhatsApp Gönderim Kayıtları tablosu
+export const whatsappGonderimleri = pgTable("whatsapp_gonderimleri", {
+  id: serial("id").primaryKey(),
+  ogrenciAdi: text("ogrenci_adi").notNull(),
+  ogrenciTelefon: text("ogrenci_telefon").notNull(),
+  kampanyaAdi: text("kampanya_adi").notNull(),
+  egitimTipi: text("egitim_tipi").notNull(),
+  genelToplam: integer("genel_toplam").notNull(),
+  odemeTipi: text("odeme_tipi").notNull(),
+  taksitSayisi: integer("taksit_sayisi").default(1),
+  danismanAdi: text("danisman_adi").notNull(),
+  danismanSoyadi: text("danisman_soyadi").notNull(),
+  subeAdi: text("sube_adi").notNull(),
+  subeId: integer("sube_id"),
+  danismanId: integer("danisman_id"),
+  gonderilenAt: timestamp("gonderilen_at").defaultNow(),
+});
+
+export const insertWhatsappGonderimSchema = createInsertSchema(whatsappGonderimleri).omit({
+  id: true,
+  gonderilenAt: true,
+});
+
+export type WhatsappGonderim = typeof whatsappGonderimleri.$inferSelect;
+export type InsertWhatsappGonderim = z.infer<typeof insertWhatsappGonderimSchema>;
+
 // Eğitim Tipleri tablosu
 export const egitimTipleri = pgTable("egitim_tipleri", {
   id: serial("id").primaryKey(),

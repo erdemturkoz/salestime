@@ -4,6 +4,7 @@ import {
   subeler,
   kullaniciSubeRolleri,
   egitimTipleri,
+  whatsappGonderimleri,
   type Kampanya, 
   type InsertKampanya,
   type Kullanici,
@@ -15,10 +16,12 @@ import {
   type KullaniciWithRollerVeSubeler,
   type SubeWithKullanicilar,
   type EgitimTipi,
-  type InsertEgitimTipi
+  type InsertEgitimTipi,
+  type WhatsappGonderim,
+  type InsertWhatsappGonderim
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Eğitim Tipleri operations
@@ -56,6 +59,15 @@ export interface IStorage {
   createSube(sube: InsertSube): Promise<Sube>;
   updateSube(id: number, sube: InsertSube): Promise<Sube | undefined>;
   deleteSube(id: number): Promise<boolean>;
+
+  // WhatsApp Gönderim operations
+  createWhatsappGonderim(data: InsertWhatsappGonderim): Promise<WhatsappGonderim>;
+  getAllWhatsappGonderimleri(filters?: {
+    subeId?: number;
+    danismanId?: number;
+    baslangicTarihi?: Date;
+    bitisTarihi?: Date;
+  }): Promise<WhatsappGonderim[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -813,6 +825,33 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return result.length > 0;
+  }
+
+  async createWhatsappGonderim(data: InsertWhatsappGonderim): Promise<WhatsappGonderim> {
+    const [result] = await db
+      .insert(whatsappGonderimleri)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  async getAllWhatsappGonderimleri(filters?: {
+    subeId?: number;
+    danismanId?: number;
+    baslangicTarihi?: Date;
+    bitisTarihi?: Date;
+  }): Promise<WhatsappGonderim[]> {
+    const conditions = [];
+    if (filters?.subeId) conditions.push(eq(whatsappGonderimleri.subeId, filters.subeId));
+    if (filters?.danismanId) conditions.push(eq(whatsappGonderimleri.danismanId, filters.danismanId));
+    if (filters?.baslangicTarihi) conditions.push(gte(whatsappGonderimleri.gonderilenAt, filters.baslangicTarihi));
+    if (filters?.bitisTarihi) conditions.push(lte(whatsappGonderimleri.gonderilenAt, filters.bitisTarihi));
+
+    const query = db.select().from(whatsappGonderimleri).orderBy(desc(whatsappGonderimleri.gonderilenAt));
+    if (conditions.length > 0) {
+      return query.where(and(...conditions));
+    }
+    return query;
   }
 }
 

@@ -8,6 +8,7 @@ import {
   insertKullaniciSchema, 
   insertKullaniciSubeRolSchema,
   insertEgitimTipiSchema,
+  insertWhatsappGonderimSchema,
   loginSchema,
   changePasswordSchema,
   Roller,
@@ -519,6 +520,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Çoklu kampanya kopyalama hatası:", error);
       res.status(500).json({ error: "Kampanyalar kopyalanırken bir hata oluştu", details: String(error) });
+    }
+  });
+
+  // WhatsApp Gönderim API routes
+  app.post("/api/whatsapp-gonderimleri", isAuthenticated, async (req, res) => {
+    try {
+      const parsed = insertWhatsappGonderimSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Geçersiz veri", details: parsed.error.errors });
+      }
+      const gonderim = await storage.createWhatsappGonderim(parsed.data);
+      res.status(201).json(gonderim);
+    } catch (error) {
+      console.error("WhatsApp gönderim kayıt hatası:", error);
+      res.status(500).json({ error: "Kayıt oluşturulurken hata oluştu", details: String(error) });
+    }
+  });
+
+  app.get("/api/whatsapp-gonderimleri", isAuthenticated, async (req, res) => {
+    try {
+      const { subeId, danismanId, baslangic, bitis } = req.query;
+      const filters: any = {};
+      if (subeId) filters.subeId = parseInt(subeId as string);
+      if (danismanId) filters.danismanId = parseInt(danismanId as string);
+      if (baslangic) filters.baslangicTarihi = new Date(baslangic as string);
+      if (bitis) {
+        const b = new Date(bitis as string);
+        b.setHours(23, 59, 59, 999);
+        filters.bitisTarihi = b;
+      }
+      const gonderimleri = await storage.getAllWhatsappGonderimleri(filters);
+      res.json(gonderimleri);
+    } catch (error) {
+      console.error("WhatsApp gönderim listesi hatası:", error);
+      res.status(500).json({ error: "Liste yüklenirken hata oluştu", details: String(error) });
     }
   });
 
