@@ -413,24 +413,68 @@ const HesaplamaPage = () => {
       odemeTipi === "kredi-karti" ? "Kredi Kartı" :
       odemeTipi === "senet" ? "Senet" : "";
 
+    // Kampanya adından "X+Y KUR" desenini ayıkla (ör: "2+2 KUR +MESLEKİ EĞİTİM")
+    const kurMatch = sonuclar.kampanyaAdi?.match(/^(\d+)\+(\d+)\s*kur/i);
+    const satinAlinanKur = kurMatch ? parseInt(kurMatch[1]) : sonuclar.kurSayisi;
+    const hediyeKur = kurMatch ? parseInt(kurMatch[2]) : 0;
+
+    // Hediye ürün isimleri (para değerli hediyeler)
+    const hediyeIsimleri = (sonuclar.hediyeler || [])
+      .map((h: any) => h.isim)
+      .filter(Boolean)
+      .join(", ");
+
+    // Geçerlilik tarihi
+    const gecerlilikTarihiObj = new Date();
+    gecerlilikTarihiObj.setDate(gecerlilikTarihiObj.getDate() + gecerlilikGunu);
+    const gecerlilikTarihStr = gecerlilikTarihiObj.toLocaleDateString("tr-TR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+
+    // "Kazanımlar" satırı
+    const kazanimParcalari: string[] = [];
+    if (hediyeKur > 0) kazanimParcalari.push(`${hediyeKur} Kur eğitim`);
+    if (hediyeIsimleri) kazanimParcalari.push(hediyeIsimleri);
+    const kazanimlar = kazanimParcalari.join(", ");
+
+    // Ödeme satırı
+    const odemeSatiri = odemeTipi === "nakit"
+      ? `Nakit`
+      : `${taksitSayisi} eşit taksit × ${formatCurrency(sonuclar.aylikOdeme)}`;
+
+    // Kampanya özet satırı (X Kur alın, Y Kur + ek hediye)
+    let kampanyaSatiri = `*${sonuclar.kampanyaAdi}*`;
+    if (hediyeKur > 0) {
+      const ek = hediyeIsimleri ? ` ve ${hediyeIsimleri}` : "";
+      kampanyaSatiri = `*${satinAlinanKur} Kur alın, ${hediyeKur} Kur${ek} hediyemiz olsun.*`;
+    }
+
     const mesaj = [
-      `Merhaba ${wpOgrenciAdi} 👋`,
+      `Merhaba ${wpOgrenciAdi},`,
       ``,
-      `🎓 *${sonuclar.kampanyaAdi}* kampanyası için hazırladığım özel teklif:`,
+      `English Time ${ilkRol?.subeAdi || ""} olarak size özel hazırladığımız eğitim teklifini bilgilerinize sunuyoruz.`,
       ``,
-      `📚 Eğitim: ${sonuclar.egitimTipi || selectedEgitimTipi}`,
-      `⏱ Toplam: ${sonuclar.kurSayisi} Kur / ${sonuclar.dersSaati} Saat`,
+      kampanyaSatiri,
       ``,
-      `💰 *Teklif Tutarı: ${formatCurrency(sonuclar.genelToplam)}*`,
-      odemeTipi === "nakit"
-        ? `✅ Ödeme: Nakit`
-        : `📆 Ödeme: ${odemeTipiLabel} ${taksitSayisi} Taksit × ${formatCurrency(sonuclar.aylikOdeme)}`,
+      `Eğitim: ${sonuclar.egitimTipi || selectedEgitimTipi}`,
+      `Toplam: ${sonuclar.kurSayisi} Kur / ${sonuclar.dersSaati} Ders Saati`,
       ``,
-      `Bu teklifimiz ${gecerlilikGunu} gün geçerlidir.`,
+      `Liste Fiyatı: ${formatCurrency(sonuclar.listeFiyati)}`,
+      `*Size Özel Fiyat: ${formatCurrency(sonuclar.genelToplam)}*`,
       ``,
-      `📞 Sorularınız için: ${(user as any)?.telefon || ""}`,
-      `🏫 ${ilkRol?.subeAdi || ""}`,
-    ].join("\n");
+      `Ödeme: ${odemeSatiri}`,
+      ``,
+      kazanimlar || sonuclar.indirimTutari > 0
+        ? `*Kazanımlarınız:* ${kazanimlar}${kazanimlar && sonuclar.indirimTutari > 0 ? " ve " : ""}${sonuclar.indirimTutari > 0 ? formatCurrency(sonuclar.indirimTutari) + " indirim" : ""}.`
+        : null,
+      ``,
+      `Teklifiniz ${gecerlilikTarihStr} saat 17:00'e kadar geçerlidir. Yeni dönem sınıflarında uygun gün ve saat kontenjanları hızla dolmaktadır.`,
+      ``,
+      `${(user as any)?.adi || ""} ${(user as any)?.soyadi || ""}`,
+      `Eğitim Danışmanı`,
+      `English Time ${ilkRol?.subeAdi || ""}`,
+      (user as any)?.telefon || "",
+    ].filter((line) => line !== null).join("\n");
 
     const temizTelefon = wpTelefon.replace(/\D/g, "");
     const waUrl = `https://wa.me/${temizTelefon}?text=${encodeURIComponent(mesaj)}`;
