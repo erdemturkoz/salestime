@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,13 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Search, Filter, Calendar, User, Building, TrendingUp, X } from "lucide-react";
+import { MessageCircle, Search, Filter, Building, X, RefreshCw, LogIn } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import type { WhatsappGonderim } from "@shared/schema";
 
 const WhatsappIstatistikleri = () => {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [aramaMetni, setAramaMetni] = useState("");
   const [subeFiltre, setSubeFiltre] = useState("hepsi");
   const [odemeTipiFiltre, setOdemeTipiFiltre] = useState("hepsi");
@@ -32,14 +34,18 @@ const WhatsappIstatistikleri = () => {
     return params.toString() ? `?${params.toString()}` : "";
   };
 
-  const { data: gonderimleri = [], isLoading } = useQuery<WhatsappGonderim[]>({
+  const { data: gonderimleri = [], isLoading, isError, error, refetch } = useQuery<WhatsappGonderim[]>({
     queryKey: ["/api/whatsapp-gonderimleri", baslangicTarihi, bitisTarihi],
     queryFn: async () => {
       const qs = buildQueryString();
       const res = await fetch(`/api/whatsapp-gonderimleri${qs}`, { credentials: "include" });
+      if (res.status === 401) {
+        throw new Error("OTURUM_BITTI");
+      }
       if (!res.ok) throw new Error("Veri yüklenemedi");
       return res.json();
     },
+    retry: false,
   });
 
   const filtrelenmis = gonderimleri.filter((g) => {
@@ -78,6 +84,38 @@ const WhatsappIstatistikleri = () => {
     baslangicTarihi,
     bitisTarihi,
   ].filter(Boolean).length;
+
+  if (isError) {
+    const oturumBitti = (error as Error)?.message === "OTURUM_BITTI";
+    return (
+      <div className="p-4 md:p-6 max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            {oturumBitti ? <LogIn className="h-8 w-8 text-red-500" /> : <RefreshCw className="h-8 w-8 text-red-500" />}
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">
+            {oturumBitti ? "Oturumunuz Sona Erdi" : "Veri Yüklenemedi"}
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {oturumBitti
+              ? "İstatistikleri görüntülemek için tekrar giriş yapmanız gerekiyor."
+              : "Sunucudan veri alınamadı. Lütfen tekrar deneyin."}
+          </p>
+          {oturumBitti ? (
+            <Button onClick={() => setLocation("/giris")} className="bg-green-500 hover:bg-green-600 text-white">
+              <LogIn className="h-4 w-4 mr-2" />
+              Giriş Yap
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tekrar Dene
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">

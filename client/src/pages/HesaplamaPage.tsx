@@ -381,7 +381,17 @@ const HesaplamaPage = () => {
   // WhatsApp gönderim mutation
   const wpGonderimMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/whatsapp-gonderimleri", data);
+      return apiRequest("/api/whatsapp-gonderimleri", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Kayıt hatası",
+        description: "Teklif istatistiklere kaydedilemedi. Gönderim yine de WhatsApp'ta tamamlandı.",
+        variant: "destructive",
+      });
     },
   });
 
