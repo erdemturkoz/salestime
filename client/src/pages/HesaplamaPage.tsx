@@ -23,8 +23,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency, formatPercentage, calculateDiscount } from "@/lib/utils";
 import { calculateInstallments } from "@/utils/calculator";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { downloadPDFWithTurkishSupport } from "@/utils/pdf-with-turkish";
+import { generateTeklifPDF } from "@/utils/teklif-pdf-generator";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
@@ -32,6 +34,7 @@ type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
 const HesaplamaPage = () => {
   const { kampanyalar } = useAppContext();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [selectedEgitimTipi, setSelectedEgitimTipi] = useState<string>("");
   const [selectedKampanyaId, setSelectedKampanyaId] = useState<string>("");
@@ -42,6 +45,8 @@ const HesaplamaPage = () => {
   const [kitapDahil, setKitapDahil] = useState<boolean>(true);
   const [hediyeEt, setHediyeEt] = useState<{[key: string]: boolean}>({});
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
+  const [ogrenciAdi, setOgrenciAdi] = useState<string>("");
+  const [gecerlilikGunu, setGecerlilikGunu] = useState<number>(2);
   const [mudurIndirimTipi, setMudurIndirimTipi] = useState<"miktar" | "yuzde">("yuzde");
   const [mudurIndirimDegeri, setMudurIndirimDegeri] = useState<number>(0);
   const [mudurIndirimUygulandi, setMudurIndirimUygulandi] = useState<boolean>(false);
@@ -645,6 +650,37 @@ const HesaplamaPage = () => {
 
 
 
+                {/* Öğrenci Adı */}
+                <div className="space-y-1">
+                  <Label htmlFor="ogrenci-adi" className="text-sm">Öğrenci Adı Soyadı <span className="text-neutral-400 font-normal">(isteğe bağlı)</span></Label>
+                  <Input
+                    id="ogrenci-adi"
+                    placeholder="Örn: Ahmet Yılmaz"
+                    value={ogrenciAdi}
+                    onChange={(e) => setOgrenciAdi(e.target.value)}
+                  />
+                </div>
+
+                {/* Teklif Geçerlilik Süresi */}
+                <div className="space-y-1">
+                  <Label className="text-sm">Teklif Geçerlilik Süresi</Label>
+                  <Select
+                    value={gecerlilikGunu.toString()}
+                    onValueChange={(v) => setGecerlilikGunu(parseInt(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Gün</SelectItem>
+                      <SelectItem value="2">2 Gün</SelectItem>
+                      <SelectItem value="3">3 Gün</SelectItem>
+                      <SelectItem value="5">5 Gün</SelectItem>
+                      <SelectItem value="7">7 Gün</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="kitap-dahil" 
@@ -1018,10 +1054,54 @@ const HesaplamaPage = () => {
               )}
             </CardContent>
             {isCalculated && (
-              <CardFooter className="flex justify-end bg-neutral-50 border-t border-neutral-100 p-3">
+              <CardFooter className="flex justify-end gap-2 bg-neutral-50 border-t border-neutral-100 p-3">
                 <Button variant="outline" size="sm" onClick={handleGeneratePDF}>
                   <Download className="h-4 w-4 mr-2" />
-                  PDF İndir
+                  PDF İndir (Eski)
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-[#111827] hover:bg-[#1f2937] text-[#FFF200]"
+                  onClick={() => {
+                    const roller = (user as any)?.roller;
+                    const ilkRol = roller?.[0];
+                    generateTeklifPDF({
+                      kampanyaAdi: sonuclar.kampanyaAdi,
+                      egitimTipi: sonuclar.egitimTipi || selectedEgitimTipi,
+                      kurSayisi: sonuclar.kurSayisi,
+                      dersSaati: sonuclar.dersSaati,
+                      listeFiyati: sonuclar.listeFiyati,
+                      indirimTutari: sonuclar.indirimTutari,
+                      indirimYuzdesi: sonuclar.indirimYuzdesi,
+                      kampanyaliFiyat: sonuclar.kampanyaliFiyat,
+                      genelToplam: sonuclar.genelToplam,
+                      ozelFiyat: sonuclar.ozelFiyat,
+                      nakitFiyati: (sonuclar as any).nakitFiyati || selectedKampanya?.nakitFiyati || 0,
+                      odemeTipi: odemeTipi,
+                      odemeTipiText: sonuclar.odemeTipiText,
+                      taksitSayisi: taksitSayisi,
+                      aylikOdeme: sonuclar.aylikOdeme,
+                      kitapUcreti: sonuclar.kitapUcreti,
+                      kitapDahil: kitapDahil,
+                      kitapHediyeEdildi: kitapHediyeEdildi,
+                      hediyeler: sonuclar.hediyeler,
+                      hediyeEdildi: hediyeEdildi,
+                      mudurIndirimTutari: sonuclar.mudurIndirimTutari,
+                      mudurIndirimTipi: sonuclar.mudurIndirimTipi,
+                      mudurIndirimDegeri: mudurIndirimDegeri,
+                      ogrenciAdi: ogrenciAdi,
+                      gecerlilikGunu: gecerlilikGunu,
+                      danismanAdi: (user as any)?.adi || "",
+                      danismanSoyadi: (user as any)?.soyadi || "",
+                      danismanTelefon: (user as any)?.telefon || "",
+                      subeAdi: ilkRol?.subeAdi || "",
+                      subeAdresi: "",
+                      subeTelefon: "",
+                    });
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Profesyonel Teklif PDF
                 </Button>
               </CardFooter>
             )}
