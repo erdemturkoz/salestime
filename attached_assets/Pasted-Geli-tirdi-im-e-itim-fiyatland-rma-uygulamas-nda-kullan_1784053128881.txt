@@ -1,0 +1,563 @@
+Geliştirdiğim eğitim fiyatlandırma uygulamasında, kullanıcı tarafından seçilen eğitim paketi ve ödeme bilgilerine göre otomatik olarak A4 PDF teklif formu oluşturuluyor.
+
+Mevcut PDF tasarımını beğenmiyorum. Sistem çıktısı veya muhasebe dökümü gibi görünüyor. PDF’nin modern, kurumsal, güven veren ve satış odaklı bir “kişiye özel eğitim teklifi” haline getirilmesini istiyorum.
+
+Öncelikle mevcut projeyi, PDF oluşturma kodunu, kullanılan teknolojileri, fiyat hesaplama fonksiyonlarını ve veri yapısını dikkatlice incele. Mevcut çalışan özellikleri bozma. Sadece gerekli alanlarda düzenleme yap ve PDF üretim sistemini aşağıdaki kurallara göre yeniden tasarla.
+
+# 1. TEMEL AMAÇ
+
+Yeni PDF teklif formu:
+
+* A4 dikey ölçüsünde olmalı.
+* Tek sayfada tamamlanmalı.
+* Kurumsal ve premium görünmeli.
+* Müşteri PDF’yi açtığında ilk 5 saniyede şu dört sorunun cevabını görmeli:
+
+  1. Hangi eğitim teklif ediliyor?
+  2. Toplamda ne kazanıyorum?
+  3. Ne kadar ödeyeceğim?
+  4. Teklif ne zamana kadar geçerli?
+* Bilgiler rastgele alt alta yazılmamalı; güçlü bir görsel hiyerarşi kullanılmalı.
+* Teklif, yazılım çıktısı gibi değil, eğitim danışmanı tarafından öğrenciye özel hazırlanmış profesyonel bir teklif gibi görünmeli.
+* Mobil telefonda açıldığında da metinler rahat okunmalı.
+* Yazdırıldığında renkler, boşluklar ve bölümler bozulmamalı.
+
+# 2. TEKNİK YAKLAŞIM
+
+Mevcut PDF oluşturma yöntemi yeterince esnek değilse, teklif şablonunu HTML ve CSS ile oluştur ve Playwright veya Puppeteer üzerinden PDF’ye çevir.
+
+Ancak mevcut sistem farklı ve güvenilir bir PDF kütüphanesi kullanıyorsa, çalışan yapıyı gereksiz yere değiştirme. Önce mevcut mimariyi değerlendir ve en güvenli yöntemi seç.
+
+PDF oluştururken:
+
+* `@page` ile A4 boyutunu tanımla.
+* Baskı renklerinin korunmasını sağla.
+* Türkçe karakterlerin eksiksiz görüntülenmesini sağla.
+* Kullanılan fontların sunucuda veya proje içinde güvenli şekilde yüklenmesini sağla.
+* Metin uzunluklarının tasarımı bozmasını engelle.
+* Dinamik veriler için sabit yükseklikler yerine kontrollü esnek alanlar kullan.
+* Sayfa taşması olursa PDF oluşturulmadan önce hata veya uyarı üret.
+* PDF üretimi sırasında konsola anlaşılır hata kayıtları yaz.
+
+Örnek baskı temeli:
+
+```css
+@page {
+  size: A4;
+  margin: 0;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 210mm;
+  min-height: 297mm;
+  font-family: "Roboto Condensed", Arial, sans-serif;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+```
+
+# 3. KURUMSAL RENK VE TASARIM DİLİ
+
+Ana renkler:
+
+* English Time sarısı: `#FFF200`
+* Koyu lacivert veya koyu antrasit: `#111827` ya da buna yakın profesyonel bir ton
+* Beyaz: `#FFFFFF`
+* Açık gri arka plan: `#F5F6F8`
+* Kritik süre uyarıları için sınırlı miktarda kırmızı: `#D92D20`
+
+Kurallar:
+
+* Çok sayıda farklı renk kullanma.
+* Yeşil, turuncu, mavi ve sarıyı aynı anda farklı kartlarda kullanma.
+* Sarı, markanın ana vurgu rengi olmalı.
+* Koyu arka planlar yalnızca başlık veya fiyat alanlarında kullanılmalı.
+* Gölge, gradient ve efektleri abartma.
+* Kartlar modern, temiz ve ayırt edilebilir olmalı.
+* Köşe yuvarlaklıkları tutarlı olmalı.
+* Sayfanın dört kenarında güvenli boşluk bırakılmalı.
+* Metinler kenarlara yaklaşmamalı.
+* Ana kampanya mesajı ve fiyat sayfanın görsel merkezinde güçlü şekilde yer almalı.
+
+Font:
+
+* Başlıklar: Roboto Condensed Bold
+* Gövde: Roboto Condensed Regular veya Medium
+* Para tutarları: Roboto Condensed Bold
+* Gövde metni minimum 10 punto olmalı.
+* Ana fiyat 28–34 punto arasında görünmeli.
+
+# 4. SAYFA YAPISI
+
+PDF aşağıdaki bölümlerden oluşmalı:
+
+## A. Kurumsal üst alan
+
+Sol tarafta:
+
+* English Time logosu
+* Şube adı
+* “Kişiye Özel Eğitim Teklifi” başlığı
+
+Sağ tarafta düzenli bir bilgi kutusu:
+
+* Teklif numarası
+* Teklif tarihi
+* Son geçerlilik tarihi ve saati
+* Eğitim danışmanı adı
+* Danışman telefonu
+
+Başlık olarak “Özet Bilgi” kullanma.
+
+Ana başlık:
+
+“KİŞİYE ÖZEL EĞİTİM TEKLİFİ”
+
+Teklif numarası sistem tarafından benzersiz oluşturulmalı. Örnek:
+
+`ET-IZM-20260714-0032`
+
+Teklifin geçerliliğini “2 gün geçerlidir” şeklinde bırakma. Hesaplanmış net tarih ve saat göster:
+
+“Bu teklif 16 Temmuz 2026 saat 18.00’e kadar geçerlidir.”
+
+Sistem, teklif oluşturulurken seçilen geçerlilik süresine göre bu tarihi otomatik hesaplasın.
+
+## B. Öğrenciye özel giriş
+
+Öğrencinin adı varsa:
+
+“Sayın Ahmet Yılmaz,”
+
+Altında kısa açıklama:
+
+“Eğitim hedeflerinize göre hazırlanan program ve ödeme seçenekleri aşağıda sunulmuştur.”
+
+Öğrenci adı yoksa “Sayın Öğrencimiz” kullanılabilir.
+
+Bu metin kısa olmalı ve sayfada gereksiz yer kaplamamalı.
+
+## C. Ana kampanya alanı
+
+Bu alan teklifin en güçlü bölümü olmalı.
+
+Örnek kampanya:
+
+“3 KUR ALIN
++2 KUR VE MESLEKİ EĞİTİM HEDİYE”
+
+Kampanya metni veri tabanındaki paket bilgilerine göre dinamik oluşturulmalı.
+
+Örneğin paket 3+2 ise sadece “3+2” yazma. Müşterinin doğrudan anlayacağı şekilde açıkla:
+
+“3 Kur Alın, 2 Kur Hediye”
+
+Mesleki eğitim de varsa:
+
+“3 Kur Alın, 2 Kur ve Mesleki Eğitim Hediye”
+
+Bu alanın altında üç bilgi etiketi yer alsın:
+
+* Toplam eğitim: 5 Kur
+* Toplam ders saati: 600 Saat
+* Eğitim türü: Genel İngilizce
+
+Bu bilgiler ikonlu veya sade mini kartlar şeklinde gösterilebilir.
+
+## D. Eğitim içeriği ve kazanımlar
+
+Müşterinin satın aldığı ana eğitim ile ücretsiz verilen avantajlar birbirine karıştırılmamalı.
+
+Ana eğitim ayrı bölümde gösterilsin:
+
+* Eğitim programı
+* Satın alınan kur sayısı
+* Hediye kur sayısı
+* Toplam kur
+* Toplam ders saati
+* Program süresi veya tahmini tamamlanma süresi varsa
+* Eğitim modeli varsa: yüz yüze, online veya hibrit
+
+Burada “satın alınan” ve “hediye” ifadeleri açık olmalı.
+
+Örnek:
+
+* Satın alınan eğitim: 3 Kur Genel İngilizce
+* Hediye eğitim: 2 Kur Genel İngilizce
+* Toplam eğitim hakkı: 5 Kur
+* Toplam ders saati: 600 Saat
+
+## E. Fiyat ve ödeme alanı
+
+Bu alan sayfanın en dikkat çekici ikinci bölümü olmalı.
+
+Fiyatlar aşağıdaki sırayla gösterilmeli:
+
+1. Programın liste fiyatı
+2. Uygulanan kampanya indirimi
+3. Kampanyalı taksitli toplam fiyat
+4. Taksit sayısı ve aylık taksit tutarı
+5. Peşin ödeme fiyatı
+6. Peşin ödeme avantajı
+
+Örnek görünüm:
+
+Program Liste Fiyatı
+`150.500 TL`
+
+Kampanya İndirimi
+`−47.250 TL`
+
+Kampanyalı Taksitli Fiyat
+`103.250 TL`
+
+Ödeme Planı
+`6 ay × 17.208,33 TL`
+
+Peşin Ödeme Fiyatı
+`74.750 TL`
+
+Peşin Ödeme Avantajı
+`28.500 TL`
+
+Buradaki rakamlar örnektir. Gerçek değerler sistemdeki verilerden gelmeli.
+
+Liste fiyatı varsa üzeri çizili gösterilebilir. Ancak tasarım karmaşıklaşmamalı.
+
+Peşin ödeme fiyatı yalnızca sistemde peşin fiyat tanımlandıysa gösterilmeli.
+
+Peşin fiyat yoksa bu bölüm tamamen gizlenmeli; boş alan bırakılmamalı.
+
+Taksitlerin her birini ayrı ayrı:
+
+“1. taksit, 2. taksit, 3. taksit…”
+
+şeklinde tekrarlama.
+
+Eşit taksit varsa yalnızca:
+
+“6 ay × 17.208,33 TL”
+
+göster.
+
+Taksit tutarları farklıysa ayrı ve kompakt bir ödeme planı tablosu oluştur.
+
+## F. Hediyeler ve avantajlar
+
+Her hediye ayrı bir mini kartta gösterilsin.
+
+Örnek:
+
+* Kitap Seti
+  15.000 TL değerinde — Hediye
+
+* ETOPYA Online Eğitim
+  9.000 TL değerinde — Hediye
+
+* Mesleki Eğitim
+  4.500 TL değerinde — Hediye
+
+Kartların tamamında aynı tasarım dili kullanılmalı.
+
+Hediye değeri tanımlı değilse sadece hediye adı gösterilsin.
+
+Hediye değeri sıfırsa “0 TL değerinde” yazılmasın.
+
+Bölüm sonunda otomatik toplam göster:
+
+“Toplam hediye ve ek hizmet avantajı: 28.500 TL”
+
+Bu toplam yalnızca değeri tanımlı hediyeler üzerinden hesaplanmalı.
+
+Peşin ödeme indirimi ile hediye toplamı birbirinden ayrı tutulmalı.
+
+İkisi de 28.500 TL olsa bile aynı avantajmış gibi gösterilmemeli.
+
+## G. Geçerlilik ve kontenjan uyarısı
+
+Sayfanın alt bölümüne yakın, dikkat çekici fakat kurumsal bir uyarı alanı oluştur:
+
+“Bu teklif 16 Temmuz 2026 saat 18.00’e kadar geçerlidir.”
+
+İstenirse ikinci satır:
+
+“Belirtilen fiyat ve kontenjan, teklif süresi sonunda yeniden değerlendirilebilir.”
+
+Gerçek bir kontenjan verisi yoksa:
+
+“Son 3 kontenjan”
+“Kontenjanlar tükeniyor”
+
+gibi doğrulanmamış ifadeler üretme.
+
+## H. Eğitim danışmanı ve sonraki adım
+
+Sayfanın sonunda müşteriyi harekete geçiren net bir alan bulunmalı:
+
+“Teklifinizi onaylamak ve kontenjanınızı ayırmak için eğitim danışmanınızla iletişime geçebilirsiniz.”
+
+Gösterilecek bilgiler:
+
+* Danışman adı
+* Şube adı
+* Telefon
+* WhatsApp iletişim bilgisi
+* Şube adresi
+* Varsa QR kod
+
+QR kod:
+
+* WhatsApp konuşmasına,
+* teklif onay sayfasına
+* veya sistem içindeki güvenli teklif görüntüleme bağlantısına yönlendirilebilir.
+
+QR kod özelliği henüz sistemde yoksa altyapısını modüler şekilde hazırla ancak mevcut işlemleri bozma.
+
+## I. Alt yasal açıklama
+
+Sayfanın en altında küçük fakat okunabilir metin:
+
+“Bu belge eğitim kapsamı, kampanya avantajları ve ödeme seçenekleri hakkında ön bilgilendirme amacı taşır. Kesin kayıt işlemi tamamlandığında taraflar arasında eğitim sözleşmesi düzenlenir.”
+
+Bu metin gövde yazısından küçük olabilir ancak 8 puntodan küçük olmamalı.
+
+# 5. HESAPLAMA VE VERİ DOĞRULAMA KURALLARI
+
+PDF oluşturulmadan önce tüm fiyatlar kontrol edilmeli.
+
+Aşağıdaki doğrulamaları uygula:
+
+## Eşit taksit kontrolü
+
+```text
+taksit sayısı × aylık taksit tutarı = taksitli toplam fiyat
+```
+
+Kuruş yuvarlaması varsa:
+
+* Tüm taksitler aynı gösterilebilir.
+* Aradaki kuruş farkı son taksite eklenebilir.
+* Toplam ile taksitlerin toplamı kesinlikle uyuşmalı.
+
+Örneğin 103.250 TL, 6 taksite tam bölünmüyorsa:
+
+* İlk 5 taksit: 17.208,33 TL
+* Son taksit: 17.208,35 TL
+
+veya sistemin finansal yuvarlama kuralına uygun başka güvenilir bir yöntem kullanılabilir.
+
+Ancak hiçbir durumda:
+
+`17.208 TL × 6 = 103.250 TL`
+
+gibi yanlış bir gösterim oluşmamalı.
+
+## İndirim kontrolü
+
+```text
+liste fiyatı - indirim tutarı = kampanyalı fiyat
+```
+
+Yüzde indirim gösteriliyorsa:
+
+```text
+indirim yüzdesi = indirim tutarı / liste fiyatı × 100
+```
+
+Yüzde değeri ile fiyat farkı uyuşmuyorsa PDF oluşturma.
+
+Kullanıcıya anlaşılır hata mesajı ver:
+
+“Liste fiyatı, indirim oranı ve kampanyalı fiyat birbiriyle uyuşmuyor. Lütfen fiyatlandırmayı kontrol edin.”
+
+## Peşin fiyat kontrolü
+
+```text
+taksitli toplam fiyat - peşin indirim = peşin fiyat
+```
+
+Peşin fiyat manuel tanımlanıyorsa hesaplanan değerle karşılaştır.
+
+## Hediye toplamı
+
+```text
+toplam hediye değeri = tüm değerli hediye kalemlerinin toplamı
+```
+
+Hediye değeri ile indirim tutarını aynı değişkende kullanma.
+
+## Para formatı
+
+Türk para formatı kullan:
+
+* `103.250 TL`
+* `17.208,33 TL`
+* `1.250.000 TL`
+
+Yüzdeler:
+
+* `%50`
+* `%28,5`
+
+Gereksiz `.0` gösterme.
+
+Yanlış:
+
+`%50.0`
+
+Doğru:
+
+`%50`
+
+Tarih formatı:
+
+`14 Temmuz 2026`
+
+Saat:
+
+`18.00`
+
+# 6. DİNAMİK ALANLAR
+
+Aşağıdaki alanlar uygulamadaki gerçek verilerden alınmalı:
+
+* Öğrenci adı ve soyadı
+* Eğitim programı
+* Satın alınan kur sayısı
+* Hediye kur sayısı
+* Toplam kur sayısı
+* Toplam ders saati
+* Kampanya adı
+* Liste fiyatı
+* İndirim tutarı
+* İndirim oranı
+* Taksitli toplam fiyat
+* Taksit sayısı
+* Taksit tutarları
+* Peşin fiyat
+* Peşin ödeme avantajı
+* Hediye listesi
+* Hediye değerleri
+* Teklif tarihi
+* Teklif geçerlilik tarihi
+* Teklif numarası
+* Danışman adı
+* Danışman telefonu
+* Şube adı
+* Şube adresi
+* WhatsApp veya onay bağlantısı
+
+Eksik veri olan bölümler boş görünmemeli. İlgili alan veya kart otomatik gizlenmeli.
+
+Örneğin mesleki eğitim yoksa “Mesleki Eğitim” alanı gösterilmemeli.
+
+# 7. KOD YAPISI
+
+Teklif oluşturma kodunu tek ve dev bir dosyada yazma.
+
+Mümkünse şu şekilde modüler hale getir:
+
+* `offerCalculations`
+* `offerValidation`
+* `offerDataMapper`
+* `offerTemplate`
+* `offerStyles`
+* `offerPdfGenerator`
+* `offerQrGenerator`
+* `offerNumberGenerator`
+
+Fonksiyonlar açık isimlere sahip olmalı.
+
+Hesaplama işlemleri HTML şablonunun içinde yapılmamalı.
+
+Önce teklif verisi hazırlanmalı ve doğrulanmalı, ardından şablona aktarılmalı.
+
+PDF şablonuna sadece doğrulanmış veri gönderilmeli.
+
+# 8. ÖN İZLEME
+
+Mümkünse fiyatlandırma ekranına “Teklif Ön İzleme” özelliği ekle.
+
+Kullanıcı PDF indirmeden önce:
+
+* öğrenci adını,
+* kampanya başlığını,
+* fiyatları,
+* taksitleri,
+* hediyeleri,
+* danışman bilgilerini
+* ve son geçerlilik tarihini
+
+kontrol edebilsin.
+
+Butonlar:
+
+* “Teklifi Ön İzle”
+* “PDF Oluştur”
+* “PDF İndir”
+* varsa “WhatsApp ile Paylaş”
+
+Ön izleme ile oluşturulan PDF mümkün olduğunca aynı görünmeli.
+
+# 9. TESTLER
+
+Değişiklikleri tamamladıktan sonra aşağıdaki senaryoları test et:
+
+1. 3+2 kur ve mesleki eğitim hediyeli teklif
+2. Hediye içermeyen standart paket
+3. Peşin fiyatı olmayan teklif
+4. Peşin ve taksitli fiyatı olan teklif
+5. 6 eşit taksit
+6. Tam bölünmeyen taksit tutarı
+7. Çok uzun eğitim programı adı
+8. Çok uzun öğrenci adı
+9. Birden fazla hediye
+10. Hediye değeri olmayan hediye
+11. İndirim oranı olmayan ancak indirim tutarı olan teklif
+12. Fiyatların birbiriyle uyuşmadığı hatalı veri
+13. Türkçe karakter içeren öğrenci ve danışman isimleri
+14. PDF’nin tek A4 sayfasında kalması
+15. Mobil ekranda PDF okunabilirliği
+16. Yazdırma görünümü
+17. Logo yüklenemediğinde güvenli yedek görünüm
+
+Testlerde özellikle şu Türkçe karakterleri kontrol et:
+
+`ç, Ç, ğ, Ğ, ı, İ, ö, Ö, ş, Ş, ü, Ü`
+
+# 10. UYGULAMA SÜRECİ
+
+Çalışmaya başlamadan önce:
+
+1. Mevcut proje yapısını incele.
+2. PDF’nin hangi dosya ve fonksiyonlar tarafından oluşturulduğunu belirle.
+3. Fiyat hesaplamalarının nerede yapıldığını belirle.
+4. Mevcut sistemde hatalı veya tekrar eden hesaplamaları tespit et.
+5. Kullanılan PDF yönteminin korunup korunmayacağına karar ver.
+
+Ardından:
+
+1. Yeni teklif tasarımını oluştur.
+2. Hesaplama doğrulamalarını ekle.
+3. Ön izleme özelliğini uygula.
+4. PDF çıktısını test et.
+5. Mevcut fiyatlandırma ve kayıt özelliklerinin bozulmadığını kontrol et.
+
+Değişiklikleri yaptıktan sonra bana şu bilgileri açıkça raporla:
+
+* Hangi dosyaları değiştirdin?
+* Hangi yeni dosyaları oluşturdun?
+* PDF hangi yöntemle oluşturuluyor?
+* Fiyat doğrulaması nasıl çalışıyor?
+* Taksitlerdeki kuruş farkı nasıl yönetiliyor?
+* Eksik veriler tasarımda nasıl gizleniyor?
+* Hangi testleri gerçekleştirdin?
+* Mevcut sistemde fark ettiğin hesaplama hataları var mı?
+* Manuel olarak kontrol etmem gereken alanlar nelerdir?
+
+Sadece tasarımın kodunu yazıp bırakma. Çalışan uygulamada PDF oluştur, çıktı sonucunu kontrol et ve sayfa taşması, Türkçe karakter, fiyat doğruluğu ve görsel yerleşim açısından test et.
+
+Mevcut çalışan sistemi bozacak geniş kapsamlı ve gereksiz değişiklikler yapma. Önce mevcut kodu anlamaya çalış, sonra kontrollü ve geri alınabilir şekilde ilerle.
