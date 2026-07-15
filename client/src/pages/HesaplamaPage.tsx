@@ -27,8 +27,9 @@ import { Download, FileText, MessageCircle, Send } from "lucide-react";
 import { downloadPDFWithTurkishSupport } from "@/utils/pdf-with-turkish";
 import { generateTeklifPDF } from "@/utils/teklif-pdf-generator";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import type { EgitimTipi } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,11 @@ const HesaplamaPage = () => {
   const { kampanyalar } = useAppContext();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Eğitim tiplerini veritabanından çek (kampanyalardaki değerlerle birebir eşleşmesi için)
+  const { data: egitimTipleri = [] } = useQuery<EgitimTipi[]>({
+    queryKey: ["/api/egitim-tipleri"],
+  });
 
   const [selectedEgitimTipi, setSelectedEgitimTipi] = useState<string>("");
   const [selectedKampanyaId, setSelectedKampanyaId] = useState<string>("");
@@ -592,15 +598,11 @@ const HesaplamaPage = () => {
                       <SelectValue placeholder="Eğitim tipi seçin" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Genel İngilizce">Genel İngilizce</SelectItem>
-                      <SelectItem value="Genel Almanca">Genel Almanca</SelectItem>
-                      <SelectItem value="Junior">Junior</SelectItem>
-                      <SelectItem value="Teenage">Teenage</SelectItem>
-                      <SelectItem value="Yds">Yds</SelectItem>
-                      <SelectItem value="Toefl">Toefl</SelectItem>
-                      <SelectItem value="Ielts">Ielts</SelectItem>
-                      <SelectItem value="Ydt">Ydt</SelectItem>
-                      <SelectItem value="Özel Ders">Özel Ders</SelectItem>
+                      {egitimTipleri.map((tip) => (
+                        <SelectItem key={tip.id} value={tip.egitimTipi}>
+                          {tip.egitimTipi}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
