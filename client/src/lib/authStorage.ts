@@ -27,7 +27,35 @@ export function getUser(): User | null {
 export function clearUser(): void {
   try {
     localStorage.removeItem('fiyatlama_user');
+    localStorage.removeItem('fiyatlama_token');
   } catch (e) {
     console.error('Kullanıcı verileri temizlenemedi:', e);
+  }
+}
+
+// Kimlik doğrulama token'ını kaydet (iframe'de çerez engellemesine karşı)
+export function saveToken(token: string): void {
+  try {
+    localStorage.setItem('fiyatlama_token', token);
+  } catch (e) {
+    console.error('Token kaydedilemedi:', e);
+  }
+}
+
+// Kimlik doğrulama token'ını getir
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem('fiyatlama_token');
+  } catch (e) {
+    return null;
+  }
+}
+
+// Kimlik doğrulama token'ını temizle
+export function clearToken(): void {
+  try {
+    localStorage.removeItem('fiyatlama_token');
+  } catch (e) {
+    console.error('Token temizlenemedi:', e);
   }
 }

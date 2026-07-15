@@ -2,10 +2,20 @@ import bcrypt from "bcryptjs";
 import session from "express-session";
 import { Express, Request, Response, NextFunction } from "express";
 import connectPgSimple from "connect-pg-simple";
+import { SignJWT, jwtVerify } from "jose";
 import { pool } from "./db";
 import { z } from "zod";
 import { loginSchema, Login } from "@shared/schema";
 import { storage } from "./storage";
+
+// Oturum ve token imzalaması için zorunlu gizli anahtar.
+// Güvensiz bir varsayılana düşmek yerine eksikse uygulamayı başlatma.
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error(
+    "SESSION_SECRET ortam değişkeni ayarlanmalıdır. Kimlik doğrulama için gereklidir."
+  );
+}
 
 // Şifre şifreleme
 export const hashPassword = async (password: string): Promise<string> => {
@@ -41,7 +51,7 @@ export const setupSession = (app: Express) => {
         createTableIfMissing: true,
         ttl: 86400 // 1 gün
       }),
-      secret: process.env.SESSION_SECRET || "fiyathesaplama-gizli-anahtar", // Prodüksiyonda gerçek bir secret kullanın
+      secret: SESSION_SECRET,
       resave: true,            // Session bilgilerinin yeniden kaydedilmesini sağlar
       saveUninitialized: true, // Başlatılmamış oturumların kaydedilmesini sağlar
       name: 'fiyatlama_sid',   // Özel isim
@@ -56,9 +66,54 @@ export const setupSession = (app: Express) => {
   );
 };
 
+// ----------------------------------------------------------------------------
+// Token tabanlı kimlik doğrulama (iframe'de çerez engellemesine karşı)
+// ----------------------------------------------------------------------------
+const tokenSecret = new TextEncoder().encode(SESSION_SECRET);
+
+// Giriş sonrası kullanıcıya verilen JWT token'ı oluştur
+export const createToken = async (userId: number): Promise<string> => {
+  return await new SignJWT({ userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(tokenSecret);
+};
+
+// Her istekte oturum (çerez) VEYA Authorization header token'ından kullanıcıyı çöz
+// ve req.authUser'a ekle. Böylece çerez engellenen iframe'de de kimlik doğrulanır.
+export const attachUser = async (req: Request, _res: Response, next: NextFunction) => {
+  try {
+    // 1) Çerez tabanlı oturum varsa onu kullan (yeni sekme / normal tarayıcı)
+    if (req.session && (req.session as any).user) {
+      (req as any).authUser = (req.session as any).user;
+      return next();
+    }
+
+    // 2) Aksi halde Authorization: Bearer <token> başlığını dene (iframe)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const { payload } = await jwtVerify(token, tokenSecret);
+      const userId = Number(payload.userId);
+      if (userId) {
+        const kullanici = await storage.getKullanici(userId);
+        if (kullanici && kullanici.aktif) {
+          const roller = await storage.getKullaniciRoller(userId);
+          const { sifre, ...rest } = kullanici as any;
+          (req as any).authUser = { ...rest, roller };
+        }
+      }
+    }
+  } catch (e) {
+    // Geçersiz/expired token → kimliksiz devam et (route'lar 401 döner)
+  }
+  next();
+};
+
 // Oturum kontrolü için middleware
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.session && req.session.user) {
+  if (getSessionUser(req)) {
     return next();
   }
   
@@ -67,9 +122,8 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
 
 // Admin (Sistem Yöneticisi, Kurucu ve Müdür) rolü kontrolü
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (req.session && req.session.user) {
-    const user = req.session.user as any;
-    
+  const user = getSessionUser(req);
+  if (user) {
     // Roller içinde Sistem Yöneticisi, KURUCU veya MÜDÜR var mı kontrol et
     if (user.roller && user.roller.some((r: any) => 
       r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür")) {
@@ -84,9 +138,9 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
 // Rol yardımcıları (yetki kontrolleri için tek kaynak)
 // ----------------------------------------------------------------------------
 
-// Oturumdaki kullanıcıyı döndür
+// Oturumdaki kullanıcıyı döndür (çerez oturumu VEYA token'dan çözülen kullanıcı)
 export const getSessionUser = (req: Request): any | null => {
-  return (req.session && (req.session as any).user) || null;
+  return (req as any).authUser || (req.session && (req.session as any).user) || null;
 };
 
 // Kullanıcının rol adlarını döndür
@@ -182,7 +236,7 @@ export const login = async (req: Request, res: Response) => {
     console.log('Login - Session cookie:', req.session.cookie);
     
     // Session'ı kaydetmek için
-    req.session.save((err) => {
+    req.session.save(async (err) => {
       if (err) {
         console.error('Session kayıt hatası:', err);
         return res.status(500).json({ error: "Oturum kaydedilirken bir hata oluştu" });
@@ -190,9 +244,12 @@ export const login = async (req: Request, res: Response) => {
       
       console.log('Session kaydedildi - User ID:', kullaniciWithRoller.id);
       
+      // Çerez engellenen ortamlar (iframe) için token üret
+      const token = await createToken(kullaniciWithRoller.id);
+      
       // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
       const { sifre, ...userWithoutPassword } = kullaniciWithRoller;
-      return res.json(userWithoutPassword);
+      return res.json({ ...userWithoutPassword, token });
     });
   } catch (error) {
     console.error("Giriş hatası:", error);
@@ -221,27 +278,26 @@ export const logout = (req: Request, res: Response) => {
 
 // Mevcut oturum bilgisi
 export const getCurrentUser = (req: Request, res: Response) => {
-  console.log("Session ID:", req.sessionID);
-  console.log("Session bilgisi:", req.session);
+  const user = getSessionUser(req);
   
-  if (!req.session || !req.session.user) {
+  if (!user) {
     return res.status(401).json({ error: "Oturum açık değil" });
   }
   
   // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
-  const { sifre, ...userWithoutPassword } = req.session.user as any;
+  const { sifre, ...userWithoutPassword } = user;
   res.json(userWithoutPassword);
 };
 
 // Şifre değiştirme
 export const changePassword = async (req: Request, res: Response) => {
-  if (!req.session || !req.session.user) {
+  const user = getSessionUser(req);
+  if (!user) {
     return res.status(401).json({ error: "Oturum açık değil" });
   }
   
   try {
     const { eskiSifre, yeniSifre } = req.body;
-    const user = req.session.user as any;
     
     const kullanici = await storage.getKullanici(user.id);
     

@@ -1,4 +1,12 @@
 import { QueryClient } from '@tanstack/react-query';
+import { getToken } from './authStorage';
+
+// Her istekte gönderilecek kimlik doğrulama başlıklarını oluştur
+// (iframe'de çerezler engellenebildiği için token'ı Authorization ile gönderiyoruz)
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -12,6 +20,7 @@ export const queryClient = new QueryClient({
             credentials: 'include', // Cookies'leri göndermek için
             headers: {
               'Content-Type': 'application/json',
+              ...authHeaders(),
             },
           });
           if (!response.ok) {
@@ -31,6 +40,7 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
     credentials: 'include', // Önemli: Cookies gönderimi sağlar
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options.headers,
     },
     body: options.body || (options.method !== 'GET' && options.method !== 'HEAD' && (options as any).data ? JSON.stringify((options as any).data) : undefined),

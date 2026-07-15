@@ -1,9 +1,9 @@
 import React, { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
-import { saveUser, getUser, clearUser } from "@/lib/authStorage";
+import { saveUser, getUser, clearUser, saveToken, getToken, clearToken } from "@/lib/authStorage";
 
 type User = KullaniciWithRollerVeSubeler | Kullanici;
 
@@ -52,10 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/current-user"],
     queryFn: async () => {
       try {
+        const token = getToken();
         const res = await fetch("/api/auth/current-user", {
           credentials: 'include',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
           }
         });
         console.log("Current user response status:", res.status);
@@ -112,7 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(errorData.error || "Giriş yapılamadı");
       }
       
-      const userData = await res.json();
+      const { token, ...userData } = await res.json();
+      
+      // Token'ı kaydet (iframe'de çerez engellemesine karşı Authorization header ile kullanılır)
+      if (token) {
+        saveToken(token);
+      }
       
       // LocalStorage'a kaydet ve state'i güncelle
       saveUser(userData);
@@ -163,8 +170,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       queryClient.setQueryData(["/api/auth/current-user"], null);
       
-      // LocalStorage'dan kullanıcı bilgisini sil
+      // LocalStorage'dan kullanıcı bilgisini ve token'ı sil
       clearUser();
+      clearToken();
       
       setLocalUser(null);
       
@@ -190,18 +198,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const changePassword = async (data: { oldPassword: string; newPassword: string }) => {
     try {
       setChangePwdPending(true);
-      const res = await fetch("/api/auth/change-password", {
+      // apiRequest, Authorization: Bearer token'ı otomatik ekler (iframe desteği)
+      await apiRequest("/api/auth/change-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Şifre değiştirilemedi");
-      }
+        data,
+      } as any);
       
       toast({
         title: "Şifre Değiştirildi",

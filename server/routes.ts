@@ -16,7 +16,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
-import { setupSession, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
+import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
 import "./types"; // Session tiplerini yükle
 
 // Müdürün gönderdiği rollerin geçerliliği: yalnızca kendi şubesine "Satış Danışmanı"
@@ -36,6 +36,9 @@ function kullaniciMudureAitMi(kullanici: any, managed: number[]): boolean {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Oturum yönetimi kurulumu
   setupSession(app);
+  
+  // Her istekte oturum çerezi VEYA Bearer token'dan kullanıcıyı çöz (iframe desteği)
+  app.use(attachUser);
   
   // Auth routes
   app.post("/api/auth/login", login);

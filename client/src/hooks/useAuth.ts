@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Login, ChangePassword, KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { saveToken, getToken, clearToken } from "@/lib/authStorage";
 
 export type User = KullaniciWithRollerVeSubeler | Kullanici;
 
@@ -13,7 +14,14 @@ export function useAuth() {
     queryKey: ["/api/auth/current-user"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/auth/current-user");
+        const token = getToken();
+        const res = await fetch("/api/auth/current-user", {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
         if (!res.ok) {
           if (res.status === 401) {
             // Oturum açık değil - hata mesajı gösterme
@@ -36,6 +44,7 @@ export function useAuth() {
     mutationFn: async (credentials: Login) => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -45,7 +54,9 @@ export function useAuth() {
         const errorData = await res.json();
         throw new Error(errorData.error || "Giriş yapılamadı");
       }
-      return res.json();
+      const { token, ...userData } = await res.json();
+      if (token) saveToken(token);
+      return userData as User;
     },
     onSuccess: (userData: User) => {
       queryClient.setQueryData(["/api/auth/current-user"], userData);
@@ -68,6 +79,7 @@ export function useAuth() {
     mutationFn: async () => {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -79,6 +91,7 @@ export function useAuth() {
       return res.json();
     },
     onSuccess: () => {
+      clearToken();
       queryClient.setQueryData(["/api/auth/current-user"], null);
       toast({
         title: "Çıkış Başarılı",
@@ -97,18 +110,11 @@ export function useAuth() {
   // Şifre değiştirme
   const changePasswordMutation = useMutation({
     mutationFn: async (passwordData: ChangePassword) => {
-      const res = await fetch("/api/auth/change-password", {
+      // apiRequest, Authorization: Bearer token'ı otomatik ekler (iframe desteği)
+      return await apiRequest("/api/auth/change-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(passwordData)
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Şifre değiştirilemedi");
-      }
-      return res.json();
+        data: passwordData,
+      } as any);
     },
     onSuccess: () => {
       toast({
