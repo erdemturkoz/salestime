@@ -81,9 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000, // 5 dakika
   });
   
-  // Sunucudan gelen ve localStorage'dan gelen kullanıcı bilgisini birleştir
+  // Sunucu kesin cevap verene kadar (yüklenirken) localStorage'daki kullanıcıyı
+  // iyimser şekilde göster; sunucu cevap verdikten sonra YALNIZCA sunucuya güven.
+  // Sunucu 401 dönerse (oturum geçersiz/süresi dolmuş) eski localStorage temizlenir.
+  useEffect(() => {
+    if (!isLoading && serverUser === null) {
+      clearUser();
+      setLocalUser(null);
+    }
+  }, [isLoading, serverUser]);
+
   // @ts-ignore
-  const user = serverUser || localUser;
+  const user = isLoading ? (serverUser ?? localUser) : serverUser;
 
   // Giriş yap
   const login = async (credentials: { telefon: string; sifre: string }) => {
