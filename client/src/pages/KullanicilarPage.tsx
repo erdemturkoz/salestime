@@ -77,6 +77,8 @@ const KullanicilarPage = () => {
   const [newUser, setNewUser] = useState({
     adi: "",
     soyadi: "",
+    telefon: "",
+    sifre: "",
     selectedRol: "Satış Danışmanı" as Rol,
     selectedSubeId: 0,
     selectedSubeler: [] as {subeId: number, rol: Rol}[],
@@ -174,6 +176,8 @@ const KullanicilarPage = () => {
       setNewUser({
         adi: "",
         soyadi: "",
+        telefon: "",
+        sifre: "",
         selectedRol: "Satış Danışmanı",
         selectedSubeId: varsayilanSube,
         selectedSubeler: [],
@@ -186,6 +190,8 @@ const KullanicilarPage = () => {
     setNewUser({
       adi: "",
       soyadi: "",
+      telefon: "",
+      sifre: "",
       selectedRol: "Satış Danışmanı",
       selectedSubeId: Array.isArray(subeler) && subeler.length > 0 ? subeler[0].id : 0,
       selectedSubeler: [],
@@ -232,6 +238,24 @@ const KullanicilarPage = () => {
       return;
     }
 
+    if (!newUser.telefon.trim()) {
+      toast({
+        title: "Eksik bilgiler",
+        description: "Kullanıcının giriş yapabilmesi için telefon (kullanıcı adı) zorunludur.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newUser.sifre || newUser.sifre.length < 4) {
+      toast({
+        title: "Eksik bilgiler",
+        description: "Şifre en az 4 karakter olmalıdır.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (newUser.selectedSubeler.length === 0) {
       toast({
         title: "Eksik bilgiler",
@@ -245,6 +269,8 @@ const KullanicilarPage = () => {
     const userData = {
       adi: newUser.adi,
       soyadi: newUser.soyadi,
+      telefon: newUser.telefon.trim(),
+      sifre: newUser.sifre,
       roller: newUser.selectedSubeler.map(sr => ({
         subeId: sr.subeId,
         rol: sr.rol
@@ -529,6 +555,31 @@ const KullanicilarPage = () => {
                 id="soyad"
                 value={newUser.soyadi}
                 onChange={(e) => setNewUser({ ...newUser, soyadi: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="telefon" className="text-right">
+                Telefon
+              </label>
+              <Input
+                id="telefon"
+                placeholder="Giriş için kullanıcı adı"
+                value={newUser.telefon}
+                onChange={(e) => setNewUser({ ...newUser, telefon: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="sifre" className="text-right">
+                Şifre
+              </label>
+              <Input
+                id="sifre"
+                type="password"
+                placeholder="En az 4 karakter"
+                value={newUser.sifre}
+                onChange={(e) => setNewUser({ ...newUser, sifre: e.target.value })}
                 className="col-span-3"
               />
             </div>

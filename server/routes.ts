@@ -187,8 +187,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Kullanıcı veri şemasını doğrula
       const kullaniciData = insertKullaniciSchema.parse(req.body);
       
+      // Şifreyi hashle (düz metin saklanmamalı; giriş bcrypt ile doğrulanıyor)
+      const hashedData = {
+        ...kullaniciData,
+        sifre: await hashPassword(kullaniciData.sifre),
+      };
+      
       // Yeni kullanıcıyı oluştur
-      const newKullanici = await storage.createKullanici(kullaniciData);
+      const newKullanici = await storage.createKullanici(hashedData);
       
       // Roller varsa, her rol için kullanıcı-şube ilişkisini ekle
       if (roller && roller.length > 0) {
