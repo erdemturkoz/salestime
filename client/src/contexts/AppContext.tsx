@@ -132,7 +132,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         kitapSetSayisi: kampanya.kitapSetSayisi || 1,
         maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
         maxSenetTaksit: kampanya.maxSenetTaksit || 12,
-        hediyeler: kampanya.hediyeler || []
+        hediyeler: kampanya.hediyeler || [],
+        subeId: (kampanya as any).subeId ?? null
       };
       
       // API çağrısı ile veritabanına kampanya ekle

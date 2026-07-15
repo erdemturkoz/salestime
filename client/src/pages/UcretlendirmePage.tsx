@@ -236,7 +236,7 @@ const UcretlendirmePage = () => {
         // Şube ID'sini ekle
         addKampanya({
           ...formData,
-          subeId: currentUser?.primarySubeId || null
+          subeId: (user as any)?.roller?.[0]?.subeId || null
         });
         toast({
           title: "Başarılı",
@@ -408,7 +408,7 @@ const UcretlendirmePage = () => {
             maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ? parseInt(kampanya.maxKrediKartiTaksit.toString()) : 8,
             maxSenetTaksit: kampanya.maxSenetTaksit ? parseInt(kampanya.maxSenetTaksit.toString()) : 12,
             hediyeler: kampanya.hediyeler || [],
-            subeId: currentUser?.primarySubeId || null
+            subeId: (user as any)?.roller?.[0]?.subeId || null
           };
           
           addKampanya(newKampanya);
