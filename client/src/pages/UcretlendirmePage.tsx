@@ -106,7 +106,10 @@ const UcretlendirmePage = () => {
     };
     
     fetchKampanyalar();
-  }, [selectedSubeId, toast, refreshKampanyalar]);
+    // refreshKampanyalar her render'da yeniden oluştuğu için bağımlılığa eklenirse
+    // sonsuz döngü oluşuyor; sadece selectedSubeId değişiminde çalışması yeterli.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubeId]);
   
   // Sayfa ilk yüklendiğinde şubeleri getir
   useEffect(() => {
@@ -201,7 +204,7 @@ const UcretlendirmePage = () => {
     setCurrentId(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.kampanyaAdi) {
@@ -224,7 +227,7 @@ const UcretlendirmePage = () => {
     
     try {
       if (isEditing && currentId) {
-        updateKampanya({
+        await updateKampanya({
           ...formData,
           id: currentId,
         });
@@ -234,7 +237,7 @@ const UcretlendirmePage = () => {
         });
       } else {
         // Şube ID'sini ekle
-        addKampanya({
+        await addKampanya({
           ...formData,
           subeId: (user as any)?.roller?.[0]?.subeId || null
         });

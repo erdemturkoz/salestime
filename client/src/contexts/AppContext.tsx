@@ -146,9 +146,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API hatası:', errorData);
-        throw new Error('Kampanya eklenirken bir hata oluştu');
+        let detay = `Sunucu hatası (${response.status})`;
+        try {
+          const errorData = await response.json();
+          console.error('API hatası:', errorData);
+          if (errorData?.error) {
+            detay = typeof errorData.error === 'string'
+              ? errorData.error
+              : JSON.stringify(errorData.error);
+          }
+        } catch {
+          // Yanıt JSON değilse (ör. HTML hata sayfası) parse etmeye çalışma
+        }
+        throw new Error(detay);
       }
       
       // Eklenen kampanyayı al
@@ -162,6 +172,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
     } catch (error) {
       console.error('Kampanya eklenirken bir hata oluştu:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -229,9 +240,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API hatası:', errorData);
-        throw new Error('Kampanya güncellenirken bir hata oluştu');
+        let detay = `Sunucu hatası (${response.status})`;
+        try {
+          const errorData = await response.json();
+          console.error('API hatası:', errorData);
+          if (errorData?.error) {
+            detay = typeof errorData.error === 'string'
+              ? errorData.error
+              : JSON.stringify(errorData.error);
+          }
+        } catch {
+          // Yanıt JSON değilse parse etmeye çalışma
+        }
+        throw new Error(detay);
       }
       
       // State'i güncelle
@@ -243,6 +264,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
     } catch (error) {
       console.error('Kampanya güncellenirken bir hata oluştu:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
