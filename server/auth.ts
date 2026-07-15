@@ -46,11 +46,11 @@ export const setupSession = (app: Express) => {
       saveUninitialized: true, // Başlatılmamış oturumların kaydedilmesini sağlar
       name: 'fiyatlama_sid',   // Özel isim
       cookie: {
-        secure: false,         // Geliştirme modunda HTTPS olmadığı için false
+        secure: true,          // Replit HTTPS proxy arkasında çalışır; iframe için gerekli
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün
         path: '/',
-        sameSite: 'lax'        // SameSite=none iframe'de sorun çıkarıyor
+        sameSite: 'none'       // Önizleme iframe'i (çapraz-site) içinde çerezin gönderilmesi için şart
       },
     })
   );

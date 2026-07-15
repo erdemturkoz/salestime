@@ -1,1 +1,2 @@
 - [RBAC branch/role model](rbac-branch-roles.md) — 3 roles (Full Admin/Müdür/Danışman); campaigns strictly branch-isolated (no globals); müdür can only manage own-branch danışmanlar.
+- [Session cookies in preview iframe](session-cookies-iframe.md) — session cookie must be SameSite=None; Secure or login silently fails inside the Replit preview iframe (works in new tab only).
