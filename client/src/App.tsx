@@ -48,12 +48,12 @@ function Router() {
             </AuthenticationGuard>
           </Route>
           <Route path="/subeler">
-            <AuthenticationGuard adminOnly>
+            <AuthenticationGuard fullAdminOnly>
               <SubeKartlari />
             </AuthenticationGuard>
           </Route>
           <Route path="/egitim-tipleri">
-            <AuthenticationGuard adminOnly>
+            <AuthenticationGuard fullAdminOnly>
               <EgitimTipleriPage />
             </AuthenticationGuard>
           </Route>

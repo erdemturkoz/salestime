@@ -16,6 +16,11 @@ interface AuthContextType {
   logout: () => Promise<void>;
   changePassword: (data: { oldPassword: string; newPassword: string }) => Promise<void>;
   isAdmin: () => boolean;
+  isFullAdmin: () => boolean;
+  canManageCampaigns: () => boolean;
+  isMudur: () => boolean;
+  isDanisman: () => boolean;
+  getManagedSubeIds: () => number[];
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -205,13 +210,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Admin yetkisi kontrolü
-  const isAdmin = () => {
-    if (!user || !user.roller) return false;
-    
-    const userRoles = user.roller.map((r: any) => r.rol);
-    return userRoles.includes("Sistem Yöneticisi") || userRoles.includes("Kurucu") || userRoles.includes("Müdür");
+  // Kullanıcı rolleri
+  const getRoles = (): string[] => {
+    if (!user || !("roller" in user) || !user.roller) return [];
+    return user.roller.map((r: any) => r.rol);
   };
+
+  // Tam yetkili admin (Kurucu / Sistem Yöneticisi) — tüm şubelere hakim
+  const isFullAdmin = () => {
+    const roles = getRoles();
+    return roles.includes("Sistem Yöneticisi") || roles.includes("Kurucu");
+  };
+
+  // Şube müdürü
+  const isMudur = () => getRoles().includes("Müdür");
+
+  // Kampanya yönetebilir mi? (Tam admin veya müdür)
+  const canManageCampaigns = () => isFullAdmin() || isMudur();
+
+  // Yalnızca satış danışmanı mı? (yönetim yetkisi yok)
+  const isDanisman = () => !canManageCampaigns();
+
+  // Müdür olarak yönetilen şube id'leri
+  const getManagedSubeIds = (): number[] => {
+    if (!user || !("roller" in user) || !user.roller) return [];
+    const ids = user.roller
+      .filter((r: any) => r.rol === "Müdür")
+      .map((r: any) => r.subeId)
+      .filter((x: any) => x !== null && x !== undefined);
+    return Array.from(new Set<number>(ids));
+  };
+
+  // Geriye dönük uyumluluk: isAdmin = kampanya yönetebilenler (tam admin + müdür)
+  const isAdmin = () => canManageCampaigns();
 
   return (
     <AuthContext.Provider
@@ -224,6 +255,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         changePassword,
         isAdmin,
+        isFullAdmin,
+        canManageCampaigns,
+        isMudur,
+        isDanisman,
+        getManagedSubeIds,
       }}
     >
       {children}

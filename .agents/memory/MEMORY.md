@@ -1,0 +1,1 @@
+- [RBAC branch/role model](rbac-branch-roles.md) — 3 roles (Full Admin/Müdür/Danışman); campaigns strictly branch-isolated (no globals); müdür can only manage own-branch danışmanlar.

@@ -16,8 +16,22 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
-import { setupSession, isAuthenticated, isAdmin, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
+import { setupSession, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
 import "./types"; // Session tiplerini yükle
+
+// Müdürün gönderdiği rollerin geçerliliği: yalnızca kendi şubesine "Satış Danışmanı"
+function mudurRollerGecerliMi(roller: any[], managed: number[]): boolean {
+  if (!Array.isArray(roller) || roller.length === 0) return false;
+  return roller.every((r) => r.rol === "Satış Danışmanı" && managed.includes(Number(r.subeId)));
+}
+
+// Hedef kullanıcı müdür tarafından yönetilebilir mi?
+// (kullanıcının TÜM rolleri müdürün şubelerinde ve yalnızca "Satış Danışmanı" olmalı)
+function kullaniciMudureAitMi(kullanici: any, managed: number[]): boolean {
+  if (!kullanici || !Array.isArray(kullanici.roller) || kullanici.roller.length === 0) return false;
+  return kullanici.roller.every((r: any) =>
+    r.rol === "Satış Danışmanı" && managed.includes(Number(r.subeId)));
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Oturum yönetimi kurulumu
@@ -29,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/current-user", getCurrentUser);
   app.post("/api/auth/change-password", isAuthenticated, changePassword);
   // Şube API routes - Tüm kullanıcılar görebilir
-  app.get("/api/subeler", async (req, res) => {
+  app.get("/api/subeler", isAuthenticated, async (req, res) => {
     try {
       const subeler = await storage.getAllSubeler();
       res.json(subeler);
@@ -39,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/subeler/:id", async (req, res) => {
+  app.get("/api/subeler/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const sube = await storage.getSube(parseInt(id));
@@ -55,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/subeler", async (req, res) => {
+  app.post("/api/subeler", isFullAdmin, async (req, res) => {
     try {
       const subeData = insertSubeSchema.parse(req.body);
       const newSube = await storage.createSube(subeData);
@@ -69,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/subeler/:id", async (req, res) => {
+  app.patch("/api/subeler/:id", isFullAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const subeData = insertSubeSchema.parse(req.body);
@@ -89,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/subeler/:id", async (req, res) => {
+  app.delete("/api/subeler/:id", isFullAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteSube(parseInt(id));
@@ -106,9 +120,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Kullanıcı API routes
-  app.get("/api/kullanicilar", async (req, res) => {
+  app.get("/api/kullanicilar", canManageCampaigns, async (req, res) => {
     try {
+      const user = getSessionUser(req);
       const kullanicilar = await storage.getAllKullanicilar();
+
+      // Müdür: yalnızca kendi şubesindeki danışmanları görebilir
+      // (tüm rolleri kendi şubesinde ve yalnızca "Satış Danışmanı" olan kullanıcılar)
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        const filtrelenmis = (kullanicilar as any[]).filter((k) =>
+          kullaniciMudureAitMi(k, managed)
+        );
+        return res.json(filtrelenmis);
+      }
+
       res.json(kullanicilar);
     } catch (error) {
       console.error("Kullanıcılar API hatası:", error);
@@ -116,13 +142,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/kullanicilar/:id", async (req, res) => {
+  app.get("/api/kullanicilar/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
       const kullanici = await storage.getKullanici(parseInt(id));
       
       if (!kullanici) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
+      // Müdür: yalnızca kendi şubesindeki danışmanları görebilir
+      const user = getSessionUser(req);
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (!kullaniciMudureAitMi(kullanici, managed)) {
+          return res.status(403).json({ error: "Bu kullanıcıya erişim yetkiniz yok." });
+        }
       }
       
       res.json(kullanici);
@@ -132,13 +167,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/kullanicilar", async (req, res) => {
+  app.post("/api/kullanicilar", canManageCampaigns, async (req, res) => {
     try {
-      // Kullanıcı veri şemasını doğrula
-      const kullaniciData = insertKullaniciSchema.parse(req.body);
-      
+      const user = getSessionUser(req);
       // Roller varsa ayrı tut (Şema dışı veriler)
       const roller = req.body.roller || [];
+
+      // Müdür: yalnızca kendi şubesine "Satış Danışmanı" ekleyebilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (!mudurRollerGecerliMi(roller, managed)) {
+          return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı ekleyebilir." });
+        }
+      }
+
+      // Kullanıcı veri şemasını doğrula
+      const kullaniciData = insertKullaniciSchema.parse(req.body);
       
       // Yeni kullanıcıyı oluştur
       const newKullanici = await storage.createKullanici(kullaniciData);
@@ -167,16 +211,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/kullanicilar/:id", async (req, res) => {
+  app.patch("/api/kullanicilar/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
       const parsedId = parseInt(id);
+      const user = getSessionUser(req);
+
+      // Roller varsa ayrı tut (Şema dışı veriler)
+      const roller = req.body.roller || [];
+
+      // Müdür: yalnızca kendi şubesindeki danışmanı düzenleyebilir ve
+      // yalnızca kendi şubesine "Satış Danışmanı" rolü atayabilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        const mevcut = await storage.getKullanici(parsedId);
+        if (!mevcut || !kullaniciMudureAitMi(mevcut, managed)) {
+          return res.status(403).json({ error: "Bu kullanıcıyı düzenleme yetkiniz yok." });
+        }
+        if (!mudurRollerGecerliMi(roller, managed)) {
+          return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı atayabilir." });
+        }
+      }
       
       // Kullanıcı veri şemasını doğrula
       const kullaniciData = insertKullaniciSchema.parse(req.body);
-      
-      // Roller varsa ayrı tut (Şema dışı veriler)
-      const roller = req.body.roller || [];
       
       // Kullanıcıyı güncelle
       const updatedKullanici = await storage.updateKullanici(parsedId, kullaniciData);
@@ -220,9 +278,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/kullanicilar/:id", async (req, res) => {
+  app.delete("/api/kullanicilar/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
+      const user = getSessionUser(req);
+
+      // Müdür: yalnızca kendi şubesindeki danışmanı silebilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        const mevcut = await storage.getKullanici(parseInt(id));
+        if (!mevcut || !kullaniciMudureAitMi(mevcut, managed)) {
+          return res.status(403).json({ error: "Bu kullanıcıyı silme yetkiniz yok." });
+        }
+      }
+
       const success = await storage.deleteKullanici(parseInt(id));
       
       if (!success) {
@@ -237,13 +306,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Kullanıcı-Şube ilişkileri API
-  app.post("/api/kullanicilar/:kullaniciId/subeler/:subeId", async (req, res) => {
+  app.post("/api/kullanicilar/:kullaniciId/subeler/:subeId", canManageCampaigns, async (req, res) => {
     try {
       const { kullaniciId, subeId } = req.params;
       const { rol } = req.body;
+      const user = getSessionUser(req);
       
       if (!Object.values(Roller).includes(rol)) {
         return res.status(400).json({ error: "Geçersiz rol. Roller: Kurucu, Müdür, Satış Danışmanı" });
+      }
+
+      // Müdür: yalnızca kendi şubesine "Satış Danışmanı" ekleyebilir
+      // ve yalnızca yeni (rolsüz) ya da kendi yönettiği danışman kullanıcıya
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (rol !== "Satış Danışmanı" || !managed.includes(parseInt(subeId))) {
+          return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı ekleyebilir." });
+        }
+        const hedef = await storage.getKullanici(parseInt(kullaniciId));
+        const rolsuz = !hedef || !Array.isArray((hedef as any).roller) || (hedef as any).roller.length === 0;
+        if (!rolsuz && !kullaniciMudureAitMi(hedef, managed)) {
+          return res.status(403).json({ error: "Bu kullanıcı üzerinde işlem yapma yetkiniz yok." });
+        }
       }
       
       const kullaniciSubeRol = await storage.addKullaniciToSube(parseInt(kullaniciId), parseInt(subeId), rol);
@@ -254,9 +338,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/kullanicilar/:kullaniciId/subeler/:subeId", async (req, res) => {
+  app.delete("/api/kullanicilar/:kullaniciId/subeler/:subeId", canManageCampaigns, async (req, res) => {
     try {
       const { kullaniciId, subeId } = req.params;
+      const user = getSessionUser(req);
+
+      // Müdür: yalnızca kendi şubesinden ve yalnızca yönettiği danışmandan çıkarma yapabilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (!managed.includes(parseInt(subeId))) {
+          return res.status(403).json({ error: "Bu işlem için yetkiniz yok." });
+        }
+        const hedef = await storage.getKullanici(parseInt(kullaniciId));
+        if (!hedef || !kullaniciMudureAitMi(hedef, managed)) {
+          return res.status(403).json({ error: "Bu kullanıcı üzerinde işlem yapma yetkiniz yok." });
+        }
+      }
+
       const success = await storage.removeKullaniciFromSube(parseInt(kullaniciId), parseInt(subeId));
       
       if (!success) {
@@ -271,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Eğitim Tipleri API routes
-  app.get("/api/egitim-tipleri", async (req, res) => {
+  app.get("/api/egitim-tipleri", isAuthenticated, async (req, res) => {
     try {
       const egitimTipleri = await storage.getAllEgitimTipleri();
       res.json(egitimTipleri);
@@ -281,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/egitim-tipleri/:id", async (req, res) => {
+  app.get("/api/egitim-tipleri/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const egitimTipi = await storage.getEgitimTipi(parseInt(id));
@@ -297,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/egitim-tipleri", async (req, res) => {
+  app.post("/api/egitim-tipleri", isFullAdmin, async (req, res) => {
     try {
       const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
       const newEgitimTipi = await storage.createEgitimTipi(egitimTipiData);
@@ -311,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/egitim-tipleri/:id", async (req, res) => {
+  app.put("/api/egitim-tipleri/:id", isFullAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
@@ -331,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/egitim-tipleri/:id", async (req, res) => {
+  app.delete("/api/egitim-tipleri/:id", isFullAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -367,33 +465,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Kampanya API routes
-  app.get("/api/kampanyalar", async (req, res) => {
+  app.get("/api/kampanyalar", isAuthenticated, async (req, res) => {
     try {
-      const { subeId } = req.query;
-      
-      let kampanyalar;
-      if (subeId) {
-        // Belirli bir şubeye ait kampanyaları getir
-        kampanyalar = await storage.getKampanyasBySubeId(parseInt(subeId as string));
-      } else {
-        // Tüm kampanyaları getir
-        kampanyalar = await storage.getAllKampanyalar();
+      const user = getSessionUser(req);
+
+      // Tam yetkili admin: tüm şubeleri görebilir, isteğe bağlı şube filtresi
+      if (isFullAdminUser(user)) {
+        const { subeId } = req.query;
+        let kampanyalar;
+        if (subeId) {
+          kampanyalar = await storage.getKampanyasBySubeId(parseInt(subeId as string));
+        } else {
+          kampanyalar = await storage.getAllKampanyalar();
+        }
+        return res.json(kampanyalar);
       }
-      
-      res.json(kampanyalar);
+
+      // Müdür / Danışman: SADECE kendi şubelerinin kampanyaları (client subeId yok sayılır)
+      const subeIds = getUserSubeIds(user);
+      if (subeIds.length === 0) {
+        return res.json([]);
+      }
+      let sonuc: any[] = [];
+      for (const sid of subeIds) {
+        const list = await storage.getKampanyasBySubeId(sid);
+        sonuc = sonuc.concat(list);
+      }
+      return res.json(sonuc);
     } catch (error) {
       console.error("Kampanyalar API hatası:", error);
       res.status(500).json({ error: "Kampanyalar yüklenirken bir hata oluştu", details: String(error) });
     }
   });
 
-  app.get("/api/kampanyalar/:id", async (req, res) => {
+  app.get("/api/kampanyalar/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const kampanya = await storage.getKampanya(parseInt(id));
       
       if (!kampanya) {
         return res.status(404).json({ error: "Kampanya bulunamadı" });
+      }
+
+      // Tam admin değilse sadece kendi şubesinin kampanyasına erişebilir
+      const user = getSessionUser(req);
+      if (!isFullAdminUser(user)) {
+        const subeIds = getUserSubeIds(user);
+        if (!kampanya.subeId || !subeIds.includes(kampanya.subeId)) {
+          return res.status(403).json({ error: "Bu kampanyaya erişim yetkiniz yok." });
+        }
       }
       
       res.json(kampanya);
@@ -405,9 +525,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
 
 
-  app.post("/api/kampanyalar", async (req, res) => {
+  app.post("/api/kampanyalar", canManageCampaigns, async (req, res) => {
     try {
+      const user = getSessionUser(req);
       const kampanyaData = insertKampanyaSchema.parse(req.body);
+
+      // Müdür: kampanya yalnızca kendi yönettiği şubeye eklenir (client subeId zorlanır)
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (managed.length === 0) {
+          return res.status(403).json({ error: "Kampanya eklemek için bir şubenin müdürü olmalısınız." });
+        }
+        const requested = kampanyaData.subeId;
+        kampanyaData.subeId = (requested && managed.includes(requested)) ? requested : managed[0];
+      }
+
+      // Şube zorunlu — global (şubesiz) kampanya oluşturulmaz
+      if (!kampanyaData.subeId) {
+        return res.status(400).json({ error: "Kampanya için bir şube seçilmelidir." });
+      }
+
       const newKampanya = await storage.createKampanya(kampanyaData);
       res.status(201).json(newKampanya);
     } catch (error) {
@@ -419,10 +556,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/kampanyalar/:id", async (req, res) => {
+  app.put("/api/kampanyalar/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
+      const user = getSessionUser(req);
+
+      const existing = await storage.getKampanya(parseInt(id));
+      if (!existing) {
+        return res.status(404).json({ error: "Güncellenecek kampanya bulunamadı" });
+      }
+
       const kampanyaData = insertKampanyaSchema.parse(req.body);
+
+      // Müdür: yalnızca kendi şubesinin kampanyasını düzenleyebilir ve şube değiştiremez
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (!existing.subeId || !managed.includes(existing.subeId)) {
+          return res.status(403).json({ error: "Bu kampanyayı düzenleme yetkiniz yok." });
+        }
+        kampanyaData.subeId = existing.subeId;
+      } else if (kampanyaData.subeId == null) {
+        // Admin şube göndermezse mevcut şubeyi koru (yetim kalmasın)
+        kampanyaData.subeId = existing.subeId;
+      }
+
       const updatedKampanya = await storage.updateKampanya(parseInt(id), kampanyaData);
       
       if (!updatedKampanya) {
@@ -439,9 +596,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/kampanyalar/:id", async (req, res) => {
+  app.delete("/api/kampanyalar/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
+      const user = getSessionUser(req);
+
+      const existing = await storage.getKampanya(parseInt(id));
+      if (!existing) {
+        return res.status(404).json({ error: "Silinecek kampanya bulunamadı" });
+      }
+
+      // Müdür: yalnızca kendi şubesinin kampanyasını silebilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (!existing.subeId || !managed.includes(existing.subeId)) {
+          return res.status(403).json({ error: "Bu kampanyayı silme yetkiniz yok." });
+        }
+      }
+
       const success = await storage.deleteKampanya(parseInt(id));
       
       if (!success) {
@@ -456,13 +628,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Kampanya Kopyalama API endpoint'i
-  app.post("/api/kampanyalar/:id/copy", async (req, res) => {
+  app.post("/api/kampanyalar/:id/copy", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
       const { subeId } = req.body;
+      const user = getSessionUser(req);
       
       if (!subeId) {
         return res.status(400).json({ error: "Hedef şube ID'si (subeId) gereklidir" });
+      }
+
+      // Müdür: yalnızca kendi şubesinden kopyalayabilir ve yine kendi şubesine kopyalayabilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        const kaynak = await storage.getKampanya(parseInt(id));
+        if (!kaynak) {
+          return res.status(404).json({ error: "Kopyalanacak kampanya bulunamadı" });
+        }
+        if (!kaynak.subeId || !managed.includes(kaynak.subeId)) {
+          return res.status(403).json({ error: "Bu kampanyayı kopyalama yetkiniz yok." });
+        }
+        if (!managed.includes(parseInt(subeId))) {
+          return res.status(403).json({ error: "Yalnızca kendi şubenize kopyalayabilirsiniz." });
+        }
       }
       
       const newKampanya = await storage.copyKampanyaToSube(parseInt(id), parseInt(subeId));
@@ -479,9 +667,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Çoklu Kampanya Kopyalama API endpoint'i
-  app.post("/api/kampanyalar/copy-many", async (req, res) => {
+  app.post("/api/kampanyalar/copy-many", canManageCampaigns, async (req, res) => {
     try {
       const { kampanyaIds, subeId } = req.body;
+      const user = getSessionUser(req);
       
       console.log("API'ye gelen kampanya ID'leri:", kampanyaIds);
       console.log("API'ye gelen şube ID:", subeId);
@@ -506,6 +695,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const parsedSubeId = parseInt(subeId);
+
+      // Müdür: yalnızca kendi şubesine ve kendi şubesinin kampanyalarını kopyalayabilir
+      if (!isFullAdminUser(user)) {
+        const managed = getManagedSubeIds(user);
+        if (!managed.includes(parsedSubeId)) {
+          return res.status(403).json({ error: "Yalnızca kendi şubenize kopyalayabilirsiniz." });
+        }
+        for (const kid of validIds) {
+          const kaynak = await storage.getKampanya(kid);
+          if (!kaynak || !kaynak.subeId || !managed.includes(kaynak.subeId)) {
+            return res.status(403).json({ error: "Yalnızca kendi şubenizin kampanyalarını kopyalayabilirsiniz." });
+          }
+        }
+      }
       const newKampanyalar = await storage.copyManyKampanyalarToSube(validIds, parsedSubeId);
       
       if (newKampanyalar.length === 0) {

@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Şube tipini tanımlayalım
 type Sube = {
@@ -58,6 +59,14 @@ type Kullanici = {
 const KullanicilarPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isFullAdmin, getManagedSubeIds } = useAuth();
+
+  // Müdür ise: yalnızca "Satış Danışmanı" rolü ve kendi şubelerine erişim
+  const tamAdmin = isFullAdmin();
+  const yonetilenSubeIds = getManagedSubeIds();
+  const kullanilabilirRoller: Rol[] = tamAdmin
+    ? ["Satış Danışmanı", "Müdür", "Kurucu"]
+    : ["Satış Danışmanı"];
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -154,15 +163,19 @@ const KullanicilarPage = () => {
   // Kullanıcı dialoglarını açma ve kapatma fonksiyonları
   const openAddDialog = () => {
     if (Array.isArray(subeler) && subeler.length > 0) {
+      // Müdür ise varsayılan şube kendi şubesi olsun
+      const varsayilanSube = tamAdmin
+        ? subeler[0].id
+        : (subeler.find((s: Sube) => yonetilenSubeIds.includes(s.id))?.id ?? subeler[0].id);
       setCurrentSubeRol({
-        subeId: subeler[0].id,
+        subeId: varsayilanSube,
         rol: "Satış Danışmanı"
       });
       setNewUser({
         adi: "",
         soyadi: "",
         selectedRol: "Satış Danışmanı",
-        selectedSubeId: subeler[0].id,
+        selectedSubeId: varsayilanSube,
         selectedSubeler: [],
       });
     }
@@ -535,9 +548,11 @@ const KullanicilarPage = () => {
                   }
                   className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {Array.isArray(subeler) && subeler.map((sube: Sube) => (
-                    <option key={sube.id} value={sube.id}>{sube.subeAdi}</option>
-                  ))}
+                  {Array.isArray(subeler) && subeler
+                    .filter((sube: Sube) => tamAdmin || yonetilenSubeIds.includes(sube.id))
+                    .map((sube: Sube) => (
+                      <option key={sube.id} value={sube.id}>{sube.subeAdi}</option>
+                    ))}
                 </select>
               </div>
               
@@ -551,11 +566,12 @@ const KullanicilarPage = () => {
                   onChange={(e) => 
                     setCurrentSubeRol({ ...currentSubeRol, rol: e.target.value as Rol })
                   }
+                  disabled={!tamAdmin}
                   className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <option value="Satış Danışmanı">Satış Danışmanı</option>
-                  <option value="Müdür">Müdür</option>
-                  <option value="Kurucu">Kurucu</option>
+                  {kullanilabilirRoller.map((rol) => (
+                    <option key={rol} value={rol}>{rol}</option>
+                  ))}
                 </select>
               </div>
               
@@ -652,9 +668,11 @@ const KullanicilarPage = () => {
                       }
                       className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {Array.isArray(subeler) && subeler.map((sube: Sube) => (
-                        <option key={sube.id} value={sube.id}>{sube.subeAdi}</option>
-                      ))}
+                      {Array.isArray(subeler) && subeler
+                        .filter((sube: Sube) => tamAdmin || yonetilenSubeIds.includes(sube.id))
+                        .map((sube: Sube) => (
+                          <option key={sube.id} value={sube.id}>{sube.subeAdi}</option>
+                        ))}
                     </select>
                   </div>
                   
@@ -668,11 +686,12 @@ const KullanicilarPage = () => {
                       onChange={(e) => 
                         setEditCurrentSubeRol({ ...editCurrentSubeRol, rol: e.target.value as Rol })
                       }
+                      disabled={!tamAdmin}
                       className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="Satış Danışmanı">Satış Danışmanı</option>
-                      <option value="Müdür">Müdür</option>
-                      <option value="Kurucu">Kurucu</option>
+                      {kullanilabilirRoller.map((rol) => (
+                        <option key={rol} value={rol}>{rol}</option>
+                      ))}
                     </select>
                   </div>
                   

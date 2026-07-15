@@ -5,10 +5,11 @@ import { Loader2 } from "lucide-react";
 
 interface AuthenticationGuardProps {
   children: React.ReactNode;
-  adminOnly?: boolean;
+  adminOnly?: boolean;       // Tam admin VEYA müdür (kampanya/kullanıcı yönetimi)
+  fullAdminOnly?: boolean;   // Yalnızca tam admin (şube/eğitim tipi yönetimi)
 }
 
-export default function AuthenticationGuard({ children, adminOnly = false }: AuthenticationGuardProps) {
+export default function AuthenticationGuard({ children, adminOnly = false, fullAdminOnly = false }: AuthenticationGuardProps) {
   const { user, isLoading } = useAuth();
   const [, navigate] = useLocation();
 
@@ -26,14 +27,18 @@ export default function AuthenticationGuard({ children, adminOnly = false }: Aut
     return <Redirect to="/giris" />;
   }
 
-  // Admin yetkisi kontrolü
-  if (adminOnly) {
-    const userRoles = user.roller?.map(r => r.rol) || [];
-    const isAdmin = userRoles.includes("Sistem Yöneticisi") || userRoles.includes("Kurucu") || userRoles.includes("Müdür");
-    
-    if (!isAdmin) {
-      return <Redirect to="/" />;
-    }
+  const userRoles = ("roller" in user ? user.roller : [])?.map((r: any) => r.rol) || [];
+  const isFullAdmin = userRoles.includes("Sistem Yöneticisi") || userRoles.includes("Kurucu");
+  const canManage = isFullAdmin || userRoles.includes("Müdür");
+
+  // Yalnızca tam admin gerektiren sayfalar (şubeler, eğitim tipleri)
+  if (fullAdminOnly && !isFullAdmin) {
+    return <Redirect to="/" />;
+  }
+
+  // Yönetim (tam admin veya müdür) gerektiren sayfalar
+  if (adminOnly && !canManage) {
+    return <Redirect to="/" />;
   }
 
   // Oturum varsa ve yetkiler uygunsa içeriği göster

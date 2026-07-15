@@ -26,7 +26,10 @@ const UcretlendirmePage = () => {
   const { toast } = useToast();
   const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar, 
     selectedSubeId, setSelectedSubeId } = useAppContext();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isFullAdmin, getManagedSubeIds } = useAuth();
+
+  // Müdür ise yönetdiği (kendi) şube id'si; tam admin ise null
+  const mudurSubeId = !isFullAdmin() ? (getManagedSubeIds()[0] ?? null) : null;
   
   // Eğitim tiplerini API'den çekelim
   const { egitimTipleri, isLoading: egitimTipleriLoading } = useEgitimTipleri();
@@ -60,6 +63,18 @@ const UcretlendirmePage = () => {
 
   const [krediKartiTaksitler, setKrediKartiTaksitler] = useState<TaksitOption[]>([]);
   const [senetTaksitler, setSenetTaksitler] = useState<TaksitOption[]>([]);
+
+  // Yeni kampanya için hedef şube (tam admin seçer; müdür kendi şubesine sabit)
+  const [formSubeId, setFormSubeId] = useState<number | null>(null);
+
+  // Müdür ise; form şubesini ve liste filtresini kendi şubesine sabitle
+  useEffect(() => {
+    if (mudurSubeId != null) {
+      setFormSubeId(mudurSubeId);
+      setSelectedSubeId(mudurSubeId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mudurSubeId]);
 
   // Şubeleri getirme
   useEffect(() => {
@@ -202,6 +217,7 @@ const UcretlendirmePage = () => {
     });
     setIsEditing(false);
     setCurrentId(null);
+    setFormSubeId(mudurSubeId ?? null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -236,10 +252,19 @@ const UcretlendirmePage = () => {
           description: "Kampanya başarıyla güncellendi.",
         });
       } else {
-        // Şube ID'sini ekle
+        // Hedef şube: müdür kendi şubesi, tam admin seçtiği şube
+        const hedefSubeId = mudurSubeId ?? formSubeId;
+        if (hedefSubeId == null) {
+          toast({
+            title: "Şube seçilmedi",
+            description: "Kampanya eklemek için bir şube seçmelisiniz.",
+            variant: "destructive",
+          });
+          return;
+        }
         await addKampanya({
           ...formData,
-          subeId: (user as any)?.roller?.[0]?.subeId || null
+          subeId: hedefSubeId
         });
         toast({
           title: "Başarılı",
@@ -411,7 +436,7 @@ const UcretlendirmePage = () => {
             maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ? parseInt(kampanya.maxKrediKartiTaksit.toString()) : 8,
             maxSenetTaksit: kampanya.maxSenetTaksit ? parseInt(kampanya.maxSenetTaksit.toString()) : 12,
             hediyeler: kampanya.hediyeler || [],
-            subeId: (user as any)?.roller?.[0]?.subeId || null
+            subeId: mudurSubeId ?? formSubeId
           };
           
           addKampanya(newKampanya);
@@ -660,6 +685,37 @@ const UcretlendirmePage = () => {
                   className="h-8"
                 />
               </div>
+
+              {/* Şube seçimi: tam admin için seçilebilir, müdür için kilitli */}
+              {!isEditing && (
+                <div className="space-y-1">
+                  <Label htmlFor="formSube" className="text-xs">Şube</Label>
+                  {isFullAdmin() ? (
+                    <Select
+                      value={formSubeId?.toString() || ""}
+                      onValueChange={(value) => setFormSubeId(value ? parseInt(value) : null)}
+                    >
+                      <SelectTrigger id="formSube" className="h-8">
+                        <SelectValue placeholder="Şube seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subeler.map((sube) => (
+                          <SelectItem key={sube.id} value={sube.id.toString()}>
+                            {sube.subeAdi}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      className="h-8 bg-neutral-100"
+                      value={subeler.find((s) => s.id === mudurSubeId)?.subeAdi || "Kendi şubeniz"}
+                      disabled
+                      readOnly
+                    />
+                  )}
+                </div>
+              )}
               
               <div className="space-y-1">
                 <div>
@@ -967,22 +1023,31 @@ const UcretlendirmePage = () => {
                 </CardDescription>
               </div>
               <div className="flex flex-col md:flex-row gap-2">
-                <Select
-                  value={selectedSubeId?.toString() || "all"}
-                  onValueChange={(value) => setSelectedSubeId(value === "all" ? null : parseInt(value))}
-                >
-                  <SelectTrigger className="h-8 w-[200px]">
-                    <SelectValue placeholder="Tüm şubeler" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tüm şubeler</SelectItem>
-                    {subeler.map((sube) => (
-                      <SelectItem key={sube.id} value={sube.id.toString()}>
-                        {sube.subeAdi}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isFullAdmin() ? (
+                  <Select
+                    value={selectedSubeId?.toString() || "all"}
+                    onValueChange={(value) => setSelectedSubeId(value === "all" ? null : parseInt(value))}
+                  >
+                    <SelectTrigger className="h-8 w-[200px]">
+                      <SelectValue placeholder="Tüm şubeler" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tüm şubeler</SelectItem>
+                      {subeler.map((sube) => (
+                        <SelectItem key={sube.id} value={sube.id.toString()}>
+                          {sube.subeAdi}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    className="h-8 w-[200px] bg-neutral-100"
+                    value={subeler.find((s) => s.id === mudurSubeId)?.subeAdi || "Kendi şubeniz"}
+                    disabled
+                    readOnly
+                  />
+                )}
                 
                 <div className="flex gap-2">
                   <Button 

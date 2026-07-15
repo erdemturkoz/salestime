@@ -26,6 +26,7 @@ const NAV_ITEMS = [
     label: 'Kampanya Ekle',
     href: '/ucretlendirme',
     icon: <DollarSign className="h-5 w-5" />,
+    adminOnly: true,
   },
   {
     label: 'WhatsApp İstatistikleri',
@@ -36,17 +37,19 @@ const NAV_ITEMS = [
     label: 'Eğitim Tipleri',
     href: '/egitim-tipleri',
     icon: <BookOpen className="h-5 w-5" />,
-    adminOnly: true,
+    fullAdminOnly: true,
   },
   {
     label: 'Kullanıcılar',
     href: '/kullanicilar',
     icon: <Users className="h-5 w-5" />,
+    adminOnly: true,
   },
   {
     label: 'Şubeler',
     href: '/subeler',
     icon: <Building className="h-5 w-5" />,
+    fullAdminOnly: true,
   },
 ];
 
@@ -55,6 +58,7 @@ type NavItemDef = {
   href: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  fullAdminOnly?: boolean;
 };
 
 const NavItem = ({
@@ -67,15 +71,19 @@ const NavItem = ({
   onNavigate: (href: string) => void;
 }) => {
   const [isActive] = useRoute(item.href);
-  const isAdmin =
-    !item.adminOnly ||
-    (user &&
-      "roller" in user &&
-      user.roller.some((r: any) =>
-        ["Sistem Yöneticisi", "Kurucu", "Müdür"].includes(r.rol)
-      ));
 
-  if (!isAdmin && item.adminOnly) return null;
+  const roles: string[] =
+    user && "roller" in user && Array.isArray(user.roller)
+      ? user.roller.map((r: any) => r.rol)
+      : [];
+  const isFullAdmin =
+    roles.includes("Sistem Yöneticisi") || roles.includes("Kurucu");
+  const canManage = isFullAdmin || roles.includes("Müdür");
+
+  // Yalnızca tam admin gerektiren öğeler (şubeler, eğitim tipleri)
+  if (item.fullAdminOnly && !isFullAdmin) return null;
+  // Yönetim gerektiren öğeler (kampanya, kullanıcılar)
+  if (item.adminOnly && !canManage) return null;
 
   return (
     <Button
