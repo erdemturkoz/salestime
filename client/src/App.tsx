@@ -16,7 +16,6 @@ import { AppProvider } from "./contexts/AppContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
 import AuthenticationGuard from "@/components/AuthenticationGuard";
-import DirectLogin from "@/components/DirectLogin";
 
 function Router() {
   return (
@@ -77,7 +76,6 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
-            <DirectLogin />
           </TooltipProvider>
         </AuthProvider>
       </AppProvider>
