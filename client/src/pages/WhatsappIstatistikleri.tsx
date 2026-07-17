@@ -23,6 +23,7 @@ const WhatsappIstatistikleri = () => {
   const [, setLocation] = useLocation();
   const [aramaMetni, setAramaMetni] = useState("");
   const [subeFiltre, setSubeFiltre] = useState("hepsi");
+  const [danismanFiltre, setDanismanFiltre] = useState("hepsi");
   const [odemeTipiFiltre, setOdemeTipiFiltre] = useState("hepsi");
   const [baslangicTarihi, setBaslangicTarihi] = useState("");
   const [bitisTarihi, setBitisTarihi] = useState("");
@@ -60,18 +61,23 @@ const WhatsappIstatistikleri = () => {
 
     const subeEslesti = subeFiltre === "hepsi" || g.subeAdi === subeFiltre;
     const odemeEslesti = odemeTipiFiltre === "hepsi" || g.odemeTipi === odemeTipiFiltre;
+    const danismanEslesti =
+      danismanFiltre === "hepsi" ||
+      `${g.danismanAdi} ${g.danismanSoyadi}` === danismanFiltre;
 
-    return metinEslesti && subeEslesti && odemeEslesti;
+    return metinEslesti && subeEslesti && odemeEslesti && danismanEslesti;
   });
 
   const benzersizSubeler = [...new Set(gonderimleri.map((g) => g.subeAdi))].filter(Boolean);
   const benzersizOdemeTipleri = [...new Set(gonderimleri.map((g) => g.odemeTipi))].filter(Boolean);
+  const benzersizDanismanlar = [...new Set(gonderimleri.map((g) => `${g.danismanAdi} ${g.danismanSoyadi}`))].filter(Boolean).sort();
 
   const toplamTutar = filtrelenmis.reduce((acc, g) => acc + (g.genelToplam || 0), 0);
 
   const filtreSifirla = () => {
     setAramaMetni("");
     setSubeFiltre("hepsi");
+    setDanismanFiltre("hepsi");
     setOdemeTipiFiltre("hepsi");
     setBaslangicTarihi("");
     setBitisTarihi("");
@@ -80,6 +86,7 @@ const WhatsappIstatistikleri = () => {
   const aktifFiltreSayisi = [
     aramaMetni,
     subeFiltre !== "hepsi" ? subeFiltre : "",
+    danismanFiltre !== "hepsi" ? danismanFiltre : "",
     odemeTipiFiltre !== "hepsi" ? odemeTipiFiltre : "",
     baslangicTarihi,
     bitisTarihi,
@@ -186,7 +193,7 @@ const WhatsappIstatistikleri = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="lg:col-span-2">
               <Label className="text-xs mb-1 block">Arama</Label>
               <div className="relative">
@@ -204,7 +211,7 @@ const WhatsappIstatistikleri = () => {
               <Label className="text-xs mb-1 block">Şube</Label>
               <Select value={subeFiltre} onValueChange={setSubeFiltre}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Tüm şubeler" />
+                  <SelectValue placeholder="Tüm Şubeler" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hepsi">Tüm Şubeler</SelectItem>
@@ -216,10 +223,25 @@ const WhatsappIstatistikleri = () => {
             </div>
 
             <div>
+              <Label className="text-xs mb-1 block">Danışman</Label>
+              <Select value={danismanFiltre} onValueChange={setDanismanFiltre}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Tüm Danışmanlar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hepsi">Tüm Danışmanlar</SelectItem>
+                  {benzersizDanismanlar.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label className="text-xs mb-1 block">Ödeme Tipi</Label>
               <Select value={odemeTipiFiltre} onValueChange={setOdemeTipiFiltre}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Tüm tipler" />
+                  <SelectValue placeholder="Tüm Tipler" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hepsi">Tüm Tipler</SelectItem>
