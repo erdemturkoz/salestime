@@ -69,32 +69,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const fetchKampanyalar = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/kampanyalar');
-      
-      if (!response.ok) {
-        throw new Error('Kampanyalar yüklenirken bir hata oluştu');
-      }
-      
-      const data = await response.json();
-      
+      const data = await apiRequest('/api/kampanyalar');
+
       if (data && Array.isArray(data) && data.length > 0) {
-        // Kampanyaları formatla ve state'e kaydet
         const formattedKampanyalar = data.map((kampanya: any) => ({
           ...kampanya,
-          id: kampanya.id.toString(), // ID'yi string'e dönüştür
-          // API'dan gelen verileri doğru tiplere çevir
+          id: kampanya.id.toString(),
           hediyeler: kampanya.hediyeler || []
         }));
-        
         setKampanyalar(formattedKampanyalar);
       } else if (data && Array.isArray(data) && data.length === 0) {
-        // Eğer veritabanında hiç kampanya yoksa, sadece demo kampanyası göster
-        setKampanyalar([initialKampanya]);
+        setKampanyalar([]);
       }
     } catch (error) {
       console.error('Kampanyaları getirirken bir hata oluştu:', error);
-      // Hata durumunda varsayılan demo kampanyasını göster
-      setKampanyalar([initialKampanya]);
     } finally {
       setLoading(false);
     }
@@ -137,32 +125,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       };
       
       // API çağrısı ile veritabanına kampanya ekle
-      const response = await fetch('/api/kampanyalar', {
+      const newKampanya = await apiRequest('/api/kampanyalar', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(kampanyaData)
       });
-      
-      if (!response.ok) {
-        let detay = `Sunucu hatası (${response.status})`;
-        try {
-          const errorData = await response.json();
-          console.error('API hatası:', errorData);
-          if (errorData?.error) {
-            detay = typeof errorData.error === 'string'
-              ? errorData.error
-              : JSON.stringify(errorData.error);
-          }
-        } catch {
-          // Yanıt JSON değilse (ör. HTML hata sayfası) parse etmeye çalışma
-        }
-        throw new Error(detay);
-      }
-      
-      // Eklenen kampanyayı al
-      const newKampanya = await response.json();
       
       // State'i güncelle
       setKampanyalar(prev => [...prev, {
@@ -190,14 +156,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
       
       // API çağrısı ile veritabanından kampanya sil
-      const response = await fetch(`/api/kampanyalar/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Kampanya silinirken bir hata oluştu');
-      }
-      
+      await apiRequest(`/api/kampanyalar/${id}`, { method: 'DELETE' });
+
       // State'i güncelle
       setKampanyalar(prev => prev.filter(kampanya => kampanya.id !== id));
       
@@ -231,30 +191,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       };
       
       // API çağrısı ile veritabanında kampanya güncelle
-      const response = await fetch(`/api/kampanyalar/${updatedKampanya.id}`, {
+      await apiRequest(`/api/kampanyalar/${updatedKampanya.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(kampanyaData)
       });
-      
-      if (!response.ok) {
-        let detay = `Sunucu hatası (${response.status})`;
-        try {
-          const errorData = await response.json();
-          console.error('API hatası:', errorData);
-          if (errorData?.error) {
-            detay = typeof errorData.error === 'string'
-              ? errorData.error
-              : JSON.stringify(errorData.error);
-          }
-        } catch {
-          // Yanıt JSON değilse parse etmeye çalışma
-        }
-        throw new Error(detay);
-      }
-      
+
       // State'i güncelle
       setKampanyalar(prev => 
         prev.map(kampanya => 
@@ -274,13 +215,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const getKampanyalarBySubeId = async (subeId: number) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/kampanyalar?subeId=${subeId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Şube ID ${subeId} için kampanyalar yüklenirken bir hata oluştu`);
-      }
-      
-      const data = await response.json();
+      const data = await apiRequest(`/api/kampanyalar?subeId=${subeId}`);
       
       if (data && Array.isArray(data)) {
         // Kampanyaları formatla
