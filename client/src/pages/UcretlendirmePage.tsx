@@ -6,6 +6,7 @@ import { exportToExcel, importFromExcel } from "@/utils/excel-utils";
 import { TaksitOption, Hediye } from "@/types";
 import { RefreshCwIcon, Plus, FileSpreadsheet, Building, Settings } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
+import { apiRequest } from "@/lib/queryClient";
 import { ExcelImportInfoDialog } from "@/components/ExcelImportInfoDialog";
 // Artık sadece tamamen bağımsız sayfamız olduğu için bu import kaldırıldı
 // import { EgitimTipiYonetimModal } from "@/components/egitim-tipi-yonetim-modal";
@@ -80,11 +81,7 @@ const UcretlendirmePage = () => {
   useEffect(() => {
     const fetchSubeler = async () => {
       try {
-        const response = await fetch('/api/subeler');
-        if (!response.ok) {
-          throw new Error('Şubeler getirilemedi');
-        }
-        const data = await response.json();
+        const data = await apiRequest('/api/subeler');
         setSubeler(data);
       } catch (error) {
         console.error('Şubeler getirme hatası:', error);
@@ -130,11 +127,7 @@ const UcretlendirmePage = () => {
   useEffect(() => {
     const fetchSubeler = async () => {
       try {
-        const response = await fetch('/api/subeler');
-        if (!response.ok) {
-          throw new Error('Şubeler getirilemedi');
-        }
-        const data = await response.json();
+        const data = await apiRequest('/api/subeler');
         setSubeler(data);
       } catch (error) {
         console.error('Şubeler getirme hatası:', error);

@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
   async getKampanyasBySubeId(subeId: number): Promise<Kampanya[]> {
     try {
       const result = await db.execute<Kampanya>(
-        `SELECT 
+        sql`SELECT 
           id, 
           kampanya_adi as "kampanyaAdi", 
           egitim_tipi as "egitimTipi",
@@ -224,8 +224,7 @@ export class DatabaseStorage implements IStorage {
           hediyeler,
           sube_id as "subeId"
         FROM kampanyalar
-        WHERE sube_id = $1`,
-        [subeId]
+        WHERE sube_id = ${subeId}`
       );
 
       return result.rows;
@@ -238,7 +237,7 @@ export class DatabaseStorage implements IStorage {
   async getKampanya(id: number): Promise<Kampanya | undefined> {
     try {
       const result = await db.execute<Kampanya>(
-        `SELECT 
+        sql`SELECT 
           id, 
           kampanya_adi as "kampanyaAdi", 
           egitim_tipi as "egitimTipi",
@@ -255,8 +254,7 @@ export class DatabaseStorage implements IStorage {
           hediyeler,
           sube_id as "subeId"
         FROM kampanyalar
-        WHERE id = $1`,
-        [id]
+        WHERE id = ${id}`
       );
       
       return result.rows.length > 0 ? result.rows[0] : undefined;
@@ -278,7 +276,7 @@ export class DatabaseStorage implements IStorage {
       
       // Yeni kampanya verileri oluştur
       const result = await db.execute<Kampanya>(
-        `INSERT INTO kampanyalar (
+        sql`INSERT INTO kampanyalar (
           kampanya_adi,
           egitim_tipi,
           kur_sayisi,
@@ -294,7 +292,11 @@ export class DatabaseStorage implements IStorage {
           hediyeler,
           sube_id
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+          ${kampanya.kampanyaAdi}, ${kampanya.egitimTipi}, ${kampanya.kurSayisi},
+          ${kampanya.toplamDersSaati}, ${kampanya.listeFiyati}, ${kampanya.nakitFiyati},
+          ${kampanya.indirimOrani}, ${kampanya.faizOrani}, ${kampanya.kitapFiyati},
+          ${kampanya.kitapSetSayisi}, ${kampanya.maxKrediKartiTaksit}, ${kampanya.maxSenetTaksit},
+          ${JSON.stringify(kampanya.hediyeler)}, ${subeId}
         )
         RETURNING 
           id, 
@@ -311,23 +313,7 @@ export class DatabaseStorage implements IStorage {
           max_kredi_karti_taksit as "maxKrediKartiTaksit",
           max_senet_taksit as "maxSenetTaksit",
           hediyeler,
-          sube_id as "subeId"`,
-        [
-          kampanya.kampanyaAdi,
-          kampanya.egitimTipi,
-          kampanya.kurSayisi,
-          kampanya.toplamDersSaati,
-          kampanya.listeFiyati,
-          kampanya.nakitFiyati,
-          kampanya.indirimOrani,
-          kampanya.faizOrani,
-          kampanya.kitapFiyati,
-          kampanya.kitapSetSayisi,
-          kampanya.maxKrediKartiTaksit,
-          kampanya.maxSenetTaksit,
-          kampanya.hediyeler,
-          subeId
-        ]
+          sube_id as "subeId"`
       );
       
       if (result.rows.length === 0) {
