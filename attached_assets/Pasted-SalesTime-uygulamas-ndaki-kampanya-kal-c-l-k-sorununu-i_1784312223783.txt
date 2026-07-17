@@ -1,0 +1,81 @@
+SalesTime uygulamasındaki kampanya kalıcılık sorununu incele ve düzelt.
+
+SORUN:
+Yeni eklenen kampanya ilk anda ekranda görünüyor ancak:
+- Sayfa yenilenince kayboluyor.
+- Başka sekmeye gidip geri dönünce kayboluyor.
+- Çıkış yapıp tekrar giriş yapınca kayboluyor.
+- Replit Preview ile Render production ekranında farklı kampanyalar görünüyor.
+- Production ekranında bazen “Demo Kampanya” görünüyor fakat yenilemede kayboluyor.
+
+KONTROL ETMEN GEREKENLER:
+
+1. Kampanya “Kaydet” butonu gerçek bir backend POST isteği gönderiyor mu?
+
+2. POST endpoint’i kampanyayı gerçekten production veritabanına INSERT ediyor mu?
+
+3. Sayfa açıldığında kampanyalar backend GET endpoint’i üzerinden veritabanından yeniden çekiliyor mu?
+
+4. Kampanyalar yalnızca React state, memory storage, localStorage, sessionStorage, mock array veya geçici frontend verisi içinde mi tutuluyor?
+
+5. Kod içinde şu tür geçici verileri ara:
+- Demo Kampanya
+- mockCampaigns
+- sampleCampaigns
+- defaultCampaigns
+- demoData
+- hardcoded campaign
+- seed demo campaign
+
+Production’da otomatik oluşan demo kampanyaları kaldır.
+
+6. Replit Preview ve Render production ortamlarının aynı veritabanını kullanıp kullanmadığını kontrol et.
+
+7. Render Environment bölümündeki DATABASE_URL veya kullanılan diğer veritabanı environment variable değerlerinin eksik ya da yanlış olup olmadığını kontrol et.
+
+8. Uygulamanın PostgreSQL yerine SQLite, JSON dosyası veya memory storage kullanıp kullanmadığını kontrol et.
+
+9. Veritabanı bağlantısı başarısız olduğunda uygulamanın sessizce geçici storage sistemine geçmesini engelle. Açık hata üret.
+
+10. Kampanya kaydı başarısız olduğu halde frontend kampanyayı başarılıymış gibi ekrana ekliyor mu kontrol et.
+
+11. Kampanyanın doğru kullanıcı ID, şube ID ve şube adıyla kaydedildiğini kontrol et.
+
+12. Kampanyaları listeleyen GET sorgusunda yanlış kullanıcı veya şube filtresi uygulanıp uygulanmadığını kontrol et.
+
+13. Kampanya kaydı başarılı olduktan sonra frontend listesini yalnızca local state ile güncelleme. Kampanyaları backend’den yeniden çek.
+
+14. Backend API ve veritabanı hatalarını server loglarında görünür hale getir.
+
+15. Hassas bilgileri göstermeden hangi ortamın hangi veritabanı hostuna bağlandığını logla.
+
+DÜZELTME KURALI:
+
+Bu sorunu localStorage, sessionStorage veya frontend state kullanarak geçici biçimde çözme.
+
+Kampanyalar mutlaka Render production ortamındaki kalıcı PostgreSQL veritabanına kaydedilmeli ve her sayfa açılışında veritabanından okunmalıdır.
+
+TEST:
+
+Production ortamında “KALICILIK TESTİ 001” isimli bir kampanya oluştur.
+
+Ardından sırayla:
+
+1. POST isteğinin 200 veya 201 döndüğünü doğrula.
+2. Kaydın veritabanında gerçekten oluştuğunu doğrula.
+3. Sayfayı yenile ve kampanyanın hâlâ göründüğünü doğrula.
+4. Başka sekmeye git ve geri dön.
+5. Çıkış yapıp tekrar giriş yap.
+6. Gizli sekmeden aynı kullanıcıyla giriş yap.
+7. Render servisini yeniden deploy et.
+8. Kampanyanın tüm aşamalarda hâlâ göründüğünü doğrula.
+
+İşlem sonunda bana şunları açıkça bildir:
+
+- Sorunun gerçek nedeni neydi?
+- Hangi dosyalar değiştirildi?
+- Kampanya POST endpoint’i hangisi?
+- Kampanya GET endpoint’i hangisi?
+- Hangi veritabanı kullanılıyor?
+- Production veritabanına kayıt yapıldığı nasıl doğrulandı?
+- Tüm testlerin sonucu nedir?

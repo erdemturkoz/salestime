@@ -176,9 +176,8 @@ export class DatabaseStorage implements IStorage {
   // Kampanya operations
   async getAllKampanyalar(): Promise<Kampanya[]> {
     try {
-      // Doğrudan SQL sorgusu kullanarak branch_id ve created_at'ı atlayalım
       const result = await db.execute<Kampanya>(
-        `SELECT 
+        sql`SELECT 
           id, 
           kampanya_adi as "kampanyaAdi", 
           egitim_tipi as "egitimTipi",
@@ -200,7 +199,7 @@ export class DatabaseStorage implements IStorage {
       return result.rows;
     } catch (error) {
       console.error("Kampanyalar API hatası:", error);
-      return [];
+      throw error;
     }
   }
   

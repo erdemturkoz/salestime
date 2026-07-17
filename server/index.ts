@@ -38,6 +38,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // DB bağlantı host'unu logla (kimlik bilgisi olmadan)
+  try {
+    const dbUrl = process.env.DATABASE_URL || '';
+    const match = dbUrl.match(/@([^/:]+)/);
+    const dbHost = match ? match[1] : 'bilinmiyor';
+    log(`Veritabanı host: ${dbHost}`);
+  } catch (_) {}
+
   // Varsayılan eğitim tiplerini oluştur
   await createDefaultEgitimTipleri();
   
