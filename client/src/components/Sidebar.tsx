@@ -12,7 +12,6 @@ import {
   BookOpen,
   MessageCircle
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,35 +19,35 @@ const NAV_ITEMS = [
   {
     label: 'Ücret Hesaplama',
     href: '/hesaplama',
-    icon: <Calculator className="h-5 w-5" />,
+    icon: Calculator,
   },
   {
     label: 'Kampanya Ekle',
     href: '/ucretlendirme',
-    icon: <DollarSign className="h-5 w-5" />,
+    icon: DollarSign,
     adminOnly: true,
   },
   {
     label: 'WhatsApp İstatistikleri',
     href: '/whatsapp-istatistikleri',
-    icon: <MessageCircle className="h-5 w-5 text-green-600" />,
+    icon: MessageCircle,
   },
   {
     label: 'Eğitim Tipleri',
     href: '/egitim-tipleri',
-    icon: <BookOpen className="h-5 w-5" />,
+    icon: BookOpen,
     fullAdminOnly: true,
   },
   {
     label: 'Kullanıcılar',
     href: '/kullanicilar',
-    icon: <Users className="h-5 w-5" />,
+    icon: Users,
     adminOnly: true,
   },
   {
     label: 'Şubeler',
     href: '/subeler',
-    icon: <Building className="h-5 w-5" />,
+    icon: Building,
     fullAdminOnly: true,
   },
 ];
@@ -56,7 +55,7 @@ const NAV_ITEMS = [
 type NavItemDef = {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: React.ElementType;
   adminOnly?: boolean;
   fullAdminOnly?: boolean;
 };
@@ -71,6 +70,7 @@ const NavItem = ({
   onNavigate: (href: string) => void;
 }) => {
   const [isActive] = useRoute(item.href);
+  const Icon = item.icon;
 
   const roles: string[] =
     user && "roller" in user && Array.isArray(user.roller)
@@ -80,20 +80,24 @@ const NavItem = ({
     roles.includes("Sistem Yöneticisi") || roles.includes("Kurucu");
   const canManage = isFullAdmin || roles.includes("Müdür");
 
-  // Yalnızca tam admin gerektiren öğeler (şubeler, eğitim tipleri)
   if (item.fullAdminOnly && !isFullAdmin) return null;
-  // Yönetim gerektiren öğeler (kampanya, kullanıcılar)
   if (item.adminOnly && !canManage) return null;
 
   return (
-    <Button
-      variant={isActive ? "default" : "ghost"}
-      className="w-full justify-start"
+    <button
       onClick={() => onNavigate(item.href)}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+        isActive
+          ? 'bg-[#F26207] text-white shadow-md shadow-orange-900/30'
+          : 'text-gray-400 hover:bg-white/8 hover:text-white'
+      }`}
     >
-      {item.icon}
-      <span className="ml-2">{item.label}</span>
-    </Button>
+      <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+      <span>{item.label}</span>
+      {isActive && (
+        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/70" />
+      )}
+    </button>
   );
 };
 
@@ -113,26 +117,30 @@ const Sidebar = () => {
     }
   };
 
-  // Mobil için toggle butonu
   const mobileToggle = (
-    <Button 
-      variant="ghost" 
-      className="p-2 md:hidden fixed top-4 left-4 z-40"
+    <button
+      className="p-2 md:hidden fixed top-4 left-4 z-40 rounded-lg bg-[#1a1a1a] text-white shadow-lg"
       onClick={toggleSidebar}
     >
-      {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-    </Button>
+      {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+    </button>
   );
 
-  // Sidebar içeriği
   const sidebarContent = (
-    <div className="flex flex-col h-full min-h-screen sticky top-0">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-bold">Sales Time</h2>
+    <div className="flex flex-col h-full min-h-screen sticky top-0 bg-[#1a1a1a]">
+      {/* Logo / Başlık */}
+      <div className="px-5 py-5 border-b border-white/10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#F26207] flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-bold text-sm">S</span>
+          </div>
+          <h2 className="text-white font-bold text-base tracking-wide">Sales Time</h2>
+        </div>
       </div>
 
-      <div className="flex-1 p-4">
-        <nav className="space-y-2">
+      {/* Navigasyon */}
+      <div className="flex-1 px-3 py-4">
+        <nav className="space-y-1">
           {NAV_ITEMS.map((item) => (
             <NavItem
               key={item.href}
@@ -144,26 +152,27 @@ const Sidebar = () => {
         </nav>
       </div>
       
-      <div className="p-4 border-t mt-auto">
+      {/* Alt kullanıcı bölümü */}
+      <div className="px-3 py-4 border-t border-white/10">
         {user ? (
           <>
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-5 w-5" />
+            <div className="flex items-center gap-3 px-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-[#F26207]/20 border border-[#F26207]/40 flex items-center justify-center flex-shrink-0">
+                <User className="h-4 w-4 text-[#F26207]" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium">{user.adi} {user.soyadi}</p>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white truncate">
+                  {user.adi} {user.soyadi}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
                   {'roller' in user && user.roller && user.roller.length > 0 
-                    ? `${user.roller[0].rol} ${user.roller[0].subeAdi ? `(${user.roller[0].subeAdi})` : ''}`
+                    ? `${user.roller[0].rol}${user.roller[0].subeAdi ? ` (${user.roller[0].subeAdi})` : ''}`
                     : 'Rol Yok'
                   }
                 </p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
+            <button
               onClick={async () => {
                 try {
                   setIsPending(true);
@@ -175,20 +184,20 @@ const Sidebar = () => {
                 }
               }}
               disabled={isPending}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/8 transition-all duration-150 disabled:opacity-50"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-4 w-4 flex-shrink-0" />
               {isPending ? 'Çıkış Yapılıyor...' : 'Çıkış Yap'}
-            </Button>
+            </button>
           </>
         ) : (
-          <Button 
-            variant="outline" 
-            className="w-full justify-start"
+          <button
             onClick={() => setLocation('/giris')}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/8 transition-all duration-150"
           >
-            <User className="h-4 w-4 mr-2" />
+            <User className="h-4 w-4" />
             Giriş Yap
-          </Button>
+          </button>
         )}
       </div>
     </div>
@@ -205,8 +214,8 @@ const Sidebar = () => {
             isOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-          <aside className="w-64 h-full bg-background border-r shadow-lg relative">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setIsOpen(false)} />
+          <aside className="w-64 h-full relative shadow-2xl">
             {sidebarContent}
           </aside>
         </div>
@@ -214,7 +223,7 @@ const Sidebar = () => {
       
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <aside className="w-60 min-h-screen h-full bg-background border-r shadow-lg hidden md:block sticky top-0">
+        <aside className="w-60 min-h-screen h-full hidden md:block sticky top-0 shadow-xl">
           {sidebarContent}
         </aside>
       )}
