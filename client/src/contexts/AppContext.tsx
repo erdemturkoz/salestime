@@ -59,7 +59,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Kampanyaları getirirken bir hata oluştu:', error);
-      throw error;
     } finally {
       setLoading(false);
     }
