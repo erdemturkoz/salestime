@@ -1239,10 +1239,6 @@ const HesaplamaPage = () => {
 
             {isCalculated && (
               <CardFooter className="flex justify-end gap-2 bg-neutral-50 border-t border-neutral-100 p-3 flex-wrap">
-                <Button variant="outline" size="sm" onClick={handleGeneratePDF}>
-                  <Download className="h-4 w-4 mr-2" />
-                  PDF İndir (Eski)
-                </Button>
                 <Button
                   size="sm"
                   variant="outline"
