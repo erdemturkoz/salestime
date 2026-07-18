@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Search, Filter, Building, X, RefreshCw, LogIn } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MessageCircle, Search, Filter, Building, X, RefreshCw, LogIn, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WhatsappGonderim } from "@shared/schema";
 
 const WhatsappIstatistikleri = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [aramaMetni, setAramaMetni] = useState("");
   const [subeFiltre, setSubeFiltre] = useState("hepsi");
@@ -27,6 +40,16 @@ const WhatsappIstatistikleri = () => {
   const [odemeTipiFiltre, setOdemeTipiFiltre] = useState("hepsi");
   const [baslangicTarihi, setBaslangicTarihi] = useState("");
   const [bitisTarihi, setBitisTarihi] = useState("");
+  const [silinecekId, setSilinecekId] = useState<number | null>(null);
+
+  const roles: string[] =
+    user && "roller" in user && Array.isArray((user as any).roller)
+      ? (user as any).roller.map((r: any) => r.rol)
+      : [];
+  const canDelete =
+    roles.includes("Sistem Yöneticisi") ||
+    roles.includes("Kurucu") ||
+    roles.includes("Müdür");
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
@@ -40,13 +63,25 @@ const WhatsappIstatistikleri = () => {
     queryFn: async () => {
       const qs = buildQueryString();
       const res = await fetch(`/api/whatsapp-gonderimleri${qs}`, { credentials: "include" });
-      if (res.status === 401) {
-        throw new Error("OTURUM_BITTI");
-      }
+      if (res.status === 401) throw new Error("OTURUM_BITTI");
       if (!res.ok) throw new Error("Veri yüklenemedi");
       return res.json();
     },
     retry: false,
+  });
+
+  const silMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", `/api/whatsapp-gonderimleri/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/whatsapp-gonderimleri"] });
+      toast({ title: "Kayıt silindi", description: "Gönderim kaydı başarıyla silindi." });
+      setSilinecekId(null);
+    },
+    onError: () => {
+      toast({ title: "Hata", description: "Kayıt silinemedi.", variant: "destructive" });
+      setSilinecekId(null);
+    },
   });
 
   const filtrelenmis = gonderimleri.filter((g) => {
@@ -300,6 +335,7 @@ const WhatsappIstatistikleri = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="text-center px-3 py-3 font-medium text-gray-600 w-10">#</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Öğrenci</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Kampanya</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Tutar</th>
@@ -307,6 +343,9 @@ const WhatsappIstatistikleri = () => {
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Danışman</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Şube</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Tarih</th>
+                    {canDelete && (
+                      <th className="text-center px-3 py-3 font-medium text-gray-600 w-12"></th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -315,6 +354,9 @@ const WhatsappIstatistikleri = () => {
                       key={g.id}
                       className={`border-b transition-colors hover:bg-gray-50 ${i % 2 === 0 ? "" : "bg-gray-50/50"}`}
                     >
+                      <td className="px-3 py-3 text-center text-gray-400 font-mono text-xs">
+                        {i + 1}
+                      </td>
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-medium text-gray-900">{g.ogrenciAdi}</p>
@@ -362,6 +404,17 @@ const WhatsappIstatistikleri = () => {
                             })
                           : "-"}
                       </td>
+                      {canDelete && (
+                        <td className="px-3 py-3 text-center">
+                          <button
+                            onClick={() => setSilinecekId(g.id)}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Kaydı sil"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -370,6 +423,28 @@ const WhatsappIstatistikleri = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Silme Onay Dialogu */}
+      <AlertDialog open={silinecekId !== null} onOpenChange={(open) => !open && setSilinecekId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kaydı Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu gönderim kaydını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => silinecekId !== null && silMutation.mutate(silinecekId)}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={silMutation.isPending}
+            >
+              {silMutation.isPending ? "Siliniyor..." : "Evet, Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

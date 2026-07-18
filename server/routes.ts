@@ -16,7 +16,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
-import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
+import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
 import "./types"; // Session tiplerini yükle
 
 // Müdürün gönderdiği rollerin geçerliliği: yalnızca kendi şubesine "Satış Danışmanı"
@@ -45,11 +45,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/current-user", getCurrentUser);
   app.post("/api/auth/change-password", isAuthenticated, changePassword);
-  // Şube API routes - Tüm kullanıcılar görebilir
+  // Şube API routes - Tüm kullanıcılar görebilir (Kurucu yalnızca kendi şubelerini görür)
   app.get("/api/subeler", isAuthenticated, async (req, res) => {
     try {
-      const subeler = await storage.getAllSubeler();
-      res.json(subeler);
+      const user = getSessionUser(req);
+      const tumSubeler = await storage.getAllSubeler();
+      // Tam admin her şeyi görür; Kurucu sadece kendi şubelerini görür
+      if (isFullAdminUser(user)) {
+        return res.json(tumSubeler);
+      }
+      if (isKurucuUser(user)) {
+        const managed = getManagedSubeIds(user);
+        return res.json(tumSubeler.filter((s: any) => managed.includes(s.id)));
+      }
+      // Müdür ve Danışman kendi şubelerini görür
+      const myIds = getUserSubeIds(user);
+      if (myIds.length > 0) {
+        return res.json(tumSubeler.filter((s: any) => myIds.includes(s.id)));
+      }
+      res.json(tumSubeler);
     } catch (error) {
       console.error("Şubeler API hatası:", error);
       res.status(500).json({ error: "Şubeler yüklenirken bir hata oluştu", details: String(error) });
@@ -747,6 +761,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("WhatsApp gönderim kayıt hatası:", error);
       res.status(500).json({ error: "Kayıt oluşturulurken hata oluştu", details: String(error) });
+    }
+  });
+
+  app.delete("/api/whatsapp-gonderimleri/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = getSessionUser(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Geçersiz id" });
+      // Sadece yöneticiler silebilir (Sistem Yöneticisi, Kurucu, Müdür)
+      if (!isFullAdminUser(user) && !isKurucuUser(user) && !isMudurUser(user)) {
+        return res.status(403).json({ error: "Bu işlemi yapmak için yetkiniz yok." });
+      }
+      const success = await storage.deleteWhatsappGonderim(id);
+      if (!success) return res.status(404).json({ error: "Kayıt bulunamadı" });
+      res.status(204).send();
+    } catch (error) {
+      console.error("WhatsApp gönderim silme hatası:", error);
+      res.status(500).json({ error: "Silinirken hata oluştu", details: String(error) });
     }
   });
 

@@ -48,7 +48,7 @@ const NAV_ITEMS = [
     label: 'Şubeler',
     href: '/subeler',
     icon: Building,
-    fullAdminOnly: true,
+    kurucuAndAbove: true,
   },
 ];
 
@@ -58,6 +58,7 @@ type NavItemDef = {
   icon: React.ElementType;
   adminOnly?: boolean;
   fullAdminOnly?: boolean;
+  kurucuAndAbove?: boolean;
 };
 
 const NavItem = ({
@@ -76,11 +77,12 @@ const NavItem = ({
     user && "roller" in user && Array.isArray(user.roller)
       ? user.roller.map((r: any) => r.rol)
       : [];
-  const isFullAdmin =
-    roles.includes("Sistem Yöneticisi") || roles.includes("Kurucu");
-  const canManage = isFullAdmin || roles.includes("Müdür");
+  const isFullAdmin = roles.includes("Sistem Yöneticisi");
+  const isKurucu = roles.includes("Kurucu");
+  const canManage = isFullAdmin || isKurucu || roles.includes("Müdür");
 
   if (item.fullAdminOnly && !isFullAdmin) return null;
+  if (item.kurucuAndAbove && !isFullAdmin && !isKurucu) return null;
   if (item.adminOnly && !canManage) return null;
 
   return (

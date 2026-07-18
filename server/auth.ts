@@ -149,10 +149,15 @@ export const getUserRoles = (user: any): string[] => {
   return user.roller.map((r: any) => r.rol);
 };
 
-// Tam yetkili admin mi? (Kurucu / Sistem Yöneticisi) — TÜM şubelere hakim
+// Tam yetkili admin mi? (yalnızca Sistem Yöneticisi) — TÜM şubelere hakim
 export const isFullAdminUser = (user: any): boolean => {
   const roles = getUserRoles(user);
-  return roles.includes("Kurucu") || roles.includes("Sistem Yöneticisi");
+  return roles.includes("Sistem Yöneticisi");
+};
+
+// Kurucu mu? (birden fazla şubeye atanmış, şube kapsamlı yönetici)
+export const isKurucuUser = (user: any): boolean => {
+  return getUserRoles(user).includes("Kurucu");
 };
 
 // Şube müdürü mü?
@@ -169,11 +174,11 @@ export const getUserSubeIds = (user: any): number[] => {
   return Array.from(new Set<number>(ids));
 };
 
-// Müdür olarak yönetilen şube id'leri (kampanya/kullanıcı yönetim kapsamı)
+// Yönetilen şube id'leri (Müdür + Kurucu kapsamı — kampanya/kullanıcı yönetimi)
 export const getManagedSubeIds = (user: any): number[] => {
   if (!user || !user.roller) return [];
   const ids = user.roller
-    .filter((r: any) => r.rol === "Müdür")
+    .filter((r: any) => r.rol === "Müdür" || r.rol === "Kurucu")
     .map((r: any) => r.subeId)
     .filter((x: any) => x !== null && x !== undefined);
   return Array.from(new Set<number>(ids));
@@ -188,10 +193,10 @@ export const isFullAdmin = (req: Request, res: Response, next: NextFunction) => 
   res.status(403).json({ error: "Bu işlemi yapmak için yetkiniz yok." });
 };
 
-// Kampanya yönetebilir mi? (Tam admin VEYA müdür)
+// Kampanya yönetebilir mi? (Sistem Yöneticisi, Kurucu veya Müdür)
 export const canManageCampaigns = (req: Request, res: Response, next: NextFunction) => {
   const user = getSessionUser(req);
-  if (user && (isFullAdminUser(user) || isMudurUser(user))) {
+  if (user && (isFullAdminUser(user) || isKurucuUser(user) || isMudurUser(user))) {
     return next();
   }
   res.status(403).json({ error: "Bu işlemi yapmak için yetkiniz yok." });

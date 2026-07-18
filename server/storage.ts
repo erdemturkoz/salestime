@@ -62,6 +62,7 @@ export interface IStorage {
 
   // WhatsApp Gönderim operations
   createWhatsappGonderim(data: InsertWhatsappGonderim): Promise<WhatsappGonderim>;
+  deleteWhatsappGonderim(id: number): Promise<boolean>;
   getAllWhatsappGonderimleri(filters?: {
     subeId?: number;
     danismanId?: number;
@@ -818,6 +819,14 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return result;
+  }
+
+  async deleteWhatsappGonderim(id: number): Promise<boolean> {
+    const result = await db
+      .delete(whatsappGonderimleri)
+      .where(eq(whatsappGonderimleri.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async getAllWhatsappGonderimleri(filters?: {
