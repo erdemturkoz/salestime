@@ -40,7 +40,6 @@ export interface TeklifData {
   subeTelefon: string;
 }
 
-// Türk para formatı: 103.250,33 TL
 function formatTL(amount: number): string {
   if (!amount || amount === 0) return "0 TL";
   return (
@@ -51,14 +50,12 @@ function formatTL(amount: number): string {
   );
 }
 
-// Türk yüzde formatı: %28,5 veya %50
 function formatYuzde(val: number): string {
   const rounded = parseFloat(val.toFixed(1));
   const str = rounded.toString().replace(".", ",");
   return `%${str}`;
 }
 
-// Tarih formatı: 14 Temmuz 2026
 function formatTarih(date: Date): string {
   return date.toLocaleDateString("tr-TR", {
     day: "numeric",
@@ -67,16 +64,15 @@ function formatTarih(date: Date): string {
   });
 }
 
-// Teklif numarası üretici: ET-IZMIT-1001
 function teklifNumarasiUret(subeAdi: string): string {
   const subeKod = subeAdi
     .toUpperCase()
-    .replace(/İ/g, "I")
-    .replace(/Ş/g, "S")
-    .replace(/Ç/g, "C")
-    .replace(/Ğ/g, "G")
-    .replace(/Ü/g, "U")
-    .replace(/Ö/g, "O")
+    .replace(/\u0130/g, "I")
+    .replace(/\u015e/g, "S")
+    .replace(/\u00c7/g, "C")
+    .replace(/\u011e/g, "G")
+    .replace(/\u00dc/g, "U")
+    .replace(/\u00d6/g, "O")
     .replace(/[^A-Z0-9]/g, "")
     .substring(0, 10);
 
@@ -88,27 +84,6 @@ function teklifNumarasiUret(subeAdi: string): string {
   return `ET-${subeKod}-${next}`;
 }
 
-// Veri doğrulama
-function dogrulamaKontrol(data: TeklifData): string[] {
-  const hatalar: string[] = [];
-
-  const aktifFiyat =
-    data.mudurIndirimTutari > 0 ? data.ozelFiyat : data.genelToplam;
-
-  if (data.taksitSayisi > 1 && data.aylikOdeme > 0) {
-    const taksitToplam = data.aylikOdeme * data.taksitSayisi;
-    const fark = Math.abs(taksitToplam - aktifFiyat);
-    if (fark > data.taksitSayisi) {
-      console.warn(
-        `Taksit toplam farkı: ${fark} TL (${taksitToplam} vs ${aktifFiyat})`
-      );
-    }
-  }
-
-  return hatalar;
-}
-
-// Hediye toplamı hesapla (değeri olan hediyeler)
 function hediyeToplami(data: TeklifData): number {
   let toplam = 0;
   if (data.kitapDahil && data.kitapHediyeEdildi && data.kitapUcreti > 0) {
@@ -122,13 +97,7 @@ function hediyeToplami(data: TeklifData): number {
   return toplam;
 }
 
-// Ana PDF üretici — yeni pencerede HTML açar ve yazdırma tetikler
 export function generateTeklifPDF(data: TeklifData): void {
-  const hatalar = dogrulamaKontrol(data);
-  if (hatalar.length > 0) {
-    console.error("Teklif veri doğrulama hataları:", hatalar);
-  }
-
   const bugun = new Date();
   const gecerlilikTarihi = new Date(bugun);
   gecerlilikTarihi.setDate(gecerlilikTarihi.getDate() + data.gecerlilikGunu);
@@ -142,76 +111,79 @@ export function generateTeklifPDF(data: TeklifData): void {
   const toplamHediye = hediyeToplami(data);
 
   const ogrenciHitap = data.ogrenciAdi
-    ? `Sayın ${data.ogrenciAdi},`
-    : "Sayın Öğrencimiz,";
+    ? `Sayin ${data.ogrenciAdi},`
+    : "Sayin Ogrencimiz,";
+
+  // Turkish character safe version for display
+  const ogrenciHitapTR = data.ogrenciAdi
+    ? `Say\u0131n ${data.ogrenciAdi},`
+    : "Say\u0131n \u00d6\u011frencimiz,";
 
   const danismanTamAdi = `${data.danismanAdi} ${data.danismanSoyadi}`.trim();
 
-  // Ödeme planı satırları
+  // Ödeme planı
   let odemeDetayHTML = "";
   if (data.taksitSayisi <= 1) {
     odemeDetayHTML = `
       <div class="payment-row">
-        <span class="payment-label">Ödeme Şekli</span>
-        <span class="payment-value">${data.odemeTipiText} – Tek Ödeme</span>
+        <span class="payment-label">\u00d6deme \u015eekli</span>
+        <span class="payment-value">${data.odemeTipiText} \u2013 Tek \u00d6deme</span>
       </div>
       <div class="payment-row highlight-row">
-        <span class="payment-label">Ödenecek Tutar</span>
+        <span class="payment-label">\u00d6denecek Tutar</span>
         <span class="payment-value big">${formatTL(aktifFiyat)}</span>
       </div>
     `;
   } else {
-    const taksitTutari = data.aylikOdeme;
     odemeDetayHTML = `
       <div class="payment-row">
-        <span class="payment-label">Ödeme Şekli</span>
+        <span class="payment-label">\u00d6deme \u015eekli</span>
         <span class="payment-value">${data.odemeTipiText}</span>
       </div>
       <div class="payment-row">
-        <span class="payment-label">Taksit Sayısı</span>
+        <span class="payment-label">Taksit Say\u0131s\u0131</span>
         <span class="payment-value">${data.taksitSayisi} Taksit</span>
       </div>
       <div class="payment-row highlight-row">
-        <span class="payment-label">Aylık Taksit</span>
-        <span class="payment-value big">${formatTL(taksitTutari)} × ${data.taksitSayisi}</span>
+        <span class="payment-label">Ayl\u0131k Taksit</span>
+        <span class="payment-value big">${formatTL(data.aylikOdeme)} \u00d7 ${data.taksitSayisi}</span>
       </div>
       <div class="payment-row">
-        <span class="payment-label">Toplam Ödenecek</span>
+        <span class="payment-label">Toplam \u00d6denecek</span>
         <span class="payment-value">${formatTL(aktifFiyat)}</span>
       </div>
     `;
   }
 
-  // Nakit avantajı — taksitli ödeme seçildiyse göster
+  // Nakit avantajı
   let nakitAvantajHTML = "";
   if (data.odemeTipi !== "nakit" && data.nakitFiyati > 0) {
     const nakitFark = aktifFiyat - data.nakitFiyati;
     if (nakitFark > 0) {
       nakitAvantajHTML = `
         <div class="cash-advantage">
-          <div class="cash-advantage-title">💡 NAKİT ÖDEME TAVSİYE EDİLİR</div>
-          <div class="cash-advantage-body">
-            Nakit ödemede yalnızca <strong>${formatTL(data.nakitFiyati)}</strong> ödersiniz — 
-            <strong>${formatTL(nakitFark)}</strong> tasarruf edersiniz.
+          <span class="cash-icon">&#128161;</span>
+          <div>
+            <div class="cash-title">NAK\u0130T \u00d6DEME TAVS\u0130YE ED\u0130L\u0130R</div>
+            <div class="cash-body">Nakit \u00f6demede yaln\u0131zca <strong>${formatTL(data.nakitFiyati)}</strong> \u00f6dersiniz &mdash; <strong>${formatTL(nakitFark)}</strong> tasarruf edersiniz.</div>
           </div>
         </div>
       `;
     }
   }
 
-  // Hediyeler bölümü
+  // Hediyeler
   const hediyelerListesi: string[] = [];
   if (data.kitapDahil && data.kitapUcreti > 0) {
-    const fiyatStr =
-      data.kitapHediyeEdildi && data.kitapUcreti > 0
-        ? `${formatTL(data.kitapUcreti)} değerinde — Hediye`
-        : formatTL(data.kitapUcreti);
+    const fiyatStr = data.kitapHediyeEdildi
+      ? `${formatTL(data.kitapUcreti)} de\u011ferinde &mdash; Hediye`
+      : formatTL(data.kitapUcreti);
     const badge = data.kitapHediyeEdildi
-      ? `<span class="gift-badge">HEDİYE</span>`
+      ? `<span class="gift-badge">HED\u0130YE</span>`
       : "";
     hediyelerListesi.push(`
       <div class="gift-card">
-        <div class="gift-icon">🎁</div>
+        <div class="gift-icon">&#127873;</div>
         <div class="gift-info">
           <div class="gift-name">Kitap Seti ${badge}</div>
           <div class="gift-value">${fiyatStr}</div>
@@ -221,16 +193,16 @@ export function generateTeklifPDF(data: TeklifData): void {
   }
   data.hediyeler.forEach((h) => {
     const verildi = data.hediyeEdildi[h.isim];
-    const badge = verildi ? `<span class="gift-badge">HEDİYE</span>` : "";
+    const badge = verildi ? `<span class="gift-badge">HED\u0130YE</span>` : "";
     const fiyatStr =
       h.fiyat > 0
         ? verildi
-          ? `${formatTL(h.fiyat)} değerinde — Hediye`
+          ? `${formatTL(h.fiyat)} de\u011ferinde &mdash; Hediye`
           : formatTL(h.fiyat)
-        : "Ücretsiz";
+        : "\u00dccretsiz";
     hediyelerListesi.push(`
       <div class="gift-card">
-        <div class="gift-icon">🎁</div>
+        <div class="gift-icon">&#127873;</div>
         <div class="gift-info">
           <div class="gift-name">${h.isim} ${badge}</div>
           <div class="gift-value">${fiyatStr}</div>
@@ -249,32 +221,32 @@ export function generateTeklifPDF(data: TeklifData): void {
       </div>
       ${
         toplamHediye > 0
-          ? `<div class="gifts-total">Toplam hediye ve avantaj değeri: <strong>${formatTL(toplamHediye)}</strong></div>`
+          ? `<div class="gifts-total">Toplam hediye ve avantaj de\u011feri: <strong>${formatTL(toplamHediye)}</strong></div>`
           : ""
       }
     </div>
   `
       : "";
 
-  // Müdür indirimi bölümü
+  // Müdür indirimi
   const mudurIndirimHTML =
     data.mudurIndirimTutari > 0
       ? `
     <div class="manager-discount">
-      <div class="manager-discount-label">Müdür İnisiyatifi İndirimi</div>
-      <div class="manager-discount-value">−${formatTL(data.mudurIndirimTutari)}</div>
+      <div class="manager-discount-label">M\u00fcд\u00fcr \u0130nisiyatifi \u0130ndirimi</div>
+      <div class="manager-discount-value">&minus;${formatTL(data.mudurIndirimTutari)}</div>
     </div>
   `
       : "";
 
-  // Özel fiyat kartı
+  // Özel fiyat
   const ozelFiyatHTML =
     data.mudurIndirimTutari > 0
       ? `
     <div class="special-price-card">
-      <div class="special-price-label">KİŞİYE ÖZEL FİYAT</div>
+      <div class="special-price-label">K\u0130\u015e\u0130YE \u00d6ZEL F\u0130YAT</div>
       <div class="special-price-value">${formatTL(data.ozelFiyat)}</div>
-      <div class="special-price-note">Genel toplam ${formatTL(data.genelToplam)}'dan ekstra ${formatYuzde(data.mudurIndirimDegeri)} indirim uygulandı</div>
+      <div class="special-price-note">Genel toplam ${formatTL(data.genelToplam)}&rsquo;dan ekstra ${formatYuzde(data.mudurIndirimDegeri)} indirim uyguland\u0131</div>
     </div>
   `
       : "";
@@ -284,10 +256,10 @@ export function generateTeklifPDF(data: TeklifData): void {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kişiye Özel Eğitim Teklifi — ${teklifNo}</title>
+  <title>Ki\u015fiye \u00d6zel E\u011fitim Teklifi \u2014 ${teklifNo}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @page {
       size: A4;
@@ -302,19 +274,20 @@ export function generateTeklifPDF(data: TeklifData): void {
 
     html, body {
       width: 210mm;
-      min-height: 297mm;
-      font-family: 'Roboto Condensed', Arial, sans-serif;
+      height: 297mm;
+      overflow: hidden;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Arial, sans-serif;
       background: #ffffff;
       color: #111827;
-      font-size: 11pt;
+      font-size: 10pt;
       print-color-adjust: exact;
       -webkit-print-color-adjust: exact;
     }
 
     .page {
       width: 210mm;
-      min-height: 297mm;
-      padding: 0;
+      height: 297mm;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       background: #ffffff;
@@ -322,192 +295,184 @@ export function generateTeklifPDF(data: TeklifData): void {
 
     /* ─── HEADER ─── */
     .header {
-      background: #111827;
+      background: #1a1a2e;
       color: #ffffff;
-      padding: 16px 24px 12px;
+      padding: 12px 22px 10px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      flex-shrink: 0;
     }
-
-    .header-left {}
 
     .logo-area {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
+      gap: 8px;
+      margin-bottom: 4px;
     }
 
     .logo-badge {
-      background: #FFF200;
-      color: #111827;
-      font-size: 13pt;
+      background: #f97316;
+      color: #ffffff;
+      font-size: 11pt;
       font-weight: 700;
-      padding: 4px 10px;
-      letter-spacing: 1px;
-      border-radius: 3px;
+      padding: 3px 10px;
+      letter-spacing: 0.5px;
+      border-radius: 4px;
     }
 
     .branch-name {
-      font-size: 10pt;
-      color: #9CA3AF;
-      letter-spacing: 0.5px;
+      font-size: 9pt;
+      color: #94a3b8;
+      font-weight: 500;
+      letter-spacing: 0.3px;
     }
 
     .offer-title {
-      font-size: 16pt;
+      font-size: 13pt;
       font-weight: 700;
-      color: #FFF200;
-      letter-spacing: 1px;
-      margin-top: 4px;
+      color: #f97316;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
     }
 
     .header-right {
-      background: rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 6px;
-      padding: 10px 14px;
-      min-width: 200px;
+      padding: 8px 12px;
+      min-width: 185px;
       text-align: right;
+    }
+
+    .teklif-no {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #f97316;
+      text-align: right;
+      margin-bottom: 5px;
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 4px;
-      font-size: 9pt;
+      gap: 10px;
+      margin-bottom: 3px;
+      font-size: 8pt;
     }
 
     .info-row:last-child { margin-bottom: 0; }
-
-    .info-label {
-      color: #9CA3AF;
-      white-space: nowrap;
-    }
-
-    .info-val {
-      color: #ffffff;
-      font-weight: 500;
-    }
-
-    .teklif-no {
-      font-size: 11pt;
-      font-weight: 700;
-      color: #FFF200;
-      text-align: right;
-      margin-bottom: 8px;
-    }
+    .info-label { color: #94a3b8; white-space: nowrap; }
+    .info-val { color: #e2e8f0; font-weight: 500; }
 
     /* ─── BODY ─── */
     .body {
       flex: 1;
-      padding: 14px 24px 10px;
-      background: #F5F6F8;
+      padding: 10px 22px 8px;
+      background: #f8fafc;
+      overflow: hidden;
     }
 
     /* ─── STUDENT GREETING ─── */
     .student-greeting {
       background: #ffffff;
-      border-left: 4px solid #FFF200;
-      border-radius: 0 6px 6px 0;
-      padding: 10px 14px;
-      margin-bottom: 12px;
+      border-left: 4px solid #f97316;
+      border-radius: 0 5px 5px 0;
+      padding: 7px 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
     .student-name {
-      font-size: 13pt;
+      font-size: 11pt;
       font-weight: 700;
       color: #111827;
     }
 
     .student-subtitle {
-      font-size: 9.5pt;
-      color: #6B7280;
-      margin-top: 2px;
+      font-size: 8.5pt;
+      color: #6b7280;
+      margin-top: 1px;
     }
 
     /* ─── CAMPAIGN HERO ─── */
     .campaign-hero {
-      background: #111827;
+      background: #1a1a2e;
       color: #ffffff;
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 12px;
+      border-radius: 7px;
+      padding: 10px 18px;
+      margin-bottom: 8px;
       text-align: center;
     }
 
     .campaign-title {
-      font-size: 20pt;
+      font-size: 17pt;
       font-weight: 700;
-      color: #FFF200;
-      letter-spacing: 1px;
-      line-height: 1.15;
+      color: #f97316;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
     }
 
     .campaign-subtitle {
-      font-size: 10pt;
-      color: #D1D5DB;
-      margin-top: 4px;
+      font-size: 9pt;
+      color: #cbd5e1;
+      margin-top: 2px;
     }
 
     .campaign-tags {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 7px;
       flex-wrap: wrap;
     }
 
     .campaign-tag {
-      background: rgba(255,242,0,0.12);
-      border: 1px solid rgba(255,242,0,0.3);
-      color: #FFF200;
-      font-size: 9pt;
-      font-weight: 500;
-      padding: 3px 10px;
+      background: rgba(249,115,22,0.15);
+      border: 1px solid rgba(249,115,22,0.35);
+      color: #fb923c;
+      font-size: 8pt;
+      font-weight: 600;
+      padding: 2px 9px;
       border-radius: 20px;
     }
 
     /* ─── SECTIONS ─── */
     .section {
       background: #ffffff;
-      border-radius: 6px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
-      border: 1px solid #E5E7EB;
+      border-radius: 5px;
+      padding: 8px 13px;
+      margin-bottom: 7px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     .section-title {
-      font-size: 10pt;
+      font-size: 8.5pt;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.7px;
       color: #374151;
-      border-bottom: 2px solid #FFF200;
-      padding-bottom: 5px;
-      margin-bottom: 10px;
+      border-bottom: 2px solid #f97316;
+      padding-bottom: 4px;
+      margin-bottom: 7px;
       display: inline-block;
     }
 
     /* ─── PRICE TABLE ─── */
-    .price-table {
-      width: 100%;
-    }
+    .price-table { width: 100%; }
 
     .price-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 5px 0;
-      border-bottom: 1px solid #F3F4F6;
-      font-size: 10pt;
+      padding: 4px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 9pt;
     }
 
     .price-row:last-child { border-bottom: none; }
-
-    .price-label { color: #6B7280; }
+    .price-label { color: #6b7280; }
 
     .price-value {
       font-weight: 600;
@@ -516,106 +481,105 @@ export function generateTeklifPDF(data: TeklifData): void {
 
     .price-value.strikethrough {
       text-decoration: line-through;
-      color: #9CA3AF;
+      color: #9ca3af;
       font-weight: 400;
     }
 
     .price-value.discount { color: #059669; }
 
     .price-value.main {
-      font-size: 13pt;
+      font-size: 11pt;
       font-weight: 700;
       color: #111827;
     }
 
-    /* ─── TOTAL HIGHLIGHT ─── */
+    /* ─── TOTAL BOX ─── */
     .total-box {
-      background: #111827;
+      background: #1a1a2e;
       border-radius: 6px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
+      padding: 9px 14px;
+      margin-bottom: 7px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .total-box-label {
-      color: #9CA3AF;
-      font-size: 10pt;
-    }
+    .total-box-label { color: #94a3b8; font-size: 9pt; }
+    .total-box-sub { font-size: 7.5pt; color: #64748b; margin-top: 1px; }
 
     .total-box-value {
-      color: #FFF200;
-      font-size: 22pt;
+      color: #f97316;
+      font-size: 20pt;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     /* ─── MANAGER DISCOUNT ─── */
     .manager-discount {
       display: flex;
       justify-content: space-between;
-      background: #ECFDF5;
-      border: 1px solid #6EE7B7;
-      border-radius: 6px;
-      padding: 8px 14px;
-      margin-bottom: 8px;
-      font-size: 10pt;
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      border-radius: 5px;
+      padding: 6px 12px;
+      margin-bottom: 6px;
+      font-size: 9pt;
     }
 
-    .manager-discount-label { color: #065F46; font-weight: 600; }
-    .manager-discount-value { color: #059669; font-weight: 700; font-size: 12pt; }
+    .manager-discount-label { color: #065f46; font-weight: 600; }
+    .manager-discount-value { color: #059669; font-weight: 700; font-size: 11pt; }
 
     /* ─── SPECIAL PRICE ─── */
     .special-price-card {
-      background: #FFF200;
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
       border-radius: 6px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
+      padding: 10px 14px;
+      margin-bottom: 7px;
       text-align: center;
     }
 
     .special-price-label {
-      font-size: 9pt;
+      font-size: 8pt;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #111827;
-      margin-bottom: 4px;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 3px;
     }
 
     .special-price-value {
-      font-size: 26pt;
+      font-size: 22pt;
       font-weight: 700;
-      color: #111827;
+      color: #ffffff;
       line-height: 1.1;
     }
 
     .special-price-note {
-      font-size: 8.5pt;
-      color: #374151;
-      margin-top: 4px;
+      font-size: 8pt;
+      color: rgba(255,255,255,0.8);
+      margin-top: 3px;
     }
 
-    /* ─── PAYMENT ─── */
+    /* ─── TWO COLUMN LAYOUT ─── */
     .two-col {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 7px;
     }
 
+    /* ─── PAYMENT ─── */
     .payment-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 5px 0;
-      border-bottom: 1px solid #F3F4F6;
-      font-size: 10pt;
+      padding: 4px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 9pt;
     }
 
     .payment-row:last-child { border-bottom: none; }
-    .payment-label { color: #6B7280; }
+    .payment-label { color: #6b7280; }
 
     .payment-value {
       font-weight: 600;
@@ -623,148 +587,134 @@ export function generateTeklifPDF(data: TeklifData): void {
     }
 
     .payment-value.big {
-      font-size: 13pt;
+      font-size: 11pt;
       font-weight: 700;
-      color: #1D4ED8;
+      color: #1d4ed8;
     }
 
     .highlight-row {
-      background: #EFF6FF;
+      background: #eff6ff;
       margin: 2px -8px;
-      padding: 6px 8px;
+      padding: 5px 8px;
       border-radius: 4px;
       border-bottom: none !important;
     }
 
     /* ─── CASH ADVANTAGE ─── */
     .cash-advantage {
-      background: #FFF200;
-      border-radius: 6px;
-      padding: 10px 14px;
-      margin-bottom: 10px;
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      border-radius: 5px;
+      padding: 7px 12px;
+      margin-bottom: 7px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
     }
 
-    .cash-advantage-title {
-      font-size: 10pt;
-      font-weight: 700;
-      color: #111827;
-      margin-bottom: 3px;
-    }
-
-    .cash-advantage-body {
-      font-size: 9.5pt;
-      color: #374151;
-    }
+    .cash-icon { font-size: 14pt; flex-shrink: 0; }
+    .cash-title { font-size: 8.5pt; font-weight: 700; color: #713f12; margin-bottom: 2px; }
+    .cash-body { font-size: 8.5pt; color: #854d0e; }
 
     /* ─── GIFTS ─── */
     .gifts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 6px;
     }
 
     .gift-card {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 6px;
-      padding: 8px 10px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 6px 8px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: flex-start;
     }
 
-    .gift-icon {
-      font-size: 14pt;
-      flex-shrink: 0;
-      line-height: 1;
-    }
-
-    .gift-info {}
+    .gift-icon { font-size: 13pt; flex-shrink: 0; line-height: 1; }
 
     .gift-name {
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       font-weight: 600;
       color: #111827;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
-    .gift-value {
-      font-size: 8.5pt;
-      color: #6B7280;
-    }
+    .gift-value { font-size: 8pt; color: #6b7280; }
 
     .gift-badge {
-      background: #111827;
-      color: #FFF200;
-      font-size: 7.5pt;
+      background: #f97316;
+      color: #ffffff;
+      font-size: 7pt;
       font-weight: 700;
-      padding: 1px 5px;
+      padding: 1px 4px;
       border-radius: 3px;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       vertical-align: middle;
       margin-left: 3px;
     }
 
     .gifts-total {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed #E5E7EB;
-      font-size: 9.5pt;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 8.5pt;
       color: #374151;
       text-align: right;
     }
 
     /* ─── VALIDITY ─── */
     .validity-box {
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
-      border-radius: 6px;
-      padding: 10px 14px;
-      margin-bottom: 10px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 5px;
+      padding: 7px 12px;
+      margin-bottom: 7px;
     }
 
     .validity-main {
-      font-size: 10pt;
+      font-size: 9.5pt;
       font-weight: 700;
-      color: #991B1B;
+      color: #9a3412;
     }
 
     .validity-sub {
-      font-size: 8.5pt;
-      color: #B91C1C;
-      margin-top: 3px;
+      font-size: 8pt;
+      color: #c2410c;
+      margin-top: 2px;
     }
 
     /* ─── CONSULTANT ─── */
     .consultant-box {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 6px;
-      padding: 12px 16px;
-      margin-bottom: 10px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 8px 13px;
+      margin-bottom: 7px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     .consultant-cta {
-      font-size: 10pt;
+      font-size: 8.5pt;
       color: #374151;
-      margin-bottom: 10px;
+      margin-bottom: 7px;
     }
 
     .consultant-info {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
+      gap: 5px;
     }
 
-    .consultant-item {
-      font-size: 9.5pt;
-    }
+    .consultant-item { font-size: 9pt; }
 
     .consultant-item-label {
-      color: #9CA3AF;
-      font-size: 8pt;
+      color: #9ca3af;
+      font-size: 7.5pt;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
 
     .consultant-item-value {
@@ -774,17 +724,17 @@ export function generateTeklifPDF(data: TeklifData): void {
 
     /* ─── FOOTER ─── */
     .footer {
-      background: #111827;
-      padding: 8px 24px;
+      background: #1a1a2e;
+      padding: 6px 22px;
       text-align: center;
-      font-size: 7.5pt;
-      color: #6B7280;
+      font-size: 7pt;
+      color: #64748b;
       line-height: 1.5;
+      flex-shrink: 0;
     }
 
     @media print {
       body { margin: 0; }
-      .page { page-break-inside: avoid; }
       .no-print { display: none !important; }
     }
   </style>
@@ -792,14 +742,14 @@ export function generateTeklifPDF(data: TeklifData): void {
 <body>
 <div class="page">
 
-  <!-- A. KURUMSAL ÜST ALAN -->
+  <!-- HEADER -->
   <div class="header">
-    <div class="header-left">
+    <div>
       <div class="logo-area">
         <span class="logo-badge">ENGLISH TIME</span>
-        <span class="branch-name">${data.subeAdi || "Şube"}</span>
+        <span class="branch-name">${data.subeAdi || "\u015eube"}</span>
       </div>
-      <div class="offer-title">KİŞİYE ÖZEL EĞİTİM TEKLİFİ</div>
+      <div class="offer-title">K\u0130\u015e\u0130YE \u00d6ZEL E\u011e\u0130T\u0130M TEKL\u0130F\u0130</div>
     </div>
     <div class="header-right">
       <div class="teklif-no">${teklifNo}</div>
@@ -808,13 +758,13 @@ export function generateTeklifPDF(data: TeklifData): void {
         <span class="info-val">${teklifTarihi}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Danışman</span>
-        <span class="info-val">${danismanTamAdi || "—"}</span>
+        <span class="info-label">Dan\u0131\u015fman</span>
+        <span class="info-val">${danismanTamAdi || "\u2014"}</span>
       </div>
       ${
         data.danismanTelefon
           ? `<div class="info-row">
-        <span class="info-label">Danışman Tel</span>
+        <span class="info-label">Telefon</span>
         <span class="info-val">${data.danismanTelefon}</span>
       </div>`
           : ""
@@ -825,100 +775,100 @@ export function generateTeklifPDF(data: TeklifData): void {
   <!-- BODY -->
   <div class="body">
 
-    <!-- B. ÖĞRENCİYE ÖZEL GİRİŞ -->
+    <!-- Öğrenci selamlama -->
     <div class="student-greeting">
-      <div class="student-name">${ogrenciHitap}</div>
-      <div class="student-subtitle">
-        Eğitim hedeflerinize göre hazırlanan program ve ödeme seçenekleri aşağıda sunulmuştur.
-      </div>
+      <div class="student-name">Say\u0131n ${data.ogrenciAdi || "\u00d6\u011frencimiz"},</div>
+      <div class="student-subtitle">E\u011fitim hedeflerinize g\u00f6re haz\u0131rlanan program ve \u00f6deme se\u00e7enekleri a\u015fa\u011f\u0131da sunulmu\u015ftur.</div>
     </div>
 
-    <!-- C. ANA KAMPANYA ALANI -->
+    <!-- Kampanya hero -->
     <div class="campaign-hero">
       <div class="campaign-title">${data.kampanyaAdi}</div>
       <div class="campaign-subtitle">${data.egitimTipi}</div>
       <div class="campaign-tags">
-        <span class="campaign-tag">📚 ${data.kurSayisi} Kur</span>
-        <span class="campaign-tag">⏱ ${data.dersSaati} Saat</span>
-        <span class="campaign-tag">🎓 ${data.egitimTipi}</span>
+        <span class="campaign-tag">&#128218; ${data.kurSayisi} Kur</span>
+        <span class="campaign-tag">&#9200; ${data.dersSaati} Saat</span>
+        <span class="campaign-tag">&#127891; ${data.egitimTipi}</span>
       </div>
     </div>
 
-    <!-- D. FİYAT ALANI -->
+    <!-- Toplam / Özel fiyat -->
     ${ozelFiyatHTML}
 
-    ${!ozelFiyatHTML ? `
+    ${
+      !ozelFiyatHTML
+        ? `
     <div class="total-box">
       <div>
         <div class="total-box-label">Genel Toplam</div>
-        <div style="font-size:8.5pt;color:#6B7280;">Tüm vergiler dahil</div>
+        <div class="total-box-sub">T\u00fcm vergiler dahil</div>
       </div>
       <div class="total-box-value">${formatTL(data.genelToplam)}</div>
     </div>
-    ` : ""}
+    `
+        : ""
+    }
 
     ${mudurIndirimHTML}
 
-    <!-- E. FİYAT DETAYI + ÖDEME PLANI -->
+    <!-- Fiyat + Ödeme -->
     <div class="two-col">
       <div class="section" style="margin-bottom:0;">
         <div class="section-title">Fiyat Bilgileri</div>
         <div class="price-table">
           <div class="price-row">
-            <span class="price-label">Program Liste Fiyatı</span>
+            <span class="price-label">Liste Fiyat\u0131</span>
             <span class="price-value strikethrough">${formatTL(data.listeFiyati)}</span>
           </div>
           <div class="price-row">
-            <span class="price-label">Kampanya İndirimi</span>
-            <span class="price-value discount">−${formatTL(data.indirimTutari)} (${formatYuzde(data.indirimYuzdesi)})</span>
+            <span class="price-label">Kampanya \u0130ndirimi</span>
+            <span class="price-value discount">&minus;${formatTL(data.indirimTutari)} (${formatYuzde(data.indirimYuzdesi)})</span>
           </div>
           <div class="price-row">
-            <span class="price-label">Kampanyalı Fiyat</span>
+            <span class="price-label">Kampanyal\u0131 Fiyat</span>
             <span class="price-value main">${formatTL(data.kampanyaliFiyat)}</span>
           </div>
-          ${data.nakitFiyati > 0 && data.odemeTipi !== "nakit" ? `
+          ${
+            data.nakitFiyati > 0 && data.odemeTipi !== "nakit"
+              ? `
           <div class="price-row">
             <span class="price-label">Nakit Fiyat</span>
             <span class="price-value" style="color:#059669;font-weight:700;">${formatTL(data.nakitFiyati)}</span>
           </div>
-          ` : ""}
+          `
+              : ""
+          }
         </div>
       </div>
 
       <div class="section" style="margin-bottom:0;">
-        <div class="section-title">Ödeme Planı</div>
+        <div class="section-title">\u00d6deme Plan\u0131</div>
         ${odemeDetayHTML}
       </div>
     </div>
 
-    <!-- Nakit avantaj banneri -->
+    <!-- Nakit avantajı -->
     ${nakitAvantajHTML}
 
-    <!-- F. HEDİYELER -->
+    <!-- Hediyeler -->
     ${hediyelerHTML}
 
-    <!-- G. GEÇERLİLİK UYARISI -->
+    <!-- Geçerlilik -->
     <div class="validity-box">
-      <div class="validity-main">
-        ⏳ Bu teklif ${sonGecerlilikTarihi} saat 18.00'e kadar geçerlidir.
-      </div>
-      <div class="validity-sub">
-        Belirtilen fiyat ve kampanya koşulları, teklif süresi sonunda yeniden değerlendirilebilir.
-      </div>
+      <div class="validity-main">&#9203; Bu teklif ${sonGecerlilikTarihi} saat 18.00&rsquo;e kadar ge\u00e7erlidir.</div>
+      <div class="validity-sub">Belirtilen fiyat ve kampanya ko\u015fullar\u0131, teklif s\u00fcresi sonunda yeniden de\u011flendirilebilir.</div>
     </div>
 
-    <!-- H. DANIŞMAN VE SONRAKİ ADIM -->
+    <!-- Danışman -->
     <div class="consultant-box">
-      <div class="consultant-cta">
-        Teklifinizi onaylamak ve kontenjanınızı ayırmak için eğitim danışmanınızla iletişime geçebilirsiniz.
-      </div>
+      <div class="consultant-cta">Teklifinizi onaylamak ve kontenjan\u0131n\u0131z\u0131 ay\u0131rmak i\u00e7in e\u011fitim dan\u0131\u015fman\u0131n\u0131zla ileti\u015fime ge\u00e7ebilirsiniz.</div>
       <div class="consultant-info">
         ${danismanTamAdi ? `<div class="consultant-item">
-          <div class="consultant-item-label">Danışman</div>
+          <div class="consultant-item-label">Dan\u0131\u015fman</div>
           <div class="consultant-item-value">${danismanTamAdi}</div>
         </div>` : ""}
         ${data.subeAdi ? `<div class="consultant-item">
-          <div class="consultant-item-label">Şube</div>
+          <div class="consultant-item-label">\u015eube</div>
           <div class="consultant-item-value">${data.subeAdi}</div>
         </div>` : ""}
         ${data.danismanTelefon ? `<div class="consultant-item">
@@ -926,11 +876,11 @@ export function generateTeklifPDF(data: TeklifData): void {
           <div class="consultant-item-value">${data.danismanTelefon}</div>
         </div>` : ""}
         ${data.subeTelefon ? `<div class="consultant-item">
-          <div class="consultant-item-label">Şube Telefonu</div>
+          <div class="consultant-item-label">\u015eube Telefonu</div>
           <div class="consultant-item-value">${data.subeTelefon}</div>
         </div>` : ""}
         ${data.subeAdresi ? `<div class="consultant-item" style="grid-column:1/-1;">
-          <div class="consultant-item-label">Şube Adresi</div>
+          <div class="consultant-item-label">\u015eube Adresi</div>
           <div class="consultant-item-value">${data.subeAdresi}</div>
         </div>` : ""}
       </div>
@@ -938,34 +888,40 @@ export function generateTeklifPDF(data: TeklifData): void {
 
   </div>
 
-  <!-- I. YASAL AÇIKLAMA -->
+  <!-- FOOTER -->
   <div class="footer">
-    Bu belge eğitim kapsamı, kampanya avantajları ve ödeme seçenekleri hakkında ön bilgilendirme amacı taşır.
-    Kesin kayıt işlemi tamamlandığında taraflar arasında eğitim sözleşmesi düzenlenir. &bull; ${teklifNo} &bull; ${teklifTarihi}
+    Bu belge e\u011fitim kapsam\u0131, kampanya avantajlar\u0131 ve \u00f6deme se\u00e7enekleri hakk\u0131nda \u00f6n bilgilendirme ama\u00e7l\u0131d\u0131r. Kesin kay\u0131t i\u015flemi tamamland\u0131\u011f\u0131nda taraflar aras\u0131nda e\u011fitim s\u00f6zle\u015fmesi d\u00fczenlenir.
+    &bull; ${teklifNo} &bull; ${teklifTarihi}
   </div>
 
 </div>
 
 <script>
-  window.addEventListener('load', function() {
-    window.print();
-  });
+  // Font y\u00fcklendikten sonra yazd\u0131r
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() {
+      setTimeout(function() { window.print(); }, 300);
+    });
+  } else {
+    setTimeout(function() { window.print(); }, 800);
+  }
 </script>
 </body>
 </html>`;
 
-  const win = window.open("", "_blank", "width=900,height=700");
+  // Blob URL kullanarak UTF-8 karakter sorununu \u00f6nle
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+
   if (!win) {
-    console.error(
-      "Yeni pencere açılamadı. Tarayıcı pop-up engelleyicisini kontrol edin."
-    );
+    URL.revokeObjectURL(url);
     alert(
-      "PDF penceresi açılamadı. Lütfen tarayıcınızın pop-up engelleyicisini bu site için devre dışı bırakın."
+      "PDF penceresi a\u00e7\u0131lamad\u0131. L\u00fctfen taray\u0131c\u0131n\u0131z\u0131n pop-up engelleyicisini bu site i\u00e7in devre d\u0131\u015f\u0131 b\u0131rak\u0131n."
     );
     return;
   }
 
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  // Pencere kapan\u0131nca blob URL'yi temizle
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
