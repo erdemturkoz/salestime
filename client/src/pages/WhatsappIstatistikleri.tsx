@@ -72,7 +72,7 @@ const WhatsappIstatistikleri = () => {
 
   const silMutation = useMutation({
     mutationFn: (id: number) =>
-      apiRequest("DELETE", `/api/whatsapp-gonderimleri/${id}`),
+      apiRequest(`/api/whatsapp-gonderimleri/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/whatsapp-gonderimleri"] });
       toast({ title: "Kayıt silindi", description: "Gönderim kaydı başarıyla silindi." });
