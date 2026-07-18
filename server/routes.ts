@@ -504,17 +504,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(kampanyalar);
       }
 
-      // Müdür / Danışman: SADECE kendi şubelerinin kampanyaları (client subeId yok sayılır)
-      const subeIds = getUserSubeIds(user);
-      if (subeIds.length === 0) {
+      // Müdür / Danışman / Kurucu: şubeye izole kampanya listesi
+      const userSubeIds = getUserSubeIds(user);
+      if (userSubeIds.length === 0) {
         return res.json([]);
       }
-      let sonuc: any[] = [];
-      for (const sid of subeIds) {
-        const list = await storage.getKampanyasBySubeId(sid);
-        sonuc = sonuc.concat(list);
+
+      const { subeId } = req.query;
+
+      if (subeId) {
+        // Frontend şube filtresi geldi — yetkili mi kontrol et, sadece onu döndür
+        const requestedSubeId = parseInt(subeId as string);
+        if (!userSubeIds.includes(requestedSubeId)) {
+          return res.status(403).json({ error: "Bu şubeye erişim yetkiniz yok." });
+        }
+        return res.json(await storage.getKampanyasBySubeId(requestedSubeId));
       }
-      return res.json(sonuc);
+
+      // subeId gelmedi: tek şubeli kullanıcı için oto-seç, çok şubeli için boş döndür
+      if (userSubeIds.length === 1) {
+        return res.json(await storage.getKampanyasBySubeId(userSubeIds[0]));
+      }
+      // Kurucu gibi çok şubeli kullanıcılar mutlaka bir şube seçmeli
+      return res.json([]);
     } catch (error) {
       console.error("Kampanyalar API hatası:", error);
       res.status(500).json({ error: "Kampanyalar yüklenirken bir hata oluştu", details: String(error) });

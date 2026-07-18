@@ -96,8 +96,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         body: JSON.stringify(kampanyaData)
       });
 
-      // POST başarılı — listeyi backend'den yeniden çek
-      await fetchKampanyalar();
+      // POST başarılı — seçili şubeye göre listeyi yenile
+      if (selectedSubeId) {
+        await getKampanyalarBySubeId(selectedSubeId);
+      } else {
+        await fetchKampanyalar();
+      }
 
     } catch (error) {
       console.error('Kampanya eklenirken bir hata oluştu:', error);

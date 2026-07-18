@@ -476,6 +476,14 @@ const UcretlendirmePage = () => {
   // Kampanyaları kategorilere ayırma ve sıralama fonksiyonu
   const renderGroupedKampanyalar = () => {
     if (kampanyalar.length === 0) {
+      if (!selectedSubeId) {
+        return (
+          <div className="text-center py-10 text-muted-foreground">
+            <Building className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Kampanyaları görüntülemek için yukarıdan bir şube seçiniz.</p>
+          </div>
+        );
+      }
       return (
         <div className="text-center py-8 text-muted-foreground">
           Kayıtlı kampanya bulunmuyor. Yeni bir kampanya ekleyebilirsiniz.
