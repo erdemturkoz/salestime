@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -42,9 +42,24 @@ import {
 type OdemeType = "nakit" | "kredi-karti" | "senet" | "";
 
 const HesaplamaPage = () => {
-  const { kampanyalar } = useAppContext();
+  const { kampanyalar, getKampanyalarBySubeId } = useAppContext();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Kurucu gibi çok şubeli kullanıcılar için — AppContext boşsa birincil şubeden kampanya yükle
+  const autoLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!autoLoadedRef.current && kampanyalar.length === 0 && user) {
+      const roller = (user as any).roller;
+      if (roller && roller.length > 0) {
+        const firstSubeId = roller[0]?.subeId;
+        if (firstSubeId) {
+          autoLoadedRef.current = true;
+          getKampanyalarBySubeId(firstSubeId);
+        }
+      }
+    }
+  }, [user, kampanyalar.length, getKampanyalarBySubeId]);
 
   // Eğitim tiplerini veritabanından çek (kampanyalardaki değerlerle birebir eşleşmesi için)
   const { data: egitimTipleri = [] } = useQuery<EgitimTipi[]>({
