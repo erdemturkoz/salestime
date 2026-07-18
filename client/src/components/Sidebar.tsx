@@ -36,7 +36,7 @@ const NAV_ITEMS = [
     label: 'Eğitim Tipleri',
     href: '/egitim-tipleri',
     icon: BookOpen,
-    fullAdminOnly: true,
+    adminOnly: true,
   },
   {
     label: 'Kullanıcılar',

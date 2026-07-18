@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/egitim-tipleri", isFullAdmin, async (req, res) => {
+  app.post("/api/egitim-tipleri", canManageCampaigns, async (req, res) => {
     try {
       const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
       const newEgitimTipi = await storage.createEgitimTipi(egitimTipiData);
@@ -432,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/egitim-tipleri/:id", isFullAdmin, async (req, res) => {
+  app.put("/api/egitim-tipleri/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
       const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
@@ -452,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/egitim-tipleri/:id", isFullAdmin, async (req, res) => {
+  app.delete("/api/egitim-tipleri/:id", canManageCampaigns, async (req, res) => {
     try {
       const { id } = req.params;
       
