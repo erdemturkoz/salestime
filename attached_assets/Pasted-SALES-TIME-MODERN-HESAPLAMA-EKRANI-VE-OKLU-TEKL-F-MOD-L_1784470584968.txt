@@ -1,0 +1,617 @@
+SALES TIME — MODERN HESAPLAMA EKRANI VE ÇOKLU TEKLİF MODÜLÜ V2
+
+Mevcut Sales Time uygulamasındaki çalışan fiyat hesaplama sistemi korunarak, yalnızca Hesaplama ekranını modernleştirmeni ve aynı öğrenci için iki alternatif teklif hazırlanabilen yeni bir yapı oluşturmanı istiyorum.
+
+Bu çalışma sırasında mevcut veritabanı yapısını, kampanya sistemini, kullanıcı rollerini, şube izolasyonunu, fiyat hesaplama formüllerini, WhatsApp gönderim mantığını ve PDF üreticisini bozma.
+
+Öncelikle mevcut projeyi ve özellikle aşağıdaki dosyaları analiz et:
+
+* client/src/pages/HesaplamaPage.tsx
+* client/src/utils/calculator.ts
+* client/src/utils/teklif-pdf-generator.ts
+* client/src/contexts/AppContext.tsx
+* client/src/contexts/AuthContext.tsx
+* shared/schema.ts
+* server/routes.ts
+
+Kod yazmaya başlamadan önce mevcut hesaplama akışının nasıl çalıştığını tam olarak anla. Mevcut hesaplama sonuçlarını ve formülleri değiştirme.
+
+# 1. TEMEL HEDEF
+
+Yeni Hesaplama ekranı şu özelliklere sahip olmalıdır:
+
+* Modern, sade, premium ve profesyonel görünmeli.
+* Apple, Stripe Dashboard, Attio, Linear ve modern CRM uygulamalarından esinlenmeli.
+* Mevcut Sales Time ekranından daha ferah ve kolay anlaşılır olmalı.
+* Satış danışmanı fazla düşünmeden hızlı teklif hazırlayabilmeli.
+* Gereksiz kartlar, tekrar eden bilgiler ve kalabalık açıklamalar kaldırılmalı.
+* Kullanıcı aynı öğrenci için en fazla iki alternatif teklif hazırlayabilmeli.
+* İlk teklif oluşturulduktan sonra ikinci teklif kolayca kopyalanıp değiştirilebilmeli.
+* İki teklif yan yana karşılaştırılabilmeli.
+* Tekliflerden biri “Önerilen Teklif” olarak işaretlenebilmeli.
+* Mobil ve masaüstü uyumlu olmalı.
+* Mevcut Sidecar alanı korunmalı.
+
+# 2. TASARIM DİLİ
+
+Ekran eski klasik yönetim paneli görünümünde olmamalı.
+
+Tasarım karakteri:
+
+* Açık arka plan
+* Bol beyaz alan
+* Hafif gri yüzeyler
+* Yumuşak gölgeler
+* İnce kenarlıklar
+* 14–18 px arası yuvarlatılmış köşeler
+* Büyük ve okunaklı başlıklar
+* Net görsel hiyerarşi
+* Renkler yalnızca anlam ve durum belirtmek için kullanılmalı
+* Çok fazla renk aynı anda kullanılmamalı
+* Kartların içi gereksiz metinlerle doldurulmamalı
+* Butonlar büyük, anlaşılır ve belirgin olmalı
+
+Önerilen renk sistemi:
+
+* Ana lacivert: #172033
+* Ana mavi: #2563EB
+* Açık mavi yüzey: #EFF6FF
+* Yeşil: #16A34A
+* Açık yeşil: #F0FDF4
+* Turuncu vurgu: #F97316
+* Açık turuncu: #FFF7ED
+* Arka plan: #F6F7F9
+* Kart yüzeyi: #FFFFFF
+* Ana metin: #111827
+* İkincil metin: #6B7280
+* Kenarlık: #E5E7EB
+* Hata/kritik: #DC2626
+
+Renkleri doğrudan her bileşene rastgele yazma. Merkezi theme veya CSS variable yapısı kullan.
+
+Font:
+
+* Projede mevcut font sistemi uygunsa onu kullan.
+* Değilse Inter veya benzer modern sans-serif font kullan.
+* Fiyatlar ve önemli rakamlar güçlü font ağırlığıyla gösterilmeli.
+* Tüm metinler Türkçe karakterlerle sorunsuz görünmeli.
+
+# 3. SAYFA YERLEŞİMİ
+
+Masaüstünde ana ekran üç temel bölgeden oluşsun:
+
+## Sol Alan — Teklif Girdileri
+
+Yaklaşık yüzde 40 genişlik.
+
+Burada danışman teklif hazırlamak için gerekli alanları dolduracak:
+
+1. Eğitim Tipi
+2. Kampanya
+3. Kur Sayısı
+4. Toplam Ders Saati
+5. Kitap seçimi
+6. Hediyeler
+7. Ödeme Tipi
+8. Taksit Sayısı
+9. Peşinat
+10. Müdür İnisiyatifi İndirimi
+11. Teklif Geçerlilik Süresi
+
+Alanları tek uzun form içinde sıkıştırma.
+
+Aşağıdaki mantıksal grupları kullan:
+
+* Eğitim Seçimi
+* Ödeme Planı
+* Ek Avantajlar
+* İndirim ve Onay
+
+Her grup sade bir bölüm olarak görünmeli.
+
+Alanlar arasında yeterli boşluk bırak.
+
+Dropdown, input, radio ve toggle bileşenleri modern ve tutarlı olmalı.
+
+## Orta Alan — Teklif Önizleme ve Karşılaştırma
+
+Yaklaşık yüzde 60 genişlik.
+
+Hesaplama yapılmadan önce boş ve sade bir başlangıç ekranı göster:
+
+Başlık:
+“Öğrenciye özel teklifinizi hazırlayın”
+
+Alt açıklama:
+“Eğitim ve ödeme seçeneklerini belirlediğinizde teklif özeti burada görünecek.”
+
+Yanında sade bir fiyat veya teklif ikonu kullanılabilir.
+
+Hesaplama yapıldıktan sonra burada teklif kartları görünmeli.
+
+## Sağ Sidecar
+
+Projede mevcut Sidecar yapısını koru.
+
+Ancak görsel olarak modernize et:
+
+* Dar ve sade yapı
+* Öğrenci veya danışman özeti
+* Şube bilgisi
+* Teklif geçerlilik tarihi
+* Hızlı işlem butonları
+* Gereksiz tekrar eden fiyat bilgileri kaldırılmalı
+
+Sidecar ana teklif kartlarının önüne geçmemeli.
+
+# 4. İLK TEKLİF OLUŞTURMA AKIŞI
+
+Danışman gerekli alanları doldurduktan sonra ana buton:
+
+“Teklifi Oluştur”
+
+Buton belirgin mavi renkte olmalı.
+
+Butona basıldığında mevcut calculator.ts mantığıyla hesaplama yapılmalı.
+
+İlk teklif oluşturulduğunda teklif kartı görünmeli.
+
+Kart başlığı:
+
+“Teklif 1”
+
+Kart üzerinde şu bilgiler net biçimde gösterilmeli:
+
+* Kampanya adı
+* Eğitim tipi
+* Kur sayısı
+* Toplam ders saati
+* Liste fiyatı
+* Kampanya indirimi
+* Kampanyalı fiyat
+* Kitap bedeli veya kitap hediye durumu
+* Ek hediyeler
+* Ödeme tipi
+* Peşinat
+* Kalan tutar
+* Taksit sayısı
+* Aylık ödeme
+* Müdür indirimi
+* Genel toplam
+
+Ancak her alanı aynı görsel ağırlıkta gösterme.
+
+En güçlü vurgu:
+
+1. Genel toplam
+2. Aylık ödeme
+3. Kur sayısı
+4. Ders saati
+
+Liste fiyatı daha küçük ve üstü çizili gösterilebilir.
+
+İndirim yeşil veya turuncu bir etiketle gösterilebilir.
+
+# 5. ALTERNATİF TEKLİF EKLEME
+
+İlk teklif oluşturulduktan sonra aşağıdaki buton görünmeli:
+
+“Alternatif Teklif Ekle”
+
+Bu butona basıldığında:
+
+* Teklif 1’in mevcut değerleri kopyalansın.
+* Teklif 2 oluşturulsun.
+* Kullanıcı ikinci teklifte yalnızca değiştirmek istediği alanları değiştirebilsin.
+* İkinci teklif baştan sıfır veriyle başlamasın.
+* Değiştirilebilecek alanlar:
+
+  * Kampanya
+  * Kur sayısı
+  * Ödeme tipi
+  * Taksit sayısı
+  * Peşinat
+  * Kitap seçimi
+  * Hediyeler
+  * Müdür indirimi
+
+Teklif 2 oluşturulduğunda ekran otomatik olarak karşılaştırma moduna geçsin.
+
+En fazla iki teklif desteklensin.
+
+İkinci teklif eklendiğinde “Alternatif Teklif Ekle” butonu gizlensin.
+
+Teklif 2 için:
+
+* Düzenle
+* Kopyala
+* Sil
+
+işlemleri bulunabilir.
+
+Ancak kullanıcıya üçüncü teklif oluşturma imkânı verme.
+
+# 6. KARŞILAŞTIRMA GÖRÜNÜMÜ
+
+İki teklif masaüstünde yan yana görünmeli.
+
+Mobilde alt alta görünmeli.
+
+Her kartta üst bölüm:
+
+* Teklif 1 / Teklif 2
+* İsteğe bağlı özel isim:
+
+  * Ekonomik Seçenek
+  * Avantajlı Seçenek
+* “Önerilen” seçimi
+
+Danışman tekliflerden yalnızca birini önerilen olarak seçebilmeli.
+
+Önerilen teklif kartında:
+
+* Mavi veya yeşil ince kenarlık
+* “ÖNERİLEN” badge
+* Hafif vurgulu arka plan
+* Diğer karta göre çok büyük olmayan görsel farklılık
+
+Karşılaştırma alanında aşağıdaki satırlar bulunmalı:
+
+* Eğitim
+* Kur
+* Ders Saati
+* Toplam Tutar
+* Peşinat
+* Kalan Tutar
+* Taksit
+* Aylık Ödeme
+* Kur Başına Fiyat
+* Hediyeler
+
+Sistem iki teklif arasındaki farkı otomatik hesaplasın.
+
+Örnek fark kutusu:
+
+“31.000 TL daha fazla ödeyerek 2 ek kur ve 240 ek ders saati kazanılır.”
+
+“Teklif 2’de kur başına maliyet yüzde 18 daha avantajlıdır.”
+
+Bu karşılaştırma metinleri hesaplanan gerçek verilere göre dinamik oluşturulmalı.
+
+Yanlış veya anlamsız karşılaştırma üretme.
+
+Kur başına fiyat hesabı:
+
+genelToplam / kurSayisi
+
+Ders başına fiyat hesabı:
+
+genelToplam / toplamDersSaati
+
+Bu iki değer yönetici ve danışman için gösterilebilir ancak müşteriye gönderilecek içerikte zorunlu değildir.
+
+# 7. ÖDEME PLANI VE PEŞİNAT
+
+Mevcut sistemde peşinat yoksa, hesaplama ekranında öncelikle frontend seviyesinde aşağıdaki alanı ekle:
+
+* Peşinat tutarı
+
+Hesaplama:
+
+kalanTutar = genelToplam - pesinat
+
+aylikOdeme = kalanTutar / taksitSayisi
+
+Peşinat genel toplamı değiştirmemeli.
+
+Peşinat yalnızca taksitlendirilecek kalan tutarı azaltmalı.
+
+Peşinat genel toplamdan büyük olamaz.
+
+Negatif değer kabul edilmemeli.
+
+Nakit ödeme seçildiğinde peşinat alanı gizlenebilir veya pasif olabilir.
+
+Bu alan mevcut backend yapısını bozacaksa önce component state içinde uygulanabilir. Ancak kodu daha sonra backend’e taşınabilecek şekilde modüler yaz.
+
+# 8. HEDİYE VE KİTAP GÖRÜNÜMÜ
+
+Kitap ve hediyeler için net görsel ayrım yap:
+
+* Ücretli
+* Fiyata dahil
+* Hediye
+
+“Hediye” olan bir kalem fiyat toplamına tekrar eklenmemeli.
+
+Mevcut sistemde iş mantığı farklıysa mevcut formülü sessizce değiştirme.
+
+Önce mevcut hesaplama yapısını analiz et.
+
+Gerekirse yalnızca arayüz üzerinde doğru etiketleme yap ve hesaplama mantığını değiştirmeden yorum satırı bırak.
+
+Hediyeleri büyük kartlar hâlinde gösterme.
+
+Küçük badge veya kompakt satır kullan:
+
+* Kitap Seti — Hediye
+* Online Platform — Hediye
+* Konuşma Kulübü — Dahil
+
+# 9. ALT EYLEM ÇUBUĞU
+
+Teklif oluşturulduktan sonra ekranın alt kısmında sabit veya görünür bir işlem alanı olsun.
+
+Butonlar:
+
+* Teklifi Kaydet
+* WhatsApp Gönder
+* PDF Oluştur
+* Teklifi Temizle
+
+Ana buton:
+
+“WhatsApp Gönder”
+
+İkincil buton:
+
+“Profesyonel Teklif PDF”
+
+Teklif iki alternatif içeriyorsa WhatsApp ve PDF içinde iki alternatif birlikte gösterilmeli.
+
+Tekliflerden biri önerilen olarak seçildiyse mesaj ve PDF’de belirginleşmeli.
+
+# 10. WHATSAPP MESAJI
+
+İki teklif varsa tek WhatsApp mesajı oluştur.
+
+Mesaj örneği:
+
+Merhaba [Öğrenci Adı],
+
+English Time [Şube Adı] olarak eğitim hedeflerinize göre iki farklı teklif seçeneği hazırladık.
+
+1. EKONOMİK SEÇENEK
+   Eğitim: [Eğitim Tipi]
+   Kur: [Kur Sayısı]
+   Ders Saati: [Toplam Ders Saati]
+   Toplam: [Genel Toplam]
+   Ödeme: [Peşinat] peşinat + [Taksit Sayısı] x [Aylık Ödeme]
+
+2. AVANTAJLI SEÇENEK — ÖNERİLEN
+   Eğitim: [Eğitim Tipi]
+   Kur: [Kur Sayısı]
+   Ders Saati: [Toplam Ders Saati]
+   Toplam: [Genel Toplam]
+   Ödeme: [Peşinat] peşinat + [Taksit Sayısı] x [Aylık Ödeme]
+
+[Dinamik avantaj cümlesi]
+
+Teklif geçerlilik süresi: [Tarih]
+
+Danışman:
+[Ad Soyad]
+[Telefon]
+
+Mesaj gereksiz uzun olmamalı.
+
+Teklif tek seçenekliyse mevcut WhatsApp mesaj yapısı çalışmaya devam etmeli.
+
+Mevcut whatsapp_gonderimleri API yapısını bozma.
+
+İki teklif olduğunda mevcut tablo tek teklif destekliyorsa:
+
+* Birincil veya önerilen teklif mevcut alanlara kaydedilsin.
+* İkinci teklif bilgisi geçici olarak JSON veya mesaj metni içinde tutulabilir.
+* Ancak kalıcı ve temiz çözüm için TODO notu ekle.
+* Veritabanı migration işlemini bu aşamada izinsiz yapma.
+
+# 11. PDF TASARIMI
+
+Mevcut PDF üreticisini tamamen bozma.
+
+İki teklif varsa PDF’de:
+
+* Üst bölümde öğrenci ve şube bilgileri
+* Kampanya başlığı
+* İki alternatif yan yana
+* Önerilen teklif vurgusu
+* Fiyat ve ödeme planı
+* Hediyeler
+* Geçerlilik tarihi
+* Danışman bilgisi
+
+bulunsun.
+
+PDF A4 yapısına uygun olsun.
+
+Teklif kartları PDF içinde taşmamalı.
+
+Türkçe karakter sorunu olmamalı.
+
+Tek teklif varsa mevcut PDF düzeni çalışmaya devam etmeli.
+
+# 12. COMPONENT MİMARİSİ
+
+HesaplamaPage.tsx dosyasını aşırı büyütme.
+
+Yeni bileşenlere ayır:
+
+* OfferBuilderPanel.tsx
+* OfferSummaryCard.tsx
+* OfferComparison.tsx
+* PaymentPlanSection.tsx
+* OfferActionBar.tsx
+* EmptyOfferState.tsx
+* OfferBadge.tsx
+
+Gerekirse hooks oluştur:
+
+* useOfferCalculator.ts
+* useOfferComparison.ts
+
+Tipleri ayrı dosyada tut:
+
+* offer-types.ts
+
+Teklif state örneği:
+
+type OfferOption = {
+id: string;
+title: string;
+campaignId: number | null;
+educationType: string;
+selectedCourseCount: number;
+totalLessonHours: number;
+paymentType: "nakit" | "kredi-karti" | "senet";
+installmentCount: number;
+downPayment: number;
+listPrice: number;
+campaignPrice: number;
+bookPrice: number;
+giftsTotal: number;
+managerDiscount: number;
+generalTotal: number;
+remainingAmount: number;
+monthlyPayment: number;
+isRecommended: boolean;
+};
+
+Mevcut calculator.ts fonksiyonlarını mümkün olduğunca kullan.
+
+Aynı hesaplama formülünü farklı componentlerde tekrar yazma.
+
+# 13. KORUNMASI GEREKENLER
+
+Aşağıdaki alanları bozma:
+
+* Mevcut login sistemi
+* Kullanıcı rolleri
+* Şube seçimi
+* Şube kampanya izolasyonu
+* Kampanya listeleme API’si
+* Kampanya CRUD
+* WhatsApp istatistik kayıt sistemi
+* PDF’nin tek teklif üretme özelliği
+* Müdür indirimi
+* Mevcut ödeme tipi formülleri
+* Mevcut routing
+* Sidecar
+* Mobil kullanım
+* Türkçe içerikler
+
+# 14. YAPILMAMASI GEREKENLER
+
+* Uygulamayı sıfırdan yeniden yazma.
+* Mevcut backend’i gereksiz yere değiştirme.
+* Veritabanı tablolarını izinsiz silme veya değiştirme.
+* Kampanya hesaplama formüllerini varsayımla değiştirme.
+* Yeni UI kütüphanesi ekleyerek projeyi ağırlaştırma.
+* Gereksiz animasyon kullanma.
+* Neon, gradient veya oyun arayüzü gibi bir tasarım yapma.
+* Kartları fazla büyük yapma.
+* Her bilgiyi ayrı kart içine koyma.
+* Ekranı renk cümbüşüne çevirme.
+* Teklif formu ile sonuç alanını aynı anda aşırı kalabalık gösterme.
+* Sidecar’ı kaldırma.
+* Üçüncü teklif ekleme.
+* Mevcut kullanıcı verilerini bozma.
+
+# 15. RESPONSIVE DAVRANIŞ
+
+Masaüstü:
+
+* Sol form paneli
+* Sağ teklif önizleme alanı
+* Sidecar korunacak
+* İki teklif yan yana
+
+Tablet:
+
+* Form üstte veya solda
+* Teklif kartları yeterli genişlikte
+* Sidecar daraltılabilir
+
+Mobil:
+
+* Tüm alanlar tek sütun
+* Teklif kartları alt alta
+* Ana işlem butonları ekran altında sabit olabilir
+* Yatay taşma olmamalı
+* Fiyat değerleri kesilmemeli
+
+# 16. KULLANICI DENEYİMİ
+
+Danışman şu akışı en fazla birkaç adımda tamamlayabilmeli:
+
+1. Kampanya seç
+2. Kur seç
+3. Ödeme planı seç
+4. Teklifi oluştur
+5. Gerekirse alternatif ekle
+6. Önerilen seçeneği belirle
+7. WhatsApp veya PDF gönder
+
+Kullanıcı her değişiklikte ne olduğunu anlayabilmeli.
+
+Hesaplama sırasında loading state göster.
+
+Hata durumunda sade Türkçe mesaj göster.
+
+Örnek:
+
+“Kampanya bilgileri alınamadı. Lütfen tekrar deneyin.”
+
+Form doğrulamaları:
+
+* Kampanya seçilmeden teklif oluşturulamaz.
+* Kur sayısı sıfır olamaz.
+* Peşinat genel toplamdan büyük olamaz.
+* Taksitli ödeme seçildiyse taksit seçilmelidir.
+* Negatif indirim girilemez.
+* En fazla iki teklif oluşturulabilir.
+
+# 17. TESLİM ŞEKLİ
+
+Çalışmayı aşağıdaki sırayla yap:
+
+1. Mevcut HesaplamaPage ve calculator.ts yapısını analiz et.
+2. Değiştirilecek dosyaları listele.
+3. Mevcut çalışan iş mantığını özetle.
+4. Modern component yapısını oluştur.
+5. İlk teklif akışını çalışır hâle getir.
+6. Alternatif teklif kopyalama özelliğini ekle.
+7. Karşılaştırma ekranını oluştur.
+8. Önerilen teklif seçimini ekle.
+9. WhatsApp mesajını çoklu teklif destekleyecek şekilde güncelle.
+10. PDF üreticisini iki teklif destekleyecek şekilde güncelle.
+11. Mobil ve masaüstü testlerini yap.
+12. TypeScript hatalarını düzelt.
+13. Build çalıştır.
+14. Mevcut özelliklerin bozulmadığını kontrol et.
+
+Her aşamada geriye uyumluluğu koru.
+
+# 18. KABUL KRİTERLERİ
+
+Çalışma tamamlandığında:
+
+* Kullanıcı tek teklif hazırlayabilmeli.
+* Kullanıcı ilk teklifin kopyasıyla ikinci teklif oluşturabilmeli.
+* Kullanıcı en fazla iki teklif oluşturabilmeli.
+* İki teklif yan yana karşılaştırılabilmeli.
+* Bir teklif önerilen olarak seçilebilmeli.
+* Peşinat sonrası kalan tutar ve aylık ödeme doğru hesaplanmalı.
+* Teklifler düzenlenebilmeli ve silinebilmeli.
+* Tek teklifli eski akış çalışmaya devam etmeli.
+* WhatsApp mesajında bir veya iki teklif doğru görünmeli.
+* PDF’de bir veya iki teklif düzgün görünmeli.
+* Şube ve rol yapısı bozulmamalı.
+* Hesaplama formülleri mevcut sistemle aynı sonuçları vermeli.
+* Ekran modern, sade, ferah ve premium görünmeli.
+* Masaüstü ve mobilde taşma olmamalı.
+* TypeScript ve build hatası bulunmamalı.
+
+ÖNEMLİ:
+
+Önce mevcut kodu analiz et. Doğrudan tüm dosyaları yeniden yazma. Çalışan sistemi koruyarak küçük, kontrollü ve geri alınabilir değişiklikler yap. Her önemli değişiklikten sonra uygulamayı çalıştır ve mevcut hesaplama sonuçlarıyla karşılaştır.
