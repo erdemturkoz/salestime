@@ -38,6 +38,11 @@ export interface TeklifData {
   subeAdi: string;
   subeAdresi: string;
   subeTelefon: string;
+
+  // Çoklu teklif desteği (isteğe bağlı)
+  isRecommended?: boolean;
+  pesinat?: number;
+  kalanTutar?: number;
 }
 
 function formatTL(amount: number): string {
@@ -922,6 +927,160 @@ export function generateTeklifPDF(data: TeklifData): void {
     return;
   }
 
-  // Pencere kapan\u0131nca blob URL'yi temizle
+  // Pencere kapanınca blob URL'yi temizle
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Çift Teklif PDF Üreticisi
+// ─────────────────────────────────────────────────────────────────
+export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): void {
+  const bugun = new Date();
+  const gecerlilikTarihi = new Date(bugun);
+  gecerlilikTarihi.setDate(gecerlilikTarihi.getDate() + data1.gecerlilikGunu);
+
+  const teklifNo = teklifNumarasiUret(data1.subeAdi || "ENGLISHTIME");
+  const teklifTarihi = formatTarih(bugun);
+  const sonGecerlilikTarihi = formatTarih(gecerlilikTarihi);
+
+  const danismanTamAdi = `${data1.danismanAdi} ${data1.danismanSoyadi}`.trim();
+  const ogrenciHitap = data1.ogrenciAdi
+    ? `Say\u0131n ${data1.ogrenciAdi},`
+    : "Say\u0131n \u00d6\u011frencimiz,";
+
+  function teklifKarti(d: TeklifData, no: string): string {
+    const aktifFiyat = d.mudurIndirimTutari > 0 ? d.ozelFiyat : d.genelToplam;
+    const recommended = d.isRecommended
+      ? `<div style="text-align:center;margin-bottom:8px;"><span style="background:#2563EB;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;">&#9733; \u00d6NER\u0130LEN</span></div>`
+      : "";
+    const border = d.isRecommended ? "border:2px solid #2563EB;" : "border:1px solid #e5e7eb;";
+
+    let odemeStr = "";
+    if (d.taksitSayisi <= 1) {
+      odemeStr = `${d.odemeTipiText || "Nakit"} &mdash; Tek \u00d6deme`;
+    } else {
+      const pesinatStr = (d.pesinat ?? 0) > 0
+        ? `${formatTL(d.pesinat!)} pe\u015finat + `
+        : "";
+      odemeStr = `${pesinatStr}${d.taksitSayisi} &times; ${formatTL(d.aylikOdeme)}`;
+    }
+
+    return `
+      <div style="flex:1;${border}border-radius:12px;padding:18px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        ${recommended}
+        <div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${no}</div>
+        <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${d.kampanyaAdi}</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">${d.egitimTipi} &mdash; ${d.kurSayisi} Kur / ${d.dersSaati} Saat</div>
+
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <tr><td style="color:#6b7280;padding:3px 0;">Liste Fiyat\u0131</td><td style="text-align:right;text-decoration:line-through;color:#9ca3af;">${formatTL(d.listeFiyati)}</td></tr>
+          <tr><td style="color:#6b7280;padding:3px 0;">Kampanya \u0130ndirimi</td><td style="text-align:right;color:#16a34a;font-weight:600;">-${formatTL(d.indirimTutari)} (%${d.indirimYuzdesi})</td></tr>
+          <tr><td style="color:#6b7280;padding:3px 0;">Kampanyal\u0131 Fiyat</td><td style="text-align:right;font-weight:600;">${formatTL(d.kampanyaliFiyat)}</td></tr>
+          ${d.kitapUcreti > 0 && d.kitapDahil ? `<tr><td style="color:#6b7280;padding:3px 0;">Kitap Seti</td><td style="text-align:right;">${d.kitapHediyeEdildi ? "<span style='color:#16a34a;font-weight:600;'>Hediye</span>" : formatTL(d.kitapUcreti)}</td></tr>` : ""}
+          ${d.mudurIndirimTutari > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">M\u00fcд\u00fcr \u0130ndirimi</td><td style="text-align:right;color:#f97316;font-weight:600;">-${formatTL(d.mudurIndirimTutari)}</td></tr>` : ""}
+        </table>
+
+        <div style="margin-top:12px;padding:10px 14px;background:${d.isRecommended ? "#eff6ff" : "#f9fafb"};border-radius:8px;border:1px solid ${d.isRecommended ? "#bfdbfe" : "#e5e7eb"};">
+          <div style="font-size:11px;color:#6b7280;margin-bottom:2px;">Toplam Tutar</div>
+          <div style="font-size:20px;font-weight:800;color:${d.isRecommended ? "#1d4ed8" : "#111827"};">${formatTL(aktifFiyat)}</div>
+        </div>
+
+        <div style="margin-top:8px;padding:8px 12px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;">
+          <div style="font-size:11px;color:#166534;\u00d6deme Plan\u0131">\u00d6deme Plan\u0131</div>
+          <div style="font-size:13px;font-weight:600;color:#15803d;">${odemeStr}</div>
+        </div>
+
+        ${d.hediyeler.length > 0 || (d.kitapDahil && d.kitapUcreti > 0) ? `
+        <div style="margin-top:10px;">
+          <div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:4px;">Hediyeler</div>
+          ${d.kitapDahil && d.kitapUcreti > 0 ? `<div style="font-size:11px;color:#374151;">\u25cf Kitap Seti ${d.kitapHediyeEdildi ? "(Hediye)" : ""}</div>` : ""}
+          ${d.hediyeler.map((h) => `<div style="font-size:11px;color:#374151;">\u25cf ${h.isim}</div>`).join("")}
+        </div>` : ""}
+      </div>`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>English Time - Teklif Kar\u015f\u0131la\u015ft\u0131rmas\u0131</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;background:#f6f7f9;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .page{max-width:800px;margin:0 auto;padding:20px;background:#fff;}
+  @media print{body{background:#fff;}.page{padding:10px;max-width:100%;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#172033;border-radius:12px;margin-bottom:20px;">
+    <div>
+      <div style="color:#fff;font-size:20px;font-weight:800;letter-spacing:-.3px;">ENGLISH TIME</div>
+      <div style="color:#94a3b8;font-size:12px;margin-top:2px;">${data1.subeAdi || "Sales Time"}</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="color:#f97316;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">E\u011fitim Teklifi</div>
+      <div style="color:#94a3b8;font-size:11px;margin-top:2px;">${teklifTarihi}</div>
+    </div>
+  </div>
+
+  <!-- Öğrenci -->
+  <div style="margin-bottom:16px;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;">
+    <div style="font-size:13px;color:#374151;">${ogrenciHitap}</div>
+    <div style="font-size:12px;color:#6b7280;margin-top:4px;">A\u015fa\u011f\u0131da haz\u0131rlad\u0131\u011f\u0131m\u0131z iki farkl\u0131 teklif se\u00e7ene\u011fini inceleyebilirsiniz.</div>
+  </div>
+
+  <!-- Teklif Kartları -->
+  <div style="display:flex;gap:16px;margin-bottom:20px;">
+    ${teklifKarti(data1, "Teklif 1")}
+    ${teklifKarti(data2, "Teklif 2")}
+  </div>
+
+  <!-- Geçerlilik -->
+  <div style="padding:12px 16px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;margin-bottom:16px;text-align:center;">
+    <div style="font-size:12px;font-weight:700;color:#dc2626;">\u23f3 Bu teklifler ${sonGecerlilikTarihi} saat 18:00&rsquo;e kadar ge\u00e7erlidir.</div>
+  </div>
+
+  <!-- Danışman -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;">
+    <div>
+      <div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">E\u011fitim Dan\u0131\u015fman\u0131</div>
+      <div style="font-size:13px;font-weight:600;color:#111827;margin-top:2px;">${danismanTamAdi || "&mdash;"}</div>
+      ${data1.danismanTelefon ? `<div style="font-size:12px;color:#6b7280;margin-top:2px;">${data1.danismanTelefon}</div>` : ""}
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:#6b7280;">\u015eube</div>
+      <div style="font-size:13px;font-weight:600;color:#111827;">${data1.subeAdi || ""}</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;border-top:1px solid #f3f4f6;padding-top:12px;">
+    Bu belge e\u011fitim kapsam\u0131 ve \u00f6deme se\u00e7enekleri hakk\u0131nda \u00f6n bilgilendirme ama\u00e7l\u0131d\u0131r. &bull; ${teklifNo} &bull; ${teklifTarihi}
+  </div>
+
+</div>
+<script>
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { setTimeout(function() { window.print(); }, 300); });
+  } else {
+    setTimeout(function() { window.print(); }, 800);
+  }
+</script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (!win) {
+    URL.revokeObjectURL(url);
+    alert("PDF penceresi a\u00e7\u0131lamad\u0131. Pop-up engelleyiciyi devre d\u0131\u015f\u0131 b\u0131rak\u0131n.");
+    return;
+  }
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
