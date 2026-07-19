@@ -948,7 +948,21 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
     ? `Say\u0131n ${data1.ogrenciAdi},`
     : "Say\u0131n \u00d6\u011frencimiz,";
 
+  function odemeTipiEtiketi(d: TeklifData): string {
+    const tip = d.odemeTipi;
+    const taksit = d.taksitSayisi;
+    if (tip === "nakit") return "Nakit / Pe\u015fin \u00d6deme";
+    if (tip === "kredi-karti") {
+      return taksit <= 1 ? "Kredi Kart\u0131 Tek \u00c7ekim" : `Kredi Kart\u0131 ${taksit} Taksit`;
+    }
+    if (tip === "senet") {
+      return taksit <= 1 ? "Senet Tek \u00c7ekim" : `Senet ${taksit} Taksit`;
+    }
+    return "Teklif";
+  }
+
   function teklifKarti(d: TeklifData, no: string): string {
+    const etiket = odemeTipiEtiketi(d);
     const aktifFiyat = d.mudurIndirimTutari > 0 ? d.ozelFiyat : d.genelToplam;
     const recommended = d.isRecommended
       ? `<div style="text-align:center;margin-bottom:8px;"><span style="background:#2563EB;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;">&#9733; \u00d6NER\u0130LEN</span></div>`
@@ -968,8 +982,8 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
     return `
       <div style="flex:1;${border}border-radius:12px;padding:18px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);">
         ${recommended}
-        <div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${no}</div>
-        <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${d.kampanyaAdi}</div>
+        <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:2px;">${etiket}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:14px;">${d.kampanyaAdi}</div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">${d.egitimTipi} &mdash; ${d.kurSayisi} Kur / ${d.dersSaati} Saat</div>
 
         <table style="width:100%;font-size:12px;border-collapse:collapse;">
