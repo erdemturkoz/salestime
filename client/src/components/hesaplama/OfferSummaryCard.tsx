@@ -2,7 +2,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { OfferResult } from "@/types/offer-types";
-import { Star, Pencil, Trash2, Gift, BookOpen, CheckCircle2 } from "lucide-react";
+import { Star, Pencil, Trash2, Gift, BookOpen } from "lucide-react";
+
+function odemeTipiBasligi(offer: OfferResult): string {
+  const tip = offer.form.odemeTipi;
+  const taksit = offer.form.taksitSayisi;
+
+  if (tip === "nakit") return "Nakit / Peşin Ödeme";
+
+  if (tip === "kredi-karti") {
+    if (taksit <= 1) return "Kredi Kartı Tek Çekim";
+    return `Kredi Kartı ${taksit} Taksit`;
+  }
+
+  if (tip === "senet") {
+    if (taksit <= 1) return "Senet Tek Çekim";
+    return `Senet ${taksit} Taksit`;
+  }
+
+  return offer.title;
+}
 
 interface OfferSummaryCardProps {
   offer: OfferResult;
@@ -51,12 +70,8 @@ export default function OfferSummaryCard({
         }`}
       >
         <div>
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-            {offer.title}
-          </span>
-          {offer.customName && (
-            <p className="text-sm font-semibold text-gray-700 mt-0.5">{offer.customName}</p>
-          )}
+          <p className="text-sm font-semibold text-gray-800">{odemeTipiBasligi(offer)}</p>
+          <span className="text-xs text-gray-400">{offer.kampanyaAdi}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Button
