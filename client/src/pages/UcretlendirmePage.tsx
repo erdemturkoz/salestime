@@ -429,7 +429,7 @@ const UcretlendirmePage = () => {
             maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ? parseInt(kampanya.maxKrediKartiTaksit.toString()) : 8,
             maxSenetTaksit: kampanya.maxSenetTaksit ? parseInt(kampanya.maxSenetTaksit.toString()) : 12,
             hediyeler: kampanya.hediyeler || [],
-            subeId: mudurSubeId ?? formSubeId
+            subeId: mudurSubeId ?? selectedSubeId ?? formSubeId
           };
           
           addKampanya(newKampanya);
