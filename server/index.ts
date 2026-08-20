@@ -55,8 +55,15 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Session store gibi response tamamlandıktan sonra hata bildirebilen
+    // middleware'ler için ikinci kez header/body yazma.
+    if (res.headersSent) {
+      console.error("Response tamamlandıktan sonra hata alındı:", err);
+      return;
+    }
+
+    console.error("Server hatası:", err);
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after

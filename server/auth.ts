@@ -8,6 +8,12 @@ import { z } from "zod";
 import { loginSchema, changePasswordSchema } from "@shared/schema";
 import { storage } from "./storage";
 
+const SESSION_PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const SESSION_PRUNE_RETRY_DELAY_MS = 1_000;
+const SESSION_PRUNE_MAX_ATTEMPTS = 2;
+let sessionPruneTimer: NodeJS.Timeout | undefined;
+let sessionPruneInProgress = false;
+
 // Oturum ve token imzalaması için zorunlu gizli anahtar.
 // Güvensiz bir varsayılana düşmek yerine eksikse uygulamayı başlatma.
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -27,6 +33,44 @@ export const hashPassword = async (password: string): Promise<string> => {
 export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
+
+const wait = (delayMs: number) => new Promise((resolve) => setTimeout(resolve, delayMs));
+
+async function pruneExpiredSessions(): Promise<void> {
+  if (sessionPruneInProgress) return;
+  sessionPruneInProgress = true;
+
+  try {
+    for (let attempt = 1; attempt <= SESSION_PRUNE_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        await pool.query("DELETE FROM sessions WHERE expire < NOW()");
+        return;
+      } catch (error) {
+        if (attempt === SESSION_PRUNE_MAX_ATTEMPTS) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`Oturum temizliği bu tur atlandı: ${message}`);
+          return;
+        }
+        await wait(SESSION_PRUNE_RETRY_DELAY_MS);
+      }
+    }
+  } finally {
+    sessionPruneInProgress = false;
+  }
+}
+
+function scheduleSessionPrune(): void {
+  if (sessionPruneTimer) return;
+
+  const run = async () => {
+    sessionPruneTimer = undefined;
+    await pruneExpiredSessions();
+    scheduleSessionPrune();
+  };
+
+  sessionPruneTimer = setTimeout(run, SESSION_PRUNE_INTERVAL_MS);
+  sessionPruneTimer.unref();
+}
 
 // Session ayarları
 export const setupSession = (app: Express) => {
@@ -61,7 +105,16 @@ export const setupSession = (app: Express) => {
       store: new PgSession({
         pool: pool,
         tableName: "sessions", // Varolan session tablosu
-        createTableIfMissing: true,
+        // Tablo migration ile mevcut. Her istekte yapılan tablo varlık kontrolü,
+        // geçici Neon WebSocket kopmalarını response döngüsüne taşıyabiliyordu.
+        createTableIfMissing: false,
+        // Oturum süresi zaten girişten itibaren sabit 30 gün; her response'ta
+        // touch sorgusu çalıştırmak gereksiz ve response kapandıktan sonra hata
+        // üretebiliyor.
+        disableTouch: true,
+        // Kütüphanenin kontrolsüz arka plan timer'ı yerine aşağıdaki güvenli,
+        // tekrar deneyen ve response döngüsünden bağımsız temizliği kullanılır.
+        pruneSessionInterval: false,
         ttl: 30 * 24 * 60 * 60, // Çerezle aynı: 30 gün
       }),
       secret: SESSION_SECRET,
@@ -77,6 +130,8 @@ export const setupSession = (app: Express) => {
       },
     })
   );
+
+  scheduleSessionPrune();
 };
 
 function parseChromeExtensionOrigin(value: string | undefined): string | null {
