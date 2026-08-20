@@ -31,15 +31,28 @@ export const comparePassword = async (password: string, hashedPassword: string):
 // Session ayarları
 export const setupSession = (app: Express) => {
   const PgSession = connectPgSimple(session);
+  const chromeExtensionOrigin = parseChromeExtensionOrigin(process.env.CHROME_EXTENSION_ORIGIN);
 
   // Trust first proxy for secure cookies
   app.set('trust proxy', 1);
   
   app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    const origin = req.get("origin");
+    const isSameOrigin = !!origin && isTrustedAppOrigin(req, origin);
+    const isExtensionRequest = !!origin
+      && origin === chromeExtensionOrigin
+      && isExtensionGrantPath(req.path);
+
+    // Never reflect arbitrary Origins. Credentialed CORS is restricted to the
+    // application itself; the extension has a separately configured origin and
+    // never receives cookie credentials.
+    if (isSameOrigin || isExtensionRequest) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
+      res.setHeader("Access-Control-Allow-Headers", "X-Requested-With,Content-Type,Authorization");
+      if (isSameOrigin) res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
     next();
   });
   
@@ -65,6 +78,47 @@ export const setupSession = (app: Express) => {
     })
   );
 };
+
+function parseChromeExtensionOrigin(value: string | undefined): string | null {
+  if (!value || !/^chrome-extension:\/\/[a-p]{32}$/.test(value)) return null;
+  return value;
+}
+
+function isExtensionGrantPath(path: string): boolean {
+  return path === "/api/toplu-eklenti-eslestirmeleri/exchange"
+    || /^\/api\/toplu-gonderimler\/\d+\/kuyruk\/siradaki$/.test(path)
+    || /^\/api\/toplu-teklifler\/\d+\/(?:kuyruk\/heartbeat|sonuc)$/.test(path);
+}
+
+function isTrustedAppOrigin(req: Request, origin: string): boolean {
+  try {
+    const parsedOrigin = new URL(origin);
+    const forwardedHost = req.get("x-forwarded-host")?.split(",")[0]?.trim();
+    const requestHost = forwardedHost || req.get("host");
+    const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const requestProtocol = forwardedProtocol || req.protocol;
+    return !!requestHost
+      && parsedOrigin.host === requestHost
+      && parsedOrigin.protocol === `${requestProtocol}:`;
+  } catch {
+    return false;
+  }
+}
+
+export const requireSameOrigin = (req: Request, res: Response, next: NextFunction) => {
+  const origin = req.get("origin");
+  if (origin && isTrustedAppOrigin(req, origin)) return next();
+  res.status(403).json({ error: "Bu işlem yalnızca SalesTime uygulamasından yapılabilir." });
+};
+
+export const requireChromeExtensionOrigin = (req: Request, res: Response, next: NextFunction) => {
+  const allowedOrigin = parseChromeExtensionOrigin(process.env.CHROME_EXTENSION_ORIGIN);
+  if (allowedOrigin && req.get("origin") === allowedOrigin) return next();
+  res.status(403).json({ error: "Eklenti origin'i yetkili değil." });
+};
+
+export const isChromeExtensionOriginConfigured = (): boolean =>
+  !!parseChromeExtensionOrigin(process.env.CHROME_EXTENSION_ORIGIN);
 
 // ----------------------------------------------------------------------------
 // Token tabanlı kimlik doğrulama (iframe'de çerez engellemesine karşı)

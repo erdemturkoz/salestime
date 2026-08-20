@@ -59,3 +59,34 @@ CREATE INDEX IF NOT EXISTS "toplu_gonderimler_sube_created_idx"
   ON "toplu_gonderimler" ("sube_id", "created_at");
 CREATE INDEX IF NOT EXISTS "toplu_teklifler_batch_status_idx"
   ON "toplu_teklifler" ("gonderim_id", "durum");
+
+-- Chrome eklentisi için kullanıcı oturumundan bağımsız, kısa ömürlü
+-- eşleştirme kodları ve hash'lenmiş dar kapsamlı çalışma izinleri.
+CREATE TABLE IF NOT EXISTS "toplu_eklenti_eslestirmeleri" (
+  "id" serial PRIMARY KEY NOT NULL,
+  "kod_hash" text NOT NULL UNIQUE,
+  "gonderim_id" integer NOT NULL REFERENCES "toplu_gonderimler"("id") ON DELETE cascade,
+  "sube_id" integer NOT NULL REFERENCES "subeler"("id") ON DELETE cascade,
+  "olusturan_id" integer NOT NULL,
+  "expires_at" timestamp NOT NULL,
+  "used_at" timestamp,
+  "revoked_at" timestamp,
+  "created_at" timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "toplu_eklenti_grantleri" (
+  "id" serial PRIMARY KEY NOT NULL,
+  "token_hash" text NOT NULL UNIQUE,
+  "eslestirme_id" integer NOT NULL REFERENCES "toplu_eklenti_eslestirmeleri"("id") ON DELETE cascade,
+  "gonderim_id" integer NOT NULL REFERENCES "toplu_gonderimler"("id") ON DELETE cascade,
+  "sube_id" integer NOT NULL REFERENCES "subeler"("id") ON DELETE cascade,
+  "expires_at" timestamp NOT NULL,
+  "revoked_at" timestamp,
+  "last_used_at" timestamp,
+  "created_at" timestamp DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS "toplu_eklenti_eslestirme_gonderim_idx"
+  ON "toplu_eklenti_eslestirmeleri" ("gonderim_id", "expires_at");
+CREATE INDEX IF NOT EXISTS "toplu_eklenti_grant_gonderim_idx"
+  ON "toplu_eklenti_grantleri" ("gonderim_id", "expires_at");

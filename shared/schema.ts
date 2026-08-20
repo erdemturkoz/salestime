@@ -249,6 +249,39 @@ export const topluTeklifler = pgTable("toplu_teklifler", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Chrome eklentisinin kullanıcı oturumunu görmeden, yalnızca belirli bir
+// gönderim kuyruğuna bağlanması için tek kullanımlık eşleştirme kodları.
+// Düz metin kod yerine yalnızca SHA-256 özeti saklanır.
+export const topluEklentiEslestirmeleri = pgTable("toplu_eklenti_eslestirmeleri", {
+  id: serial("id").primaryKey(),
+  kodHash: text("kod_hash").notNull().unique(),
+  gonderimId: integer("gonderim_id").notNull().references(() => topluGonderimler.id, { onDelete: "cascade" }),
+  subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: "cascade" }),
+  olusturanId: integer("olusturan_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  gonderimDurumIdx: index("toplu_eklenti_eslestirme_gonderim_idx").on(table.gonderimId, table.expiresAt),
+}));
+
+// Eklentiye yalnızca değişim anında dönen opaque grant'in özeti saklanır.
+// Grant, kullanıcı JWT'si ve session cookie'sinden tamamen ayrıdır.
+export const topluEklentiGrantleri = pgTable("toplu_eklenti_grantleri", {
+  id: serial("id").primaryKey(),
+  tokenHash: text("token_hash").notNull().unique(),
+  eslestirmeId: integer("eslestirme_id").notNull().references(() => topluEklentiEslestirmeleri.id, { onDelete: "cascade" }),
+  gonderimId: integer("gonderim_id").notNull().references(() => topluGonderimler.id, { onDelete: "cascade" }),
+  subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  gonderimDurumIdx: index("toplu_eklenti_grant_gonderim_idx").on(table.gonderimId, table.expiresAt),
+}));
+
 export const topluGonderimlerRelations = relations(topluGonderimler, ({ one, many }) => ({
   sube: one(subeler, {
     fields: [topluGonderimler.subeId],

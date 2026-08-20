@@ -1,7 +1,7 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { Server, createServer } from "http";
-import { eq, and, desc, gt, lt, sql } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { eq, and, desc, gt, isNull, lt, sql } from "drizzle-orm";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import { storage } from "./storage";
 import { 
   insertKampanyaSchema, 
@@ -15,11 +15,13 @@ import {
   Roller,
   kullaniciSubeRolleri,
   topluGonderimler,
-  topluTeklifler
+  topluTeklifler,
+  topluEklentiEslestirmeleri,
+  topluEklentiGrantleri
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
-import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword } from "./auth";
+import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword, isChromeExtensionOriginConfigured, requireChromeExtensionOrigin, requireSameOrigin } from "./auth";
 import { computeOffer } from "../client/src/hooks/useOfferCalculator";
 import "./types"; // Session tiplerini yükle
 
@@ -44,6 +46,102 @@ function topluTeklifSubeErisimiVarMi(user: any, subeId: number): boolean {
 }
 
 const TOPLU_TEKLIF_LEASE_MS = 15 * 60 * 1000;
+const EKLENTI_ESLESTIRME_SURESI_MS = 5 * 60 * 1000;
+const EKLENTI_GRANT_SURESI_MS = 8 * 60 * 60 * 1000;
+
+type EklentiGrantBaglami = {
+  id: number;
+  gonderimId: number;
+  subeId: number;
+  expiresAt: Date;
+};
+
+function eklentiGizliDegerUret(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+function eklentiGizliDegerHashle(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function eklentiTeslimatVerisi(teklif: any) {
+  return {
+    id: teklif.id,
+    gonderimId: teklif.gonderimId,
+    ogrenciAdi: teklif.ogrenciAdi,
+    ogrenciTelefon: teklif.ogrenciTelefon,
+    mesaj: teklif.mesaj,
+  };
+}
+
+function eklentiSonucVerisi(teklif: any) {
+  return {
+    id: teklif.id,
+    gonderimId: teklif.gonderimId,
+    durum: teklif.durum,
+    gonderildiAt: teklif.gonderildiAt,
+    hataMesaji: teklif.durum === "hata" ? teklif.hataMesaji : null,
+  };
+}
+
+// Sadece üç kuyruk endpoint'i kullanıcı oturumuna alternatif olarak bu
+// dar kapsamlı grant'i kabul eder. Grant başka hiçbir API'ye erişim vermez.
+async function kuyrukIcinEklentiVeyaOturum(req: Request, res: Response, next: NextFunction) {
+  if (getSessionUser(req)) {
+    // Bearer token, tarayıcının otomatik eklediği bir credential değildir;
+    // cookie kaynaklı CSRF riski taşımadan mevcut sağlayıcı sözleşmesini sürdürür.
+    if (/^Bearer\s+\S+$/.test(req.headers.authorization || "")) return next();
+    // Cookie tabanlı oturumlar SameSite=None kullandığı için kuyrukta durum
+    // değiştiren her işlemde açık bir same-origin kontrolü zorunludur.
+    return requireSameOrigin(req, res, next);
+  }
+
+  const authHeader = req.headers.authorization;
+  const match = authHeader?.match(/^Extension-Grant ([A-Za-z0-9_-]{43})$/);
+  if (!match) {
+    return res.status(401).json({ error: "Kuyruk erişimi için geçerli oturum veya eklenti izni gerekli." });
+  }
+
+  try {
+    const [grant] = await db
+      .select()
+      .from(topluEklentiGrantleri)
+      .where(eq(topluEklentiGrantleri.tokenHash, eklentiGizliDegerHashle(match[1])))
+      .limit(1);
+    const now = new Date();
+    if (!grant || grant.revokedAt || grant.expiresAt <= now) {
+      return res.status(401).json({ error: "Eklenti izni geçersiz, iptal edilmiş veya süresi dolmuş." });
+    }
+    await db
+      .update(topluEklentiGrantleri)
+      .set({ lastUsedAt: now })
+      .where(eq(topluEklentiGrantleri.id, grant.id));
+    (req as any).ekLentiGrant = {
+      id: grant.id,
+      gonderimId: grant.gonderimId,
+      subeId: grant.subeId,
+      expiresAt: grant.expiresAt,
+    } satisfies EklentiGrantBaglami;
+    next();
+  } catch (error) {
+    console.error("Eklenti grant doğrulama hatası:", error);
+    res.status(401).json({ error: "Eklenti izni doğrulanamadı." });
+  }
+}
+
+function eklentiGrantBaglami(req: Request): EklentiGrantBaglami | null {
+  return (req as any).ekLentiGrant || null;
+}
+
+function sadeceEklentiGrantIle(req: Request, res: Response, next: NextFunction) {
+  if (eklentiGrantBaglami(req) || /^Bearer\s+\S+$/.test(req.headers.authorization || "")) return next();
+  return res.status(405).json({ error: "Bu GET endpoint'i yalnızca Chrome eklentisi grant'i veya Bearer token ile kullanılabilir. Cookie oturumu için POST kullanın." });
+}
+
+async function eklentiAktifGonderimMi(grant: EklentiGrantBaglami): Promise<boolean> {
+  const [gonderim] = await db.select().from(topluGonderimler).where(eq(topluGonderimler.id, grant.gonderimId)).limit(1);
+  return !!gonderim && gonderim.subeId === grant.subeId && gonderim.durum === "aktif";
+}
 
 const topluTeklifSatirSchema = z.object({
   ogrenciAdi: z.string().trim().min(2).max(150),
@@ -1037,6 +1135,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Kullanıcı, kendi şubelerindeki kuyrukların Chrome eklentisi bağlantı
+  // durumunu görebilir. Kod veya grant değeri asla bu endpoint'ten dönmez.
+  app.get("/api/toplu-gonderimler/eklenti-durumlari", isAuthenticated, async (req, res) => {
+    try {
+      const user = getSessionUser(req) as any;
+      const gonderimler = (await db.select().from(topluGonderimler))
+        .filter((g) => topluTeklifSubeErisimiVarMi(user, g.subeId));
+      const gonderimIds = new Set(gonderimler.map((g) => g.id));
+      const [grantler, eslestirmeler] = await Promise.all([
+        db.select().from(topluEklentiGrantleri),
+        db.select().from(topluEklentiEslestirmeleri),
+      ]);
+      const now = new Date();
+      const durumlar = Object.fromEntries(gonderimler.map((gonderim) => {
+        const ilgiliGrantler = grantler.filter((grant) => grant.gonderimId === gonderim.id);
+        const ilgiliEslestirmeler = eslestirmeler.filter((pairing) => pairing.gonderimId === gonderim.id);
+        const aktifGrant = ilgiliGrantler.find((grant) => !grant.revokedAt && grant.expiresAt > now);
+        const bekleyenKod = ilgiliEslestirmeler.find((pairing) =>
+          !pairing.usedAt && !pairing.revokedAt && pairing.expiresAt > now
+        );
+        const iptalEdildi = ilgiliGrantler.some((grant) => !!grant.revokedAt)
+          || ilgiliEslestirmeler.some((pairing) => !!pairing.revokedAt);
+        return [String(gonderim.id), {
+          durum: aktifGrant ? "bagli" : bekleyenKod ? "kod_bekliyor" : iptalEdildi ? "iptal_edildi" : "bagli_degil",
+          expiresAt: aktifGrant?.expiresAt || bekleyenKod?.expiresAt || null,
+        }];
+      }).filter(([id]) => gonderimIds.has(Number(id))));
+      res.json(durumlar);
+    } catch (error) {
+      console.error("Eklenti bağlantı durumları hatası:", error);
+      res.status(500).json({ error: "Eklenti bağlantı durumları yüklenemedi." });
+    }
+  });
+
+  // Pairing code yalnızca mevcut SalesTime oturumuyla oluşturulur. Düz metin
+  // kod bu yanıtta bir kez dönüp veri tabanına sadece hash olarak yazılır.
+  app.post("/api/toplu-gonderimler/:id/eklenti-eslestirme", isAuthenticated, requireSameOrigin, async (req, res) => {
+    try {
+      if (!isChromeExtensionOriginConfigured()) {
+        return res.status(503).json({ error: "Chrome eklentisi origin'i yapılandırılmadan eşleştirme kodu oluşturulamaz." });
+      }
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) return res.status(400).json({ error: "Geçersiz gönderim kaydı." });
+      const user = getSessionUser(req) as any;
+      const [gonderim] = await db.select().from(topluGonderimler).where(eq(topluGonderimler.id, id)).limit(1);
+      if (!gonderim) return res.status(404).json({ error: "Gönderim bulunamadı." });
+      if (!topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) {
+        return res.status(403).json({ error: "Bu gönderim için eklenti bağlama yetkiniz yok." });
+      }
+      if (["durduruldu", "tamamlandi"].includes(gonderim.durum)) {
+        return res.status(409).json({ error: "Durdurulmuş veya tamamlanmış gönderim için eklenti bağlanamaz." });
+      }
+
+      const pairingCode = eklentiGizliDegerUret();
+      const expiresAt = new Date(Date.now() + EKLENTI_ESLESTIRME_SURESI_MS);
+      await db.transaction(async (tx) => {
+        // Aynı batch için önceki, kullanılmamış eşleştirme kodları geçersizdir.
+        await tx.update(topluEklentiEslestirmeleri)
+          .set({ revokedAt: new Date() })
+          .where(and(
+            eq(topluEklentiEslestirmeleri.gonderimId, id),
+            isNull(topluEklentiEslestirmeleri.usedAt),
+            isNull(topluEklentiEslestirmeleri.revokedAt),
+          ));
+        await tx.insert(topluEklentiEslestirmeleri).values({
+          kodHash: eklentiGizliDegerHashle(pairingCode),
+          gonderimId: gonderim.id,
+          subeId: gonderim.subeId,
+          olusturanId: Number(user.id),
+          expiresAt,
+        });
+      });
+      res.status(201).json({
+        pairingCode,
+        gonderimId: gonderim.id,
+        subeId: gonderim.subeId,
+        expiresAt: expiresAt.toISOString(),
+      });
+    } catch (error) {
+      console.error("Eklenti eşleştirme kodu oluşturma hatası:", error);
+      res.status(500).json({ error: "Eşleştirme kodu oluşturulamadı." });
+    }
+  });
+
+  // Bu endpoint kullanıcının oturumunu istemez. Sadece yüksek entropili,
+  // tek kullanımlık pairing code'u kısa ömürlü bir opaque grant ile değiştirir.
+  app.post("/api/toplu-eklenti-eslestirmeleri/exchange", requireChromeExtensionOrigin, async (req, res) => {
+    try {
+      const parsed = z.object({ pairingCode: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Geçersiz eşleştirme kodu." });
+      const pairingHash = eklentiGizliDegerHashle(parsed.data.pairingCode);
+      const extensionGrant = eklentiGizliDegerUret();
+      const now = new Date();
+      const result = await db.transaction(async (tx) => {
+        const [pairing] = await tx
+          .select()
+          .from(topluEklentiEslestirmeleri)
+          .where(eq(topluEklentiEslestirmeleri.kodHash, pairingHash))
+          .limit(1);
+        if (!pairing || pairing.usedAt || pairing.revokedAt || pairing.expiresAt <= now) return { error: "invalid", status: 401 };
+
+        const [gonderim] = await tx.select().from(topluGonderimler)
+          .where(eq(topluGonderimler.id, pairing.gonderimId))
+          .limit(1);
+        if (!gonderim || gonderim.subeId !== pairing.subeId || ["durduruldu", "tamamlandi"].includes(gonderim.durum)) {
+          return { error: "unavailable", status: 409 };
+        }
+
+        const [used] = await tx.update(topluEklentiEslestirmeleri)
+          .set({ usedAt: now })
+          .where(and(
+            eq(topluEklentiEslestirmeleri.id, pairing.id),
+            isNull(topluEklentiEslestirmeleri.usedAt),
+            isNull(topluEklentiEslestirmeleri.revokedAt),
+          ))
+          .returning();
+        if (!used) return { error: "invalid", status: 401 };
+
+        // Yeni grant bağlandığında aynı batch'e ait eski grantler iptal edilir.
+        await tx.update(topluEklentiGrantleri)
+          .set({ revokedAt: now })
+          .where(and(
+            eq(topluEklentiGrantleri.gonderimId, pairing.gonderimId),
+            isNull(topluEklentiGrantleri.revokedAt),
+          ));
+        const expiresAt = new Date(Date.now() + EKLENTI_GRANT_SURESI_MS);
+        const [grant] = await tx.insert(topluEklentiGrantleri).values({
+          tokenHash: eklentiGizliDegerHashle(extensionGrant),
+          eslestirmeId: pairing.id,
+          gonderimId: pairing.gonderimId,
+          subeId: pairing.subeId,
+          expiresAt,
+        }).returning();
+        return { grant, gonderim };
+      });
+
+      if ("error" in result) {
+        const message = result.error === "invalid"
+          ? "Eşleştirme kodu geçersiz, kullanılmış veya süresi dolmuş."
+          : "Bu gönderim için eklenti bağlantısı artık kullanılamaz.";
+        return res.status(result.status ?? 401).json({ error: message });
+      }
+      res.status(201).json({
+        extensionGrant,
+        authorizationScheme: "Extension-Grant",
+        gonderimId: result.grant.gonderimId,
+        subeId: result.grant.subeId,
+        expiresAt: result.grant.expiresAt.toISOString(),
+      });
+    } catch (error) {
+      console.error("Eklenti eşleştirme değişim hatası:", error);
+      res.status(500).json({ error: "Eşleştirme kodu değiştirilemedi." });
+    }
+  });
+
+  app.delete("/api/toplu-gonderimler/:id/eklenti-grant", isAuthenticated, requireSameOrigin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) return res.status(400).json({ error: "Geçersiz gönderim kaydı." });
+      const user = getSessionUser(req) as any;
+      const [gonderim] = await db.select().from(topluGonderimler).where(eq(topluGonderimler.id, id)).limit(1);
+      if (!gonderim) return res.status(404).json({ error: "Gönderim bulunamadı." });
+      if (!topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) {
+        return res.status(403).json({ error: "Bu gönderim için eklenti iznini iptal etme yetkiniz yok." });
+      }
+      const now = new Date();
+      await db.transaction(async (tx) => {
+        await tx.update(topluEklentiGrantleri).set({ revokedAt: now }).where(and(
+          eq(topluEklentiGrantleri.gonderimId, id),
+          isNull(topluEklentiGrantleri.revokedAt),
+        ));
+        await tx.update(topluEklentiEslestirmeleri).set({ revokedAt: now }).where(and(
+          eq(topluEklentiEslestirmeleri.gonderimId, id),
+          isNull(topluEklentiEslestirmeleri.usedAt),
+          isNull(topluEklentiEslestirmeleri.revokedAt),
+        ));
+      });
+      res.json({ ok: true, durum: "iptal_edildi" });
+    } catch (error) {
+      console.error("Eklenti grant iptal hatası:", error);
+      res.status(500).json({ error: "Eklenti izni iptal edilemedi." });
+    }
+  });
+
   app.patch("/api/toplu-gonderimler/:id", isAuthenticated, async (req, res) => {
     try {
       const id = Number(req.params.id);
@@ -1059,6 +1341,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .where(eq(topluGonderimler.id, id))
           .returning();
+        if (action.data === "durdur") {
+          const now = new Date();
+          await tx.update(topluEklentiGrantleri).set({ revokedAt: now }).where(and(
+            eq(topluEklentiGrantleri.gonderimId, id),
+            isNull(topluEklentiGrantleri.revokedAt),
+          ));
+          await tx.update(topluEklentiEslestirmeleri).set({ revokedAt: now }).where(and(
+            eq(topluEklentiEslestirmeleri.gonderimId, id),
+            isNull(topluEklentiEslestirmeleri.usedAt),
+            isNull(topluEklentiEslestirmeleri.revokedAt),
+          ));
+        }
         return { updated };
       });
       if ("error" in result) return res.status(result.status ?? 500).json({ error: result.error });
@@ -1071,15 +1365,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sağlayıcılar (Chrome eklentisi vb.) sıradaki kaydı bu sözleşmeden alır.
   // Kayıt, tek atomik durum geçişiyle "islemde"ye alınır; aynı kişi iki kez tüketilemez.
-  app.get("/api/toplu-gonderimler/:id/kuyruk/siradaki", isAuthenticated, async (req, res) => {
+  const siradakiKuyrukKaydiniAl = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       const user = getSessionUser(req) as any;
+      const grant = eklentiGrantBaglami(req);
       const result = await db.transaction(async (tx) => {
         await tx.execute(sql`SELECT id FROM ${topluGonderimler} WHERE ${topluGonderimler.id} = ${id} FOR UPDATE`);
         const [gonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, id));
         if (!gonderim) return { error: "Gönderim bulunamadı.", status: 404 };
-        if (!topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) return { error: "Bu gönderime erişim yetkiniz yok.", status: 403 };
+        if (grant && (grant.gonderimId !== gonderim.id || grant.subeId !== gonderim.subeId)) {
+          return { error: "Eklenti izni bu gönderim veya şube için geçerli değil.", status: 403 };
+        }
+        if (!grant && !topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) {
+          return { error: "Bu gönderime erişim yetkiniz yok.", status: 403 };
+        }
         if (gonderim.durum !== "aktif") return { error: "Gönderim kuyruğu henüz başlatılmadı veya duraklatıldı.", status: 409 };
         const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
         await tx
@@ -1105,8 +1405,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if ("empty" in result) return res.status(204).send();
       const { gonderim, kilitli, claimToken } = result;
       res.json({
-        gonderim: { id: gonderim.id, subeAdi: gonderim.subeAdi },
-        teklif: kilitli,
+        gonderim: grant ? { id: gonderim.id } : { id: gonderim.id, subeAdi: gonderim.subeAdi },
+        teklif: grant ? eklentiTeslimatVerisi(kilitli) : kilitli,
         claimToken,
         // Sağlayıcı sözleşmesi: bu anahtarı kendi teslimat/dedup mekanizmasında kullanmalı,
         // mesajdan hemen önce heartbeat çağrısıyla lease'in hâlâ kendisinde olduğunu doğrulamalıdır.
@@ -1117,17 +1417,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Kuyruk tüketim hatası:", error);
       res.status(500).json({ error: "Kuyruktan kayıt alınamadı." });
     }
-  });
+  };
+  // GET, yalnızca cookie taşımayan Extension-Grant istemcileri içindir.
+  // Kullanıcı oturumu state değiştiren claim işlemini same-origin POST ile yapar.
+  app.get("/api/toplu-gonderimler/:id/kuyruk/siradaki", kuyrukIcinEklentiVeyaOturum, sadeceEklentiGrantIle, siradakiKuyrukKaydiniAl);
+  app.post("/api/toplu-gonderimler/:id/kuyruk/siradaki", kuyrukIcinEklentiVeyaOturum, siradakiKuyrukKaydiniAl);
 
-  app.patch("/api/toplu-teklifler/:id/kuyruk/heartbeat", isAuthenticated, async (req, res) => {
+  app.patch("/api/toplu-teklifler/:id/kuyruk/heartbeat", kuyrukIcinEklentiVeyaOturum, async (req, res) => {
     try {
       const id = Number(req.params.id);
       const parsed = z.object({ claimToken: z.string().uuid() }).safeParse(req.body);
       if (!Number.isInteger(id) || !parsed.success) return res.status(400).json({ error: "Geçersiz lease yenileme isteği." });
       const user = getSessionUser(req) as any;
+      const grant = eklentiGrantBaglami(req);
       const [teklif] = await db.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
       if (!teklif) return res.status(404).json({ error: "Teklif bulunamadı." });
-      if (!topluTeklifSubeErisimiVarMi(user, teklif.subeId)) return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
+      if (grant && (grant.gonderimId !== teklif.gonderimId || grant.subeId !== teklif.subeId)) {
+        return res.status(403).json({ error: "Eklenti izni bu teklif veya şube için geçerli değil." });
+      }
+      if (!grant && !topluTeklifSubeErisimiVarMi(user, teklif.subeId)) {
+        return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
+      }
+      if (grant && !await eklentiAktifGonderimMi(grant)) {
+        return res.status(409).json({ error: "Gönderim artık aktif değil; eklenti erişimi kesildi." });
+      }
       const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
       const [updated] = await db
         .update(topluTeklifler)
@@ -1147,7 +1460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/toplu-teklifler/:id/sonuc", isAuthenticated, async (req, res) => {
+  app.patch("/api/toplu-teklifler/:id/sonuc", kuyrukIcinEklentiVeyaOturum, async (req, res) => {
     try {
       const id = Number(req.params.id);
       const parsed = z.object({
@@ -1157,10 +1470,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).safeParse(req.body);
       if (!Number.isInteger(id) || !parsed.success) return res.status(400).json({ error: "Geçersiz sonuç bildirimi." });
       const user = getSessionUser(req) as any;
+      const grant = eklentiGrantBaglami(req);
       const [teklif] = await db.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
       if (!teklif) return res.status(404).json({ error: "Teklif bulunamadı." });
-      if (!topluTeklifSubeErisimiVarMi(user, teklif.subeId)) return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
-      if (["gonderildi", "hata"].includes(teklif.durum)) return res.json(teklif); // idempotent tekrar bildirimi
+      if (grant && (grant.gonderimId !== teklif.gonderimId || grant.subeId !== teklif.subeId)) {
+        return res.status(403).json({ error: "Eklenti izni bu teklif veya şube için geçerli değil." });
+      }
+      if (!grant && !topluTeklifSubeErisimiVarMi(user, teklif.subeId)) {
+        return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
+      }
+      if (grant && !await eklentiAktifGonderimMi(grant)) {
+        return res.status(409).json({ error: "Gönderim artık aktif değil; eklenti erişimi kesildi." });
+      }
+      if (["gonderildi", "hata"].includes(teklif.durum)) {
+        return res.json(grant ? eklentiSonucVerisi(teklif) : teklif); // idempotent tekrar bildirimi
+      }
 
       const updated = await db.transaction(async (tx) => {
         // Aynı batch'in sayaç ve terminal durumu bu kilit altında seri güncellenir.
@@ -1212,7 +1536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return sonuc;
       });
       if (!updated) return res.status(409).json({ error: "Kuyruk kaydının işlem yetkisi geçersiz veya süresi dolmuş." });
-      res.json(updated);
+      res.json(grant ? eklentiSonucVerisi(updated) : updated);
     } catch (error) {
       console.error("Toplu teklif sonuç hatası:", error);
       res.status(500).json({ error: "Gönderim sonucu kaydedilemedi." });

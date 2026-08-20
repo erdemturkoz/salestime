@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, Building2, CheckCircle2, ChevronRight, CirclePause, CircleStop,
   Download, FileSpreadsheet, FileText, Filter, History, Loader2, MessageCircle,
-  Play, RefreshCw, Search, Send, Upload, Users, XCircle,
+  Copy, Link2, Play, RefreshCw, Search, Send, Unplug, Upload, Users, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +46,20 @@ const durumRenkleri: Record<string, string> = {
 const durumEtiketi: Record<string, string> = {
   hazir: "Hazır", aktif: "Gönderimde", duraklatildi: "Duraklatıldı", durduruldu: "Durduruldu",
   tamamlandi: "Tamamlandı", bekliyor: "Bekliyor", islemde: "İşleniyor", manuel_bekliyor: "Manuel onay bekliyor", gonderildi: "Gönderildi", hata: "Hata",
+};
+
+const eklentiDurumEtiketi: Record<string, string> = {
+  bagli_degil: "Bağlı değil",
+  kod_bekliyor: "Eşleştirme kodu bekleniyor",
+  bagli: "Bağlı",
+  iptal_edildi: "İptal edildi",
+};
+
+const eklentiDurumRenkleri: Record<string, string> = {
+  bagli_degil: "bg-slate-100 text-slate-700",
+  kod_bekliyor: "bg-amber-100 text-amber-800",
+  bagli: "bg-emerald-100 text-emerald-800",
+  iptal_edildi: "bg-gray-200 text-gray-700",
 };
 
 function odemeDetayi(odeme: OfferResult): string {
@@ -112,6 +126,7 @@ export default function TopluTekliflerPage() {
   const [gecmisBitis, setGecmisBitis] = useState("");
   const [manuelGonderimId, setManuelGonderimId] = useState<number | null>(null);
   const [manuelOnayKaydi, setManuelOnayKaydi] = useState<KayitliTeklif | null>(null);
+  const [eslestirmeBaglami, setEslestirmeBaglami] = useState<{ gonderimId: number; subeAdi: string; pairingCode: string; expiresAt: string } | null>(null);
   const yuklenenSubeRef = useRef<number | null>(null);
 
   const aktifRol = roller.find((rol) => Number(rol.subeId) === Number(aktifSubeId)) || roller[0];
@@ -157,6 +172,11 @@ export default function TopluTekliflerPage() {
     queryFn: () => apiRequest("/api/toplu-teklifler"),
     enabled: sekme === "gecmis",
   });
+  const { data: eklentiDurumlari = {} } = useQuery<Record<string, { durum: string; expiresAt: string | null }>>({
+    queryKey: ["/api/toplu-gonderimler/eklenti-durumlari"],
+    queryFn: () => apiRequest("/api/toplu-gonderimler/eklenti-durumlari"),
+    enabled: sekme === "gecmis",
+  });
 
   const gonderimOlustur = useMutation({
     mutationFn: async () => {
@@ -185,7 +205,10 @@ export default function TopluTekliflerPage() {
     mutationFn: ({ id, action }: { id: number; action: string }) => apiRequest(`/api/toplu-gonderimler/${id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }),
     }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler/eklenti-durumlari"] });
+    },
     onError: () => toast({ title: "Durum güncellenemedi", variant: "destructive" }),
   });
   const retryMutation = useMutation({
@@ -195,6 +218,37 @@ export default function TopluTekliflerPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/toplu-teklifler"] });
     },
   });
+  const eklentiEslestirme = useMutation({
+    mutationFn: (gonderim: Gonderim) => apiRequest(`/api/toplu-gonderimler/${gonderim.id}/eklenti-eslestirme`, { method: "POST" }),
+    onSuccess: (sonuc: any, gonderim: Gonderim) => {
+      setEslestirmeBaglami({
+        gonderimId: gonderim.id,
+        subeAdi: gonderim.subeAdi,
+        pairingCode: sonuc.pairingCode,
+        expiresAt: sonuc.expiresAt,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler/eklenti-durumlari"] });
+    },
+    onError: (error: Error) => toast({ title: "Eşleştirme kodu oluşturulamadı", description: error.message, variant: "destructive" }),
+  });
+  const eklentiGrantIptal = useMutation({
+    mutationFn: (gonderimId: number) => apiRequest(`/api/toplu-gonderimler/${gonderimId}/eklenti-grant`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler/eklenti-durumlari"] });
+      toast({ title: "Chrome eklentisi erişimi iptal edildi" });
+    },
+    onError: (error: Error) => toast({ title: "Eklenti erişimi iptal edilemedi", description: error.message, variant: "destructive" }),
+  });
+
+  const eslestirmeKodunuKopyala = async () => {
+    if (!eslestirmeBaglami) return;
+    try {
+      await navigator.clipboard.writeText(eslestirmeBaglami.pairingCode);
+      toast({ title: "Eşleştirme kodu kopyalandı" });
+    } catch {
+      toast({ title: "Kod kopyalanamadı", description: "Kodu seçip el ile kopyalayın.", variant: "destructive" });
+    }
+  };
 
   const whatsappMesajiAc = async (kayit: KayitliTeklif) => {
     const dahaOnceGonderildi = kayit.durum === "gonderildi";
@@ -398,7 +452,30 @@ export default function TopluTekliflerPage() {
 
             <div className="grid gap-5 xl:grid-cols-[.85fr_1.15fr]">
               <Card className="border-gray-200 shadow-sm"><CardContent className="p-0"><div className="border-b border-gray-100 p-4"><h2 className="font-semibold">Gönderim kuyrukları</h2><p className="text-xs text-gray-500">Duraklatın, sürdürün veya başarısız kayıtları yeniden kuyruğa alın.</p></div>
-                <div className="max-h-[620px] divide-y overflow-y-auto">{gecmisYukleniyor ? <div className="flex justify-center p-10"><Loader2 className="animate-spin text-gray-400" /></div> : gonderimler.length === 0 ? <div className="p-10 text-center text-sm text-gray-500">Henüz toplu gönderim yok.</div> : gonderimler.map((g) => <div className="p-4" key={g.id}><div className="flex items-start justify-between gap-2"><div><p className="font-medium text-gray-900">{g.baslik}</p><p className="mt-0.5 text-xs text-gray-500">{g.subeAdi} · {g.danismanAdi} {g.danismanSoyadi}</p></div><Badge className={durumRenkleri[g.durum]} variant="secondary">{durumEtiketi[g.durum] || g.durum}</Badge></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-emerald-500" style={{ width: `${g.toplam ? ((g.gonderildi + g.hata) / g.toplam) * 100 : 0}%` }} /></div><div className="mt-2 flex gap-3 text-xs text-gray-500"><span>{g.toplam} kişi</span><span className="text-emerald-700">{g.gonderildi} başarılı</span><span className="text-rose-600">{g.hata} hata</span></div><div className="mt-3 flex flex-wrap gap-2">{["hazir", "duraklatildi", "durduruldu"].includes(g.durum) && <Button size="sm" variant="outline" onClick={() => gonderimDurumu.mutate({ id: g.id, action: "baslat" })}><Play className="mr-1 h-3.5 w-3.5" /> Başlat</Button>}{g.durum === "aktif" && <><Button size="sm" variant="outline" onClick={() => gonderimDurumu.mutate({ id: g.id, action: "duraklat" })}><CirclePause className="mr-1 h-3.5 w-3.5" /> Duraklat</Button><Button size="sm" variant="outline" className="text-rose-700" onClick={() => gonderimDurumu.mutate({ id: g.id, action: "durdur" })}><CircleStop className="mr-1 h-3.5 w-3.5" /> Durdur</Button></>}{g.hata > 0 && <Button size="sm" variant="ghost" onClick={() => retryMutation.mutate(g.id)}><RefreshCw className="mr-1 h-3.5 w-3.5" /> Başarısızları dene</Button>}</div></div>)}</div>
+                <div className="max-h-[620px] divide-y overflow-y-auto">
+                  {gecmisYukleniyor ? <div className="flex justify-center p-10"><Loader2 className="animate-spin text-gray-400" /></div>
+                    : gonderimler.length === 0 ? <div className="p-10 text-center text-sm text-gray-500">Henüz toplu gönderim yok.</div>
+                    : gonderimler.map((g) => {
+                      const eklentiBaglantisi = eklentiDurumlari[String(g.id)] || { durum: "bagli_degil", expiresAt: null };
+                      const baglanabilir = ["hazir", "aktif", "duraklatildi"].includes(g.durum);
+                      return <div className="p-4" key={g.id}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div><p className="font-medium text-gray-900">{g.baslik}</p><p className="mt-0.5 text-xs text-gray-500">{g.subeAdi} · {g.danismanAdi} {g.danismanSoyadi}</p></div>
+                          <Badge className={durumRenkleri[g.durum]} variant="secondary">{durumEtiketi[g.durum] || g.durum}</Badge>
+                        </div>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-emerald-500" style={{ width: `${g.toplam ? ((g.gonderildi + g.hata) / g.toplam) * 100 : 0}%` }} /></div>
+                        <div className="mt-2 flex gap-3 text-xs text-gray-500"><span>{g.toplam} kişi</span><span className="text-emerald-700">{g.gonderildi} başarılı</span><span className="text-rose-600">{g.hata} hata</span></div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Badge className={eklentiDurumRenkleri[eklentiBaglantisi.durum]} variant="secondary">{eklentiDurumEtiketi[eklentiBaglantisi.durum]}</Badge>
+                          {baglanabilir && <Button size="sm" variant="outline" disabled={eklentiEslestirme.isPending} onClick={() => eklentiEslestirme.mutate(g)}><Link2 className="mr-1 h-3.5 w-3.5" /> Chrome Eklentisini Bağla</Button>}
+                          {["bagli", "kod_bekliyor"].includes(eklentiBaglantisi.durum) && <Button size="sm" variant="ghost" className="text-rose-700" disabled={eklentiGrantIptal.isPending} onClick={() => eklentiGrantIptal.mutate(g.id)}><Unplug className="mr-1 h-3.5 w-3.5" /> Eklentiyi iptal et</Button>}
+                          {["hazir", "duraklatildi", "durduruldu"].includes(g.durum) && <Button size="sm" variant="outline" onClick={() => gonderimDurumu.mutate({ id: g.id, action: "baslat" })}><Play className="mr-1 h-3.5 w-3.5" /> Başlat</Button>}
+                          {g.durum === "aktif" && <><Button size="sm" variant="outline" onClick={() => gonderimDurumu.mutate({ id: g.id, action: "duraklat" })}><CirclePause className="mr-1 h-3.5 w-3.5" /> Duraklat</Button><Button size="sm" variant="outline" className="text-rose-700" onClick={() => gonderimDurumu.mutate({ id: g.id, action: "durdur" })}><CircleStop className="mr-1 h-3.5 w-3.5" /> Durdur</Button></>}
+                          {g.hata > 0 && <Button size="sm" variant="ghost" onClick={() => retryMutation.mutate(g.id)}><RefreshCw className="mr-1 h-3.5 w-3.5" /> Başarısızları dene</Button>}
+                        </div>
+                      </div>;
+                    })}
+                </div>
               </CardContent></Card>
               <Card className="border-gray-200 shadow-sm"><CardContent className="p-0"><div className="flex items-center justify-between border-b border-gray-100 p-4"><div><h2 className="font-semibold">Teklif geçmişi</h2><p className="text-xs text-gray-500">{gecmisFiltreli.length} kayıt bulundu</p></div><Filter className="h-4 w-4 text-gray-400" /></div><div className="overflow-x-auto"><table className="w-full min-w-[690px] text-sm"><thead className="bg-gray-50 text-left text-xs text-gray-500"><tr><th className="px-4 py-3">Aday</th><th className="px-4 py-3">Kampanya</th><th className="px-4 py-3">Teklif</th><th className="px-4 py-3">Durum</th><th className="px-4 py-3"></th></tr></thead><tbody>{gecmisFiltreli.map((kayit) => <tr key={kayit.id} className="border-t border-gray-100 hover:bg-gray-50"><td className="px-4 py-3"><p className="font-medium">{kayit.ogrenciAdi}</p><p className="text-xs text-gray-500">{kayit.ogrenciTelefon}</p></td><td className="px-4 py-3"><p>{kayit.kampanyaAdi}</p><p className="text-xs text-gray-500">{kayit.egitimTipi} · {kayit.teklifKur} Kur</p></td><td className="px-4 py-3 text-xs text-gray-600">{kayit.odeme1}<br />{kayit.odeme2}</td><td className="px-4 py-3"><Badge className={durumRenkleri[kayit.durum]} variant="secondary">{durumEtiketi[kayit.durum] || kayit.durum}</Badge></td><td className="px-4 py-3"><Button size="sm" variant="ghost" onClick={() => setDetayKaydi(kayit)}>Detay <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button></td></tr>)}</tbody></table></div></CardContent></Card>
             </div>
@@ -407,6 +484,25 @@ export default function TopluTekliflerPage() {
       </div>
 
       <Dialog open={onayAcik} onOpenChange={setOnayAcik}><DialogContent><DialogHeader><DialogTitle>Gönderim kuyruğunu onaylayın</DialogTitle><DialogDescription>Bu işlem hazır tekliflerin fiyat ve kampanya snapshot’ını kalıcı olarak saklar. Harici sağlayıcı kuyruktan kayıtları alarak gönderimi gerçekleştirir.</DialogDescription></DialogHeader><div className="rounded-xl bg-gray-50 p-4 text-sm"><div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-gray-500">Kişi / teklif</p><p className="font-bold">{hazirTeklifler.length}</p></div><div><p className="text-xs text-gray-500">Şube</p><p className="font-bold">{subeAdi}</p></div><div><p className="text-xs text-gray-500">Danışman</p><p className="font-bold">{(user as any)?.adi} {(user as any)?.soyadi}</p></div><div><p className="text-xs text-gray-500">Gönderim kanalı</p><p className="font-bold">Sağlayıcı kuyruğu</p></div></div></div><DialogFooter><Button variant="outline" onClick={() => setOnayAcik(false)}>Vazgeç</Button><Button className="bg-[#F26207] hover:bg-[#D95205]" disabled={gonderimOlustur.isPending} onClick={() => gonderimOlustur.mutate()}>{gonderimOlustur.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Onayla ve kuyruğa al</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={!!eslestirmeBaglami} onOpenChange={(open) => !open && setEslestirmeBaglami(null)}>
+        {eslestirmeBaglami && <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chrome eklentisini bağlayın</DialogTitle>
+            <DialogDescription>
+              Bu kod yalnızca {eslestirmeBaglami.subeAdi} şubesindeki seçili gönderim için geçerlidir. SalesTime oturumunuz veya JWT’niz eklentiye aktarılmaz.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Tek kullanımlık eşleştirme kodu</p>
+            <code className="mt-2 block break-all rounded-lg bg-white p-3 text-sm font-bold text-gray-900">{eslestirmeBaglami.pairingCode}</code>
+            <p className="mt-3 text-xs text-amber-900">Bu kod {new Date(eslestirmeBaglami.expiresAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} saatine kadar geçerlidir. Eklentiye yalnızca bu kodu verin.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEslestirmeBaglami(null)}>Kapat</Button>
+            <Button className="bg-[#F26207] hover:bg-[#D95205]" onClick={eslestirmeKodunuKopyala}><Copy className="mr-2 h-4 w-4" /> Kodu kopyala</Button>
+          </DialogFooter>
+        </DialogContent>}
+      </Dialog>
       <Dialog open={!!manuelOnayKaydi} onOpenChange={() => undefined}>{manuelOnayKaydi && <DialogContent onEscapeKeyDown={(event) => event.preventDefault()} onPointerDownOutside={(event) => event.preventDefault()}><DialogHeader><DialogTitle>WhatsApp gönderimini onaylayın</DialogTitle><DialogDescription>WhatsApp penceresinden mesajı gerçekten gönderdiyseniz kaydı tamamlayın. Göndermediyseniz teklif otomatik sağlayıcı kuyruğuna geri döner.</DialogDescription></DialogHeader><div className="rounded-xl border border-violet-100 bg-violet-50 p-4 text-sm text-violet-900"><p className="font-semibold">{manuelOnayKaydi.ogrenciAdi}</p><p className="mt-1">Bu kayıt, onay verilene kadar “Manuel onay bekliyor” durumunda tutulur ve otomatik olarak tekrar gönderilmez.</p></div><DialogFooter><Button variant="outline" disabled={manuelGonderimId === manuelOnayKaydi.id} onClick={() => manuelGonderimSonucunuKaydet("iptal")}>Göndermedim, kuyruğa geri al</Button><Button className="bg-green-600 hover:bg-green-700" disabled={manuelGonderimId === manuelOnayKaydi.id} onClick={() => manuelGonderimSonucunuKaydet("onayla")}>{manuelGonderimId === manuelOnayKaydi.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Gönderildi olarak işaretle</Button></DialogFooter></DialogContent>}</Dialog>
       <Dialog open={!!detayKaydi} onOpenChange={(open) => !open && setDetayKaydi(null)}>{detayKaydi && <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>{detayKaydi.ogrenciAdi} · teklif snapshot’ı</DialogTitle><DialogDescription>{detayKaydi.kampanyaAdi} · {detayKaydi.createdAt ? new Date(detayKaydi.createdAt).toLocaleString("tr-TR") : ""}</DialogDescription></DialogHeader><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-orange-50 p-4"><p className="text-xs font-bold text-orange-700">1. ALTERNATİF</p><p className="mt-2 font-semibold">{detayKaydi.odeme1}</p><p className="mt-1 text-sm text-gray-600">{detayKaydi.odeme1Detay}</p></div><div className="rounded-xl bg-blue-50 p-4"><p className="text-xs font-bold text-blue-700">2. ALTERNATİF</p><p className="mt-2 font-semibold">{detayKaydi.odeme2}</p><p className="mt-1 text-sm text-gray-600">{detayKaydi.odeme2Detay}</p></div></div><div className="max-h-48 overflow-y-auto rounded-xl border border-green-100 bg-green-50/50 p-4"><p className="mb-2 text-xs font-bold text-green-800">KAYITLI WHATSAPP MESAJI</p><pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">{detayKaydi.mesaj}</pre></div><DialogFooter><Button variant="outline" onClick={() => snapshotPDF(detayKaydi)}><FileText className="mr-2 h-4 w-4" /> Snapshot PDF</Button><Button disabled={manuelGonderimId === detayKaydi.id} className="bg-green-600 hover:bg-green-700" onClick={() => whatsappMesajiAc(detayKaydi)}>{manuelGonderimId === detayKaydi.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />} WhatsApp’ta aç</Button></DialogFooter></DialogContent>}</Dialog>
     </div>
