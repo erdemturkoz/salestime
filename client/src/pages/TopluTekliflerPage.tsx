@@ -322,6 +322,24 @@ export default function TopluTekliflerPage() {
     }
   };
 
+  const sablonIndir = async () => {
+    if (!aktifSubeId) {
+      toast({ title: "Şube seçin", description: "Şablonun güncel kampanyalarla oluşması için önce şube seçin.", variant: "destructive" });
+      return;
+    }
+    try {
+      // Şablon, ekrandaki olası eski state yerine indirme anındaki şube
+      // kampanyalarından oluşur. Backend şube erişimini ayrıca uygular.
+      const tazeKampanyalar = await apiRequest(`/api/kampanyalar?subeId=${aktifSubeId}`);
+      topluTeklifSablonuIndir({
+        subeAdi,
+        kampanyalar: Array.isArray(tazeKampanyalar) ? tazeKampanyalar : [],
+      });
+    } catch (error: any) {
+      toast({ title: "Şablon oluşturulamadı", description: error.message || "Güncel kampanyalar alınamadı.", variant: "destructive" });
+    }
+  };
+
   const gecmisFiltreli = gecmis.filter((kayit) => {
     const ara = `${kayit.ogrenciAdi} ${kayit.ogrenciTelefon} ${kayit.kampanyaAdi} ${kayit.egitimTipi}`.toLocaleLowerCase("tr");
     const tarih = kayit.createdAt ? new Date(kayit.createdAt) : null;
@@ -388,7 +406,7 @@ export default function TopluTekliflerPage() {
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#F26207]"><FileSpreadsheet className="h-5 w-5" /></div>
                     <div><h2 className="font-semibold text-gray-900">Standart Excel şablonu</h2><p className="mt-1 max-w-xl text-sm text-gray-500">İstenen sütunlar ilk sayfada, Türkçe kullanım kılavuzu ikinci sayfada bulunur.</p></div>
                   </div>
-                  <Button variant="outline" className="border-gray-200" onClick={topluTeklifSablonuIndir}><Download className="mr-2 h-4 w-4" /> Şablonu İndir</Button>
+                  <Button variant="outline" className="border-gray-200" onClick={sablonIndir}><Download className="mr-2 h-4 w-4" /> Şablonu İndir</Button>
                 </CardContent>
               </Card>
               <label className="flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-[#F26207]/40 bg-white p-5 text-center shadow-sm transition hover:border-[#F26207] hover:bg-orange-50/30">
