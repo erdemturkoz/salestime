@@ -1,6 +1,6 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { Server, createServer } from "http";
-import { eq, and, desc, lt, sql } from "drizzle-orm";
+import { eq, and, desc, gt, lt, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { 
@@ -42,6 +42,8 @@ function topluTeklifSubeErisimiVarMi(user: any, subeId: number): boolean {
   if (isKurucuUser(user)) return getManagedSubeIds(user).includes(subeId);
   return getUserSubeIds(user).includes(subeId);
 }
+
+const TOPLU_TEKLIF_LEASE_MS = 15 * 60 * 1000;
 
 const topluTeklifSatirSchema = z.object({
   ogrenciAdi: z.string().trim().min(2).max(150),
@@ -1079,7 +1081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!gonderim) return { error: "Gönderim bulunamadı.", status: 404 };
         if (!topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) return { error: "Bu gönderime erişim yetkiniz yok.", status: 403 };
         if (gonderim.durum !== "aktif") return { error: "Gönderim kuyruğu henüz başlatılmadı veya duraklatıldı.", status: 409 };
-        const leaseCutoff = new Date(Date.now() - 15 * 60 * 1000);
+        const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
         await tx
           .update(topluTeklifler)
           .set({ durum: "bekliyor", claimToken: null, claimedAt: null, updatedAt: new Date() })
@@ -1109,7 +1111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Sağlayıcı sözleşmesi: bu anahtarı kendi teslimat/dedup mekanizmasında kullanmalı,
         // mesajdan hemen önce heartbeat çağrısıyla lease'in hâlâ kendisinde olduğunu doğrulamalıdır.
         idempotencyKey: `toplu-teklif-${kilitli.id}`,
-        leaseExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        leaseExpiresAt: new Date(Date.now() + TOPLU_TEKLIF_LEASE_MS).toISOString(),
       });
     } catch (error) {
       console.error("Kuyruk tüketim hatası:", error);
@@ -1126,6 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [teklif] = await db.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
       if (!teklif) return res.status(404).json({ error: "Teklif bulunamadı." });
       if (!topluTeklifSubeErisimiVarMi(user, teklif.subeId)) return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
+      const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
       const [updated] = await db
         .update(topluTeklifler)
         .set({ claimedAt: new Date(), updatedAt: new Date() })
@@ -1133,10 +1136,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(topluTeklifler.id, id),
           eq(topluTeklifler.durum, "islemde"),
           eq(topluTeklifler.claimToken, parsed.data.claimToken),
+          gt(topluTeklifler.claimedAt, leaseCutoff),
         ))
         .returning();
       if (!updated) return res.status(409).json({ error: "Lease geçersiz veya başka bir sağlayıcıya devredildi." });
-      res.json({ ok: true, leaseExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
+      res.json({ ok: true, leaseExpiresAt: new Date(Date.now() + TOPLU_TEKLIF_LEASE_MS).toISOString() });
     } catch (error) {
       console.error("Kuyruk heartbeat hatası:", error);
       res.status(500).json({ error: "Lease yenilenemedi." });
@@ -1165,6 +1169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [guncelTeklif] = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
         if (!guncelTeklif || !kilitliGonderim) return null;
         if (["gonderildi", "hata"].includes(guncelTeklif.durum)) return guncelTeklif;
+        const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
 
         const [sonuc] = await tx
           .update(topluTeklifler)
@@ -1180,6 +1185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             eq(topluTeklifler.id, id),
             eq(topluTeklifler.durum, "islemde"),
             eq(topluTeklifler.claimToken, parsed.data.claimToken),
+            gt(topluTeklifler.claimedAt, leaseCutoff),
           ))
           .returning();
         if (!sonuc) return null;
