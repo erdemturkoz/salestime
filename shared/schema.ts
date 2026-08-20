@@ -44,6 +44,9 @@ export const kullanicilar = pgTable("kullanicilar", {
   // Şifre için salt ile birlikte hashlenmiş bir şifre depolayacağız
   sifre: text("sifre").notNull(),
   aktif: boolean("aktif").default(true),
+  // Parola, rol veya aktiflik değiştiğinde artırılır. Eski session ve
+  // Bearer token'lar bu sürümle eşleşmediği için anında geçersiz kalır.
+  authVersion: integer("auth_version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -125,7 +128,15 @@ export const insertSubeSchema = createInsertSchema(subeler).omit({
 export const insertKullaniciSchema = createInsertSchema(kullanicilar).omit({
   id: true,
   createdAt: true,
+  authVersion: true,
 });
+
+export const updateKullaniciSchema = insertKullaniciSchema
+  .omit({ sifre: true })
+  .extend({
+    sifre: z.string().min(6, "Şifre en az 6 karakter olmalıdır").optional(),
+  })
+  .partial();
 
 // Kullanıcı girişi için login şeması
 export const loginSchema = z.object({

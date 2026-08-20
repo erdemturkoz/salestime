@@ -1,7 +1,8 @@
 import { 
   useQuery, 
   useMutation, 
-  useQueryClient 
+  useQueryClient,
+  type UseMutationResult,
 } from "@tanstack/react-query";
 import { EgitimTipi, InsertEgitimTipi } from "@shared/schema";
 
@@ -12,9 +13,9 @@ export interface EgitimTipleriResult {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  createEgitimTipi: ReturnType<typeof useMutation>;
-  updateEgitimTipi: ReturnType<typeof useMutation>;
-  deleteEgitimTipi: ReturnType<typeof useMutation>;
+  createEgitimTipi: UseMutationResult<unknown, Error, InsertEgitimTipi>;
+  updateEgitimTipi: UseMutationResult<unknown, Error, { id: number; data: InsertEgitimTipi }>;
+  deleteEgitimTipi: UseMutationResult<number, Error, number>;
 }
 
 export function useEgitimTipleri(): EgitimTipleriResult {

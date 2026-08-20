@@ -1,114 +1,97 @@
-import * as XLSX from 'xlsx';
-import { Kampanya } from '@/types';
+import { Workbook } from "@node-projects/excelforge";
+import { Kampanya } from "@/types";
+import { loadSafeXlsx, safeSpreadsheetText, worksheetRowsAsRecords } from "./excel-security";
 
-/**
- * Kampanyaları Excel dosyasına aktarır
- * @param kampanyalar Aktarılacak kampanya listesi
- */
-export const exportToExcel = (kampanyalar: Kampanya[]): void => {
-  // Veriyi hazırla
-  const data = kampanyalar.map(kampanya => ({
-    'Kampanya Adı': kampanya.kampanyaAdi,
-    'Eğitim Tipi': kampanya.egitimTipi,
-    'Kur Sayısı': kampanya.kurSayisi,
-    'Toplam Ders Saati': kampanya.toplamDersSaati,
-    'Liste Fiyatı': kampanya.listeFiyati,
-    'Nakit Fiyatı': kampanya.nakitFiyati,
-    'İndirim Oranı (%)': kampanya.indirimOrani,
-    'Faiz Oranı (%)': kampanya.faizOrani,
-    'Kitap Fiyatı': kampanya.kitapFiyati,
-    'Kitap Set Sayısı': kampanya.kitapSetSayisi,
-    'Maks. Kredi Kartı Taksiti': kampanya.maxKrediKartiTaksit,
-    'Maks. Senet Taksiti': kampanya.maxSenetTaksit,
-    'Hediyeler': kampanya.hediyeler.map(h => `${h.isim} (${h.fiyat} TL)`).join(', ')
+const KAMPANYA_KOLONLARI = [
+  "Kampanya Adı",
+  "Eğitim Tipi",
+  "Kur Sayısı",
+  "Toplam Ders Saati",
+  "Liste Fiyatı",
+  "Nakit Fiyatı",
+  "İndirim Oranı (%)",
+  "Faiz Oranı (%)",
+  "Kitap Fiyatı",
+  "Kitap Set Sayısı",
+  "Maks. Kredi Kartı Taksiti",
+  "Maks. Senet Taksiti",
+  "Hediyeler",
+] as const;
+
+function downloadXlsx(buffer: ArrayBuffer | Uint8Array, filename: string): void {
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function numberInRange(value: string, field: string, min: number, max: number): number {
+  const normalized = value.trim().replace(",", ".");
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) throw new Error(`${field} geçerli bir sayı olmalıdır.`);
+  const numeric = Number(normalized);
+  if (!Number.isFinite(numeric) || numeric < min || numeric > max) {
+    throw new Error(`${field} ${min} ile ${max} arasında olmalıdır.`);
+  }
+  return numeric;
+}
+
+export const exportToExcel = async (kampanyalar: Kampanya[]): Promise<void> => {
+  const workbook = new Workbook();
+  const worksheet = workbook.addSheet("Kampanyalar");
+  [24, 20, 12, 20, 15, 15, 20, 18, 15, 20, 28, 24, 36].forEach((width, index) => worksheet.setColumnWidth(index + 1, width));
+  worksheet.writeRow(1, 1, [...KAMPANYA_KOLONLARI]);
+  KAMPANYA_KOLONLARI.forEach((_, index) => worksheet.setStyle(1, index + 1, {
+    font: { bold: true, color: "#FFFFFF" }, fill: { type: "pattern", pattern: "solid", fgColor: "#1F4E78" },
   }));
 
-  // Çalışma sayfası oluştur
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Kampanyalar');
-
-  // Kolon genişliklerini ayarla
-  const colWidths = [
-    { wch: 20 }, // Kampanya Adı
-    { wch: 15 }, // Eğitim Tipi
-    { wch: 10 }, // Kur Sayısı
-    { wch: 15 }, // Toplam Ders Saati
-    { wch: 12 }, // Liste Fiyatı
-    { wch: 12 }, // Nakit Fiyatı
-    { wch: 15 }, // İndirim Oranı
-    { wch: 15 }, // Faiz Oranı
-    { wch: 12 }, // Kitap Fiyatı
-    { wch: 15 }, // Kitap Set Sayısı
-    { wch: 20 }, // Maks. Kredi Kartı Taksiti
-    { wch: 20 }, // Maks. Senet Taksiti
-    { wch: 30 }, // Hediyeler
-  ];
-  worksheet['!cols'] = colWidths;
-
-  // Excel dosyasını indir
-  XLSX.writeFile(workbook, 'kampanyalar.xlsx');
+  kampanyalar.forEach((kampanya, index) => {
+    worksheet.writeRow(index + 2, 1, [
+      safeSpreadsheetText(kampanya.kampanyaAdi), safeSpreadsheetText(kampanya.egitimTipi), kampanya.kurSayisi,
+      kampanya.toplamDersSaati, kampanya.listeFiyati, kampanya.nakitFiyati, kampanya.indirimOrani, kampanya.faizOrani,
+      kampanya.kitapFiyati, kampanya.kitapSetSayisi, kampanya.maxKrediKartiTaksit, kampanya.maxSenetTaksit,
+      safeSpreadsheetText(kampanya.hediyeler.map((hediye) => `${hediye.isim} (${hediye.fiyat} TL)`).join(", ")),
+    ]);
+  });
+  downloadXlsx(await workbook.build(), "kampanyalar.xlsx");
 };
 
-/**
- * Excel dosyasından kampanyaları içe aktarır
- * @param file Yüklenen Excel dosyası
- * @returns Promise<Kampanya[]> İçe aktarılan kampanyalar
- */
-export const importFromExcel = (file: File): Promise<Partial<Kampanya>[]> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        
-        // Excel'den gelen verileri kampanya formatına dönüştür
-        const kampanyalar: Partial<Kampanya>[] = jsonData.map((row: any) => {
-          // Hediyeleri işle
-          let hediyeler: Array<{isim: string, fiyat: number}> = [];
-          if (row['Hediyeler']) {
-            const hediyeListesi = row['Hediyeler'].split(',');
-            hediyeler = hediyeListesi.map((hediye: string) => {
-              const match = hediye.trim().match(/(.+)\s*\((\d+(?:\.\d+)?)\s*TL\)/);
-              if (match) {
-                return {
-                  isim: match[1].trim(),
-                  fiyat: parseFloat(match[2])
-                };
-              }
-              return { isim: hediye.trim(), fiyat: 0 };
-            });
-          }
-          
-          return {
-            kampanyaAdi: row['Kampanya Adı'] || '',
-            egitimTipi: row['Eğitim Tipi'] || '',
-            kurSayisi: Number(row['Kur Sayısı']) || 1,
-            toplamDersSaati: Number(row['Toplam Ders Saati']) || 120,
-            listeFiyati: Number(row['Liste Fiyatı']) || 0,
-            nakitFiyati: Number(row['Nakit Fiyatı']) || 0,
-            indirimOrani: Number(row['İndirim Oranı (%)']) || 0,
-            faizOrani: Number(row['Faiz Oranı (%)']) || 0,
-            kitapFiyati: Number(row['Kitap Fiyatı']) || 0,
-            kitapSetSayisi: Number(row['Kitap Set Sayısı']) || 1,
-            maxKrediKartiTaksit: Number(row['Maks. Kredi Kartı Taksiti']) || 8,
-            maxSenetTaksit: Number(row['Maks. Senet Taksiti']) || 12,
-            hediyeler
-          };
-        });
-        
-        resolve(kampanyalar);
-      } catch (error) {
-        reject(error);
-      }
+export const importFromExcel = async (file: File): Promise<Partial<Kampanya>[]> => {
+  const workbook = await loadSafeXlsx(file, KAMPANYA_KOLONLARI);
+  const rows = worksheetRowsAsRecords(workbook.getSheetByIndex(0)!, KAMPANYA_KOLONLARI);
+  return rows.map((row) => {
+    const gifts = row.Hediyeler
+      ? row.Hediyeler.split(",").map((gift) => {
+          const match = gift.trim().match(/^(.{1,160}?)\s*\((\d+(?:[.,]\d+)?)\s*TL\)$/i);
+          if (!match) throw new Error("Hediyeler alanı \"Ad (Fiyat TL)\" biçiminde olmalıdır.");
+          return { isim: match[1].trim(), fiyat: numberInRange(match[2], "Hediye fiyatı", 0, 1_000_000) };
+        })
+      : [];
+    if (gifts.length > 50) throw new Error("Bir kampanyada en fazla 50 hediye olabilir.");
+
+    const kampanyaAdi = row["Kampanya Adı"].trim();
+    const egitimTipi = row["Eğitim Tipi"].trim();
+    if (!kampanyaAdi || kampanyaAdi.length > 150 || !egitimTipi || egitimTipi.length > 120) {
+      throw new Error("Kampanya adı ve eğitim tipi zorunludur ve izin verilen uzunluğu aşamaz.");
+    }
+    return {
+      kampanyaAdi,
+      egitimTipi,
+      kurSayisi: numberInRange(row["Kur Sayısı"], "Kur sayısı", 1, 99),
+      toplamDersSaati: numberInRange(row["Toplam Ders Saati"], "Toplam ders saati", 1, 10_000),
+      listeFiyati: numberInRange(row["Liste Fiyatı"], "Liste fiyatı", 0, 10_000_000),
+      nakitFiyati: numberInRange(row["Nakit Fiyatı"], "Nakit fiyatı", 0, 10_000_000),
+      indirimOrani: numberInRange(row["İndirim Oranı (%)"], "İndirim oranı", 0, 100),
+      faizOrani: numberInRange(row["Faiz Oranı (%)"], "Faiz oranı", 0, 100),
+      kitapFiyati: numberInRange(row["Kitap Fiyatı"], "Kitap fiyatı", 0, 10_000_000),
+      kitapSetSayisi: numberInRange(row["Kitap Set Sayısı"], "Kitap set sayısı", 1, 99),
+      maxKrediKartiTaksit: numberInRange(row["Maks. Kredi Kartı Taksiti"], "Kart taksiti", 1, 24),
+      maxSenetTaksit: numberInRange(row["Maks. Senet Taksiti"], "Senet taksiti", 1, 24),
+      hediyeler: gifts,
     };
-    
-    reader.onerror = (error) => reject(error);
-    reader.readAsBinaryString(file);
   });
 };

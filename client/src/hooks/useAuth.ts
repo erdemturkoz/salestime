@@ -82,6 +82,7 @@ export function useAuth() {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
         },
       });
       if (!res.ok) {
@@ -119,8 +120,10 @@ export function useAuth() {
     onSuccess: () => {
       toast({
         title: "Şifre Değiştirildi",
-        description: "Şifreniz başarıyla değiştirildi.",
+        description: "Şifreniz değiştirildi. Güvenliğiniz için yeniden giriş yapın.",
       });
+      clearToken();
+      queryClient.setQueryData(["/api/auth/current-user"], null);
     },
     onError: (error: Error) => {
       toast({
@@ -134,7 +137,7 @@ export function useAuth() {
   // Kullanıcı rol kontrolü yardımcı fonksiyonları
   const hasRole = (role: string) => {
     if (!user || !("roller" in user)) return false;
-    return user.roller.some(r => r.rol === role);
+    return user.roller.some((r: { rol: string }) => r.rol === role);
   };
 
   const isKurucu = () => hasRole("Kurucu");

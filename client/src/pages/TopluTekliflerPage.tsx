@@ -331,7 +331,7 @@ export default function TopluTekliflerPage() {
       // Şablon, ekrandaki olası eski state yerine indirme anındaki şube
       // kampanyalarından oluşur. Backend şube erişimini ayrıca uygular.
       const tazeKampanyalar = await apiRequest(`/api/kampanyalar?subeId=${aktifSubeId}`);
-      topluTeklifSablonuIndir({
+      await topluTeklifSablonuIndir({
         subeAdi,
         kampanyalar: Array.isArray(tazeKampanyalar) ? tazeKampanyalar : [],
       });
@@ -411,8 +411,8 @@ export default function TopluTekliflerPage() {
               </Card>
               <label className="flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-[#F26207]/40 bg-white p-5 text-center shadow-sm transition hover:border-[#F26207] hover:bg-orange-50/30">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F26207] text-white"><Upload className="h-4 w-4" /></div>
-                <div className="text-left"><p className="text-sm font-semibold text-gray-900">Excel dosyası yükle</p><p className="text-xs text-gray-500">.xlsx veya .xls · fiyat bilgisi gerekmez</p></div>
-                <input type="file" accept=".xlsx,.xls" onChange={excelYukle} className="hidden" />
+                 <div className="text-left"><p className="text-sm font-semibold text-gray-900">Excel dosyası yükle</p><p className="text-xs text-gray-500">Yalnızca güvenli .xlsx · fiyat bilgisi gerekmez</p></div>
+                 <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={excelYukle} className="hidden" />
               </label>
             </div>
 

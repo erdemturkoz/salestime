@@ -7,6 +7,7 @@ import {
   insertKampanyaSchema, 
   insertSubeSchema, 
   insertKullaniciSchema, 
+  updateKullaniciSchema,
   insertKullaniciSubeRolSchema,
   insertEgitimTipiSchema,
   whatsappGonderimRequestSchema,
@@ -21,7 +22,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
-import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword, isChromeExtensionOriginConfigured, requireChromeExtensionOrigin, requireSameOrigin } from "./auth";
+import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword, isChromeExtensionOriginConfigured, requireChromeExtensionOrigin, requireSameOrigin, requireMutationProtection, serializeKullanici } from "./auth";
 import { computeOffer } from "../client/src/hooks/useOfferCalculator";
 import "./types"; // Session tiplerini yükle
 
@@ -219,10 +220,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Her istekte oturum çerezi VEYA Bearer token'dan kullanıcıyı çöz (iframe desteği)
   app.use(attachUser);
+  // SameSite=None cookie'leri kullanan tüm mutasyonlar açık same-origin
+  // kontrolünden geçer. Bearer/Extension-Grant otomatik tarayıcı credential'ı değildir.
+  app.use(requireMutationProtection);
   
   // Auth routes
   app.post("/api/auth/login", login);
-  app.post("/api/auth/logout", logout);
+  app.post("/api/auth/logout", isAuthenticated, logout);
   app.get("/api/auth/current-user", getCurrentUser);
   app.post("/api/auth/change-password", isAuthenticated, changePassword);
   // Şube API routes - Tüm kullanıcılar görebilir (Kurucu yalnızca kendi şubelerini görür)
@@ -329,10 +333,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const filtrelenmis = (kullanicilar as any[]).filter((k) =>
           kullaniciMudureAitMi(k, managed)
         );
-        return res.json(filtrelenmis);
+        return res.json(filtrelenmis.map(serializeKullanici));
       }
 
-      res.json(kullanicilar);
+      res.json(kullanicilar.map(serializeKullanici));
     } catch (error) {
       console.error("Kullanıcılar API hatası:", error);
       res.status(500).json({ error: "Kullanıcılar yüklenirken bir hata oluştu", details: String(error) });
@@ -357,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      res.json(kullanici);
+      res.json(serializeKullanici(kullanici));
     } catch (error) {
       console.error("Kullanıcı API hatası:", error);
       res.status(500).json({ error: "Kullanıcı yüklenirken bir hata oluştu", details: String(error) });
@@ -404,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Güncel roller dahil kullanıcı bilgisini al
       const kullaniciWithRoller = await storage.getKullanici(newKullanici.id);
       
-      res.status(201).json(kullaniciWithRoller);
+      res.status(201).json(kullaniciWithRoller ? serializeKullanici(kullaniciWithRoller) : null);
     } catch (error) {
       console.error("Kullanıcı oluşturma hatası:", error);
       if (error instanceof z.ZodError) {
@@ -437,7 +441,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Kullanıcı veri şemasını doğrula
-      const kullaniciData = insertKullaniciSchema.parse(req.body);
+      const { roller: _rollerler, ...rawKullaniciData } = req.body;
+      const kullaniciData = updateKullaniciSchema.parse(rawKullaniciData);
+      if (kullaniciData.sifre) kullaniciData.sifre = await hashPassword(kullaniciData.sifre);
       
       // Kullanıcıyı güncelle
       const updatedKullanici = await storage.updateKullanici(parsedId, kullaniciData);
@@ -467,11 +473,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         }
       }
+      // Her kullanıcı/rol/aktiflik değişikliği eski oturum ve token'ları kapatır.
+      await storage.invalidateKullaniciAuth(parsedId);
       
       // Güncel roller dahil kullanıcı bilgisini al
       const kullaniciWithRoller = await storage.getKullanici(parsedId);
       
-      res.json(kullaniciWithRoller);
+      res.json(kullaniciWithRoller ? serializeKullanici(kullaniciWithRoller) : null);
     } catch (error) {
       console.error("Kullanıcı güncelleme hatası:", error);
       if (error instanceof z.ZodError) {
@@ -534,6 +542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const kullaniciSubeRol = await storage.addKullaniciToSube(parseInt(kullaniciId), parseInt(subeId), rol);
+      await storage.invalidateKullaniciAuth(parseInt(kullaniciId));
       res.status(201).json(kullaniciSubeRol);
     } catch (error) {
       console.error("Kullanıcı şubeye ekleme hatası:", error);
@@ -563,6 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ error: "Kullanıcı-Şube ilişkisi bulunamadı" });
       }
+      await storage.invalidateKullaniciAuth(parseInt(kullaniciId));
       
       res.status(204).send();
     } catch (error) {

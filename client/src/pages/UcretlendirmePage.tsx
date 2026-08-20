@@ -461,6 +461,8 @@ const UcretlendirmePage = () => {
         description: "Excel dosyası içe aktarılırken bir hata oluştu.",
         variant: "destructive",
       });
+    } finally {
+      e.target.value = "";
     }
   };
   
@@ -1082,7 +1084,7 @@ const UcretlendirmePage = () => {
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileChange}
-                    accept=".xlsx,.xls"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     style={{ display: 'none' }}
                   />
                   

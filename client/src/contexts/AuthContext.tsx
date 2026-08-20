@@ -160,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
         headers: {
           "Content-Type": "application/json",
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
         },
       });
       
@@ -201,13 +202,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // apiRequest, Authorization: Bearer token'ı otomatik ekler (iframe desteği)
       await apiRequest("/api/auth/change-password", {
         method: "POST",
-        data,
+        data: {
+          eskiSifre: data.oldPassword,
+          yeniSifre: data.newPassword,
+          yeniSifreTekrar: data.newPassword,
+        },
       } as any);
+      clearUser();
+      clearToken();
+      setLocalUser(null);
+      queryClient.setQueryData(["/api/auth/current-user"], null);
       
       toast({
         title: "Şifre Değiştirildi",
-        description: "Şifreniz başarıyla değiştirildi.",
+        description: "Şifreniz değiştirildi. Güvenliğiniz için yeniden giriş yapın.",
       });
+      window.location.href = "/giris";
     } catch (error: any) {
       toast({
         title: "Şifre Değiştirilemedi",

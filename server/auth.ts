@@ -5,7 +5,7 @@ import connectPgSimple from "connect-pg-simple";
 import { SignJWT, jwtVerify } from "jose";
 import { pool } from "./db";
 import { z } from "zod";
-import { loginSchema, Login } from "@shared/schema";
+import { loginSchema, changePasswordSchema } from "@shared/schema";
 import { storage } from "./storage";
 
 // Oturum ve token imzalaması için zorunlu gizli anahtar.
@@ -62,11 +62,11 @@ export const setupSession = (app: Express) => {
         pool: pool,
         tableName: "sessions", // Varolan session tablosu
         createTableIfMissing: true,
-        ttl: 86400 // 1 gün
+        ttl: 30 * 24 * 60 * 60, // Çerezle aynı: 30 gün
       }),
       secret: SESSION_SECRET,
-      resave: true,            // Session bilgilerinin yeniden kaydedilmesini sağlar
-      saveUninitialized: true, // Başlatılmamış oturumların kaydedilmesini sağlar
+      resave: false,
+      saveUninitialized: false,
       name: 'fiyatlama_sid',   // Özel isim
       cookie: {
         secure: true,          // Replit HTTPS proxy arkasında çalışır; iframe için gerekli
@@ -111,6 +111,27 @@ export const requireSameOrigin = (req: Request, res: Response, next: NextFunctio
   res.status(403).json({ error: "Bu işlem yalnızca SalesTime uygulamasından yapılabilir." });
 };
 
+// SameSite=None zorunluluğu nedeniyle cookie taşıyan her mutasyon isteği
+// açıkça aynı origin'den gelmelidir. Bearer ve dar kapsamlı eklenti grant'i
+// tarayıcının otomatik eklediği bir kimlik bilgisi olmadığından bu CSRF
+// kontrolünden muaftır.
+export const requireMutationProtection = (req: Request, res: Response, next: NextFunction) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+
+  const authorization = req.get("authorization") || "";
+  if (/^Bearer\s+\S+$/.test(authorization) || /^Extension-Grant\s+\S+$/.test(authorization)) {
+    return next();
+  }
+
+  const origin = req.get("origin");
+  if (origin && isTrustedAppOrigin(req, origin)) return next();
+  if (origin && origin === parseChromeExtensionOrigin(process.env.CHROME_EXTENSION_ORIGIN) && isExtensionGrantPath(req.path)) {
+    return next();
+  }
+
+  return res.status(403).json({ error: "Bu işlem yalnızca güvenilen uygulama origin'inden yapılabilir." });
+};
+
 export const requireChromeExtensionOrigin = (req: Request, res: Response, next: NextFunction) => {
   const allowedOrigin = parseChromeExtensionOrigin(process.env.CHROME_EXTENSION_ORIGIN);
   if (allowedOrigin && req.get("origin") === allowedOrigin) return next();
@@ -126,8 +147,13 @@ export const isChromeExtensionOriginConfigured = (): boolean =>
 const tokenSecret = new TextEncoder().encode(SESSION_SECRET);
 
 // Giriş sonrası kullanıcıya verilen JWT token'ı oluştur
-export const createToken = async (userId: number): Promise<string> => {
-  return await new SignJWT({ userId })
+export const createToken = async (userId: number, authVersion?: number): Promise<string> => {
+  const kullanici = authVersion === undefined ? await storage.getKullanici(userId) : undefined;
+  const version = authVersion ?? kullanici?.authVersion;
+  if (!Number.isInteger(version) || !version || (!kullanici?.aktif && authVersion === undefined)) {
+    throw new Error("Etkin kullanıcı için token sürümü bulunamadı.");
+  }
+  return await new SignJWT({ userId, authVersion: version })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
@@ -136,12 +162,28 @@ export const createToken = async (userId: number): Promise<string> => {
 
 // Her istekte oturum (çerez) VEYA Authorization header token'ından kullanıcıyı çöz
 // ve req.authUser'a ekle. Böylece çerez engellenen iframe'de de kimlik doğrulanır.
+async function resolveAuthorizedUser(userId: number, authVersion: number) {
+  const kullanici = await storage.getKullanici(userId);
+  if (!kullanici || !kullanici.aktif || kullanici.authVersion !== authVersion) return null;
+  return serializeKullanici(kullanici);
+}
+
+async function destroySession(req: Request): Promise<void> {
+  await new Promise<void>((resolve) => req.session?.destroy(() => resolve()));
+}
+
 export const attachUser = async (req: Request, _res: Response, next: NextFunction) => {
   try {
-    // 1) Çerez tabanlı oturum varsa onu kullan (yeni sekme / normal tarayıcı)
-    if (req.session && (req.session as any).user) {
-      (req as any).authUser = (req.session as any).user;
-      return next();
+    // 1) Cookie sadece kimlik+sürüm taşır; güncel kullanıcı, aktiflik ve roller
+    // her istekte veritabanından okunur.
+    const sessionUser = req.session?.user;
+    if (sessionUser) {
+      const authorizedUser = await resolveAuthorizedUser(sessionUser.id, sessionUser.authVersion);
+      if (authorizedUser) {
+        (req as any).authUser = authorizedUser;
+        return next();
+      }
+      await destroySession(req);
     }
 
     // 2) Aksi halde Authorization: Bearer <token> başlığını dene (iframe)
@@ -150,13 +192,10 @@ export const attachUser = async (req: Request, _res: Response, next: NextFunctio
       const token = authHeader.slice(7);
       const { payload } = await jwtVerify(token, tokenSecret);
       const userId = Number(payload.userId);
-      if (userId) {
-        const kullanici = await storage.getKullanici(userId);
-        if (kullanici && kullanici.aktif) {
-          const roller = await storage.getKullaniciRoller(userId);
-          const { sifre, ...rest } = kullanici as any;
-          (req as any).authUser = { ...rest, roller };
-        }
+      const authVersion = Number(payload.authVersion);
+      if (Number.isInteger(userId) && userId > 0 && Number.isInteger(authVersion) && authVersion > 0) {
+        const authorizedUser = await resolveAuthorizedUser(userId, authVersion);
+        if (authorizedUser) (req as any).authUser = authorizedUser;
       }
     }
   } catch (e) {
@@ -194,7 +233,12 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 // Oturumdaki kullanıcıyı döndür (çerez oturumu VEYA token'dan çözülen kullanıcı)
 export const getSessionUser = (req: Request): any | null => {
-  return (req as any).authUser || (req.session && (req.session as any).user) || null;
+  return (req as any).authUser || null;
+};
+
+export const serializeKullanici = <T extends Record<string, any>>(kullanici: T) => {
+  const { sifre: _sifre, ...safeUser } = kullanici;
+  return safeUser;
 };
 
 // Kullanıcının rol adlarını döndür
@@ -282,33 +326,30 @@ export const login = async (req: Request, res: Response) => {
     
     // Kullanıcının şube rollerini al
     const roller = await storage.getKullaniciRoller(kullanici.id);
-    const kullaniciWithRoller = {
-      ...kullanici,
-      roller: roller
-    };
-    
-    // Session'a kullanıcı bilgisini kaydet
-    req.session.user = kullaniciWithRoller;
-    req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 gün
-    
-    console.log('Login - Session ID:', req.sessionID);
-    console.log('Login - Session cookie:', req.session.cookie);
-    
-    // Session'ı kaydetmek için
-    req.session.save(async (err) => {
+    const kullaniciWithRoller = { ...kullanici, roller };
+
+    // Yeni girişte oturumu yenilemek session fixation riskini kapatır. Oturumda
+    // yalnızca id+sürüm saklanır; şifre hash'i ve roller saklanmaz.
+    req.session.regenerate((regenerateError) => {
+      if (regenerateError) {
+        console.error("Session yenileme hatası:", regenerateError);
+        return res.status(500).json({ error: "Oturum yenilenirken bir hata oluştu" });
+      }
+      req.session.user = { id: kullanici.id, authVersion: kullanici.authVersion };
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+      req.session.save(async (err) => {
       if (err) {
         console.error('Session kayıt hatası:', err);
         return res.status(500).json({ error: "Oturum kaydedilirken bir hata oluştu" });
       }
-      
-      console.log('Session kaydedildi - User ID:', kullaniciWithRoller.id);
-      
-      // Çerez engellenen ortamlar (iframe) için token üret
-      const token = await createToken(kullaniciWithRoller.id);
-      
-      // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
-      const { sifre, ...userWithoutPassword } = kullaniciWithRoller;
-      return res.json({ ...userWithoutPassword, token });
+        try {
+          const token = await createToken(kullanici.id, kullanici.authVersion);
+          return res.json({ ...serializeKullanici(kullaniciWithRoller), token });
+        } catch (tokenError) {
+          console.error("Token oluşturma hatası:", tokenError);
+          return res.status(500).json({ error: "Oturum token'ı oluşturulamadı" });
+        }
+      });
     });
   } catch (error) {
     console.error("Giriş hatası:", error);
@@ -320,19 +361,19 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // Logout işlemi
-export const logout = (req: Request, res: Response) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: "Çıkış yapılırken bir hata oluştu" });
-    }
-    
-    res.clearCookie("fiyatlama_sid", { 
-    path: '/', 
-    sameSite: 'none',
-    secure: false
+export const logout = async (req: Request, res: Response) => {
+  const user = getSessionUser(req);
+  if (!user || !(await storage.invalidateKullaniciAuth(user.id))) {
+    return res.status(401).json({ error: "Oturum açık değil" });
+  }
+  await destroySession(req);
+  res.clearCookie("fiyatlama_sid", {
+    path: "/",
+    sameSite: "none",
+    secure: true,
+    httpOnly: true,
   });
-    res.json({ message: "Başarıyla çıkış yapıldı" });
-  });
+  res.json({ message: "Başarıyla çıkış yapıldı" });
 };
 
 // Mevcut oturum bilgisi
@@ -343,9 +384,7 @@ export const getCurrentUser = (req: Request, res: Response) => {
     return res.status(401).json({ error: "Oturum açık değil" });
   }
   
-  // Hassas bilgileri (şifre) kullanıcı bilgisinden çıkart
-  const { sifre, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
+  res.json(serializeKullanici(user));
 };
 
 // Şifre değiştirme
@@ -356,7 +395,7 @@ export const changePassword = async (req: Request, res: Response) => {
   }
   
   try {
-    const { eskiSifre, yeniSifre } = req.body;
+    const { eskiSifre, yeniSifre } = changePasswordSchema.parse(req.body);
     
     const kullanici = await storage.getKullanici(user.id);
     
@@ -375,9 +414,12 @@ export const changePassword = async (req: Request, res: Response) => {
     const hashedPassword = await hashPassword(yeniSifre);
     
     // Şifreyi güncelle
-    await storage.updateKullaniciPassword(kullanici.id, hashedPassword);
-    
-    res.json({ message: "Şifre başarıyla değiştirildi" });
+    if (!(await storage.updateKullaniciPasswordAndInvalidate(kullanici.id, hashedPassword))) {
+      return res.status(500).json({ error: "Şifre güncellenemedi" });
+    }
+    await destroySession(req);
+    res.clearCookie("fiyatlama_sid", { path: "/", sameSite: "none", secure: true, httpOnly: true });
+    res.json({ message: "Şifre başarıyla değiştirildi. Güvenliğiniz için yeniden giriş yapın." });
   } catch (error) {
     console.error("Şifre değiştirme hatası:", error);
     res.status(500).json({ error: "Şifre değiştirme sırasında bir hata oluştu" });

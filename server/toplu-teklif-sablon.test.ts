@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import * as XLSX from "xlsx";
-import { topluTeklifSablonuOlustur } from "../client/src/utils/toplu-teklif-excel";
+import { KOLONLAR, topluTeklifSablonuOlustur } from "../client/src/utils/toplu-teklif-excel";
 
 test("toplu teklif şablonu aktif şubenin tüm kampanya, kur ve ödeme alternatiflerini yazar", () => {
   const workbook = topluTeklifSablonuOlustur({
@@ -31,15 +30,15 @@ test("toplu teklif şablonu aktif şubenin tüm kampanya, kur ve ödeme alternat
     ],
   });
 
-  assert.deepEqual(workbook.SheetNames, ["Teklif Listesi", "Kullanım Kılavuzu"]);
-  const teklifListesi = XLSX.utils.sheet_to_json<string[]>(workbook.Sheets["Teklif Listesi"], { header: 1 });
-  assert.deepEqual(teklifListesi[0], [
+  assert.deepEqual(workbook.getSheetNames(), ["Teklif Listesi", "Kullanım Kılavuzu"]);
+  const teklifListesi = workbook.getSheet("Teklif Listesi")!;
+  assert.deepEqual(KOLONLAR.map((_, index) => teklifListesi.getCell(1, index + 1).value), [
     "Ad Soyad", "Telefon", "Son Eğitim", "Son Kur",
     "Teklif Edilecek Kur", "Ödeme 1", "Ödeme 2", "Kampanya",
   ]);
 
-  const kilavuz = XLSX.utils.sheet_to_json<string[]>(workbook.Sheets["Kullanım Kılavuzu"], { header: 1 });
-  const tumMetin = kilavuz.flat().map(String).join("\n");
+  const kilavuz = workbook.getSheet("Kullanım Kılavuzu")!;
+  const tumMetin = kilavuz.readAllCells().map(({ cell }) => String(cell.value ?? "")).join("\n");
   assert.match(tumMetin, /Kadıköy/);
   assert.match(tumMetin, /YOĞUN İNGİLİZCE/);
   assert.match(tumMetin, /SINAV HAZIRLIK/);

@@ -3,6 +3,7 @@ import {
   kullanicilar,
   subeler,
   kullaniciSubeRolleri,
+  Roller,
   egitimTipleri,
   whatsappGonderimleri,
   type Kampanya, 
@@ -54,8 +55,9 @@ export interface IStorage {
   getKullaniciByTelefon(telefon: string): Promise<Kullanici | undefined>;
   getKullaniciRoller(kullaniciId: number): Promise<Array<{subeId: number; subeAdi: string; rol: string}>>;
   createKullanici(kullanici: InsertKullanici): Promise<Kullanici>;
-  updateKullanici(id: number, kullanici: InsertKullanici): Promise<Kullanici | undefined>;
-  updateKullaniciPassword(id: number, hashedPassword: string): Promise<boolean>;
+  updateKullanici(id: number, kullanici: Partial<InsertKullanici>): Promise<Kullanici | undefined>;
+  updateKullaniciPasswordAndInvalidate(id: number, hashedPassword: string): Promise<boolean>;
+  invalidateKullaniciAuth(id: number): Promise<boolean>;
   deleteKullanici(id: number): Promise<boolean>;
   addKullaniciToSube(kullaniciId: number, subeId: number, rol: string): Promise<KullaniciSubeRol>;
   removeKullaniciFromSube(kullaniciId: number, subeId: number): Promise<boolean>;
@@ -372,7 +374,7 @@ export class DatabaseStorage implements IStorage {
 
   async createKampanya(insertKampanya: InsertKampanya): Promise<Kampanya> {
     const result = await db.insert(kampanyalar).values(insertKampanya).returning();
-    return result[0];
+    return result[0] as Kampanya;
   }
 
   async updateKampanya(id: number, updateData: InsertKampanya): Promise<Kampanya | undefined> {
@@ -382,7 +384,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(kampanyalar.id, id))
       .returning();
     
-    return result.length > 0 ? result[0] : undefined;
+    return result.length > 0 ? result[0] as Kampanya : undefined;
   }
 
   async deleteKampanya(id: number): Promise<boolean> {
@@ -458,7 +460,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateKullanici(id: number, updateData: InsertKullanici): Promise<Kullanici | undefined> {
+  async updateKullanici(id: number, updateData: Partial<InsertKullanici>): Promise<Kullanici | undefined> {
     const result = await db
       .update(kullanicilar)
       .set(updateData)
@@ -512,11 +514,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateKullaniciPassword(id: number, hashedPassword: string): Promise<boolean> {
+  async updateKullaniciPasswordAndInvalidate(id: number, hashedPassword: string): Promise<boolean> {
     try {
       const result = await db
         .update(kullanicilar)
-        .set({ sifre: hashedPassword })
+        .set({
+          sifre: hashedPassword,
+          authVersion: sql`${kullanicilar.authVersion} + 1`,
+        })
         .where(eq(kullanicilar.id, id))
         .returning();
       
@@ -527,7 +532,21 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async addKullaniciToSube(kullaniciId: number, subeId: number, rol: string): Promise<KullaniciSubeRol> {
+  async invalidateKullaniciAuth(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(kullanicilar)
+        .set({ authVersion: sql`${kullanicilar.authVersion} + 1` })
+        .where(eq(kullanicilar.id, id))
+        .returning({ id: kullanicilar.id });
+      return result.length > 0;
+    } catch (error) {
+      console.error("Kullanıcı erişimi geçersizleştirilirken hata:", error);
+      return false;
+    }
+  }
+
+  async addKullaniciToSube(kullaniciId: number, subeId: number, rol: typeof Roller[keyof typeof Roller]): Promise<KullaniciSubeRol> {
     // Önce var olan bir ilişki var mı kontrol et
     const existing = await db
       .select()
@@ -770,7 +789,7 @@ export class DatabaseStorage implements IStorage {
       for (const kampanya of defaultKampanyalar) {
         const result = await db.insert(kampanyalar).values(kampanya as InsertKampanya).returning();
         if (result.length > 0) {
-          createdKampanyalar.push(result[0]);
+          createdKampanyalar.push(result[0] as Kampanya);
         }
       }
       
