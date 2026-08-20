@@ -10,7 +10,8 @@ import {
   X,
   Building,
   BookOpen,
-  MessageCircle
+  MessageCircle,
+  Send
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,11 @@ const NAV_ITEMS = [
     label: 'WhatsApp İstatistikleri',
     href: '/whatsapp-istatistikleri',
     icon: MessageCircle,
+  },
+  {
+    label: 'Toplu Teklifler',
+    href: '/toplu-teklifler',
+    icon: Send,
   },
   {
     label: 'Eğitim Tipleri',

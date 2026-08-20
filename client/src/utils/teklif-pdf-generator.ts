@@ -43,6 +43,10 @@ export interface TeklifData {
   isRecommended?: boolean;
   pesinat?: number;
   kalanTutar?: number;
+  // Snapshot PDF desteği: geçmiş belgeyi ilk oluşturulduğu haliyle yeniden üretir.
+  teklifNo?: string;
+  teklifTarihi?: string;
+  sonGecerlilikTarihi?: string;
 }
 
 function formatTL(amount: number): string {
@@ -103,11 +107,13 @@ function hediyeToplami(data: TeklifData): number {
 }
 
 export function generateTeklifPDF(data: TeklifData): void {
-  const bugun = new Date();
-  const gecerlilikTarihi = new Date(bugun);
-  gecerlilikTarihi.setDate(gecerlilikTarihi.getDate() + data.gecerlilikGunu);
+  const bugun = data.teklifTarihi ? new Date(data.teklifTarihi) : new Date();
+  const gecerlilikTarihi = data.sonGecerlilikTarihi
+    ? new Date(data.sonGecerlilikTarihi)
+    : new Date(bugun);
+  if (!data.sonGecerlilikTarihi) gecerlilikTarihi.setDate(gecerlilikTarihi.getDate() + data.gecerlilikGunu);
 
-  const teklifNo = teklifNumarasiUret(data.subeAdi || "ENGLISHTIME");
+  const teklifNo = data.teklifNo || teklifNumarasiUret(data.subeAdi || "ENGLISHTIME");
   const teklifTarihi = formatTarih(bugun);
   const sonGecerlilikTarihi = formatTarih(gecerlilikTarihi);
 
@@ -935,11 +941,13 @@ export function generateTeklifPDF(data: TeklifData): void {
 // Çift Teklif PDF Üreticisi
 // ─────────────────────────────────────────────────────────────────
 export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): void {
-  const bugun = new Date();
-  const gecerlilikTarihi = new Date(bugun);
-  gecerlilikTarihi.setDate(gecerlilikTarihi.getDate() + data1.gecerlilikGunu);
+  const bugun = data1.teklifTarihi ? new Date(data1.teklifTarihi) : new Date();
+  const gecerlilikTarihi = data1.sonGecerlilikTarihi
+    ? new Date(data1.sonGecerlilikTarihi)
+    : new Date(bugun);
+  if (!data1.sonGecerlilikTarihi) gecerlilikTarihi.setDate(gecerlilikTarihi.getDate() + data1.gecerlilikGunu);
 
-  const teklifNo = teklifNumarasiUret(data1.subeAdi || "ENGLISHTIME");
+  const teklifNo = data1.teklifNo || teklifNumarasiUret(data1.subeAdi || "ENGLISHTIME");
   const teklifTarihi = formatTarih(bugun);
   const sonGecerlilikTarihi = formatTarih(gecerlilikTarihi);
 

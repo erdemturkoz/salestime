@@ -199,6 +199,75 @@ export type SubeWithKullanicilar = Sube & {
 
 export type InsertKampanya = z.infer<typeof insertKampanyaSchema>;
 
+// Toplu teklif gönderimlerinin ve teklif anındaki fiyat snapshot'larının
+// kalıcı kaydı. Mevcut WhatsApp istatistiklerinden bağımsız tutulur.
+export const topluGonderimler = pgTable("toplu_gonderimler", {
+  id: serial("id").primaryKey(),
+  baslik: text("baslik").notNull(),
+  subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: "cascade" }),
+  subeAdi: text("sube_adi").notNull(),
+  danismanId: integer("danisman_id").notNull(),
+  danismanAdi: text("danisman_adi").notNull(),
+  danismanSoyadi: text("danisman_soyadi").notNull(),
+  durum: text("durum").notNull().default("hazir"),
+  saglayici: text("saglayici").notNull().default("chrome-extension"),
+  toplam: integer("toplam").notNull().default(0),
+  gonderildi: integer("gonderildi").notNull().default(0),
+  hata: integer("hata").notNull().default(0),
+  bekliyor: integer("bekliyor").notNull().default(0),
+  olusturanId: integer("olusturan_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+});
+
+export const topluTeklifler = pgTable("toplu_teklifler", {
+  id: serial("id").primaryKey(),
+  gonderimId: integer("gonderim_id").notNull().references(() => topluGonderimler.id, { onDelete: "cascade" }),
+  subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: "cascade" }),
+  ogrenciAdi: text("ogrenci_adi").notNull(),
+  ogrenciTelefon: text("ogrenci_telefon").notNull(),
+  sonEgitim: text("son_egitim").notNull(),
+  sonKur: text("son_kur").notNull(),
+  teklifKur: integer("teklif_kur").notNull(),
+  kampanyaAdi: text("kampanya_adi").notNull(),
+  egitimTipi: text("egitim_tipi").notNull(),
+  odeme1: text("odeme_1").notNull(),
+  odeme2: text("odeme_2").notNull(),
+  odeme1Detay: text("odeme_1_detay").notNull(),
+  odeme2Detay: text("odeme_2_detay").notNull(),
+  mesaj: text("mesaj").notNull(),
+  snapshot: json("snapshot").notNull(),
+  durum: text("durum").notNull().default("bekliyor"),
+  hataMesaji: text("hata_mesaji"),
+  denemeSayisi: integer("deneme_sayisi").notNull().default(0),
+  claimToken: text("claim_token"),
+  claimedAt: timestamp("claimed_at"),
+  gonderildiAt: timestamp("gonderildi_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const topluGonderimlerRelations = relations(topluGonderimler, ({ one, many }) => ({
+  sube: one(subeler, {
+    fields: [topluGonderimler.subeId],
+    references: [subeler.id],
+  }),
+  teklifler: many(topluTeklifler),
+}));
+
+export const topluTekliflerRelations = relations(topluTeklifler, ({ one }) => ({
+  gonderim: one(topluGonderimler, {
+    fields: [topluTeklifler.gonderimId],
+    references: [topluGonderimler.id],
+  }),
+  sube: one(subeler, {
+    fields: [topluTeklifler.subeId],
+    references: [subeler.id],
+  }),
+}));
+
 // WhatsApp Gönderim Kayıtları tablosu
 export const whatsappGonderimleri = pgTable("whatsapp_gonderimleri", {
   id: serial("id").primaryKey(),

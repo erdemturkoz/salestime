@@ -12,6 +12,7 @@ import SubeKartlari from "@/pages/SubeKartlari";
 import GirisPage from "@/pages/GirisPage";
 import EgitimTipleriPage from "@/pages/EgitimTipleriPage";
 import WhatsappIstatistikleri from "@/pages/WhatsappIstatistikleri";
+import TopluTekliflerPage from "@/pages/TopluTekliflerPage";
 import { AppProvider } from "./contexts/AppContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import PasswordProtectedRoute from "@/components/PasswordProtectedRoute";
@@ -59,6 +60,11 @@ function Router() {
           <Route path="/whatsapp-istatistikleri">
             <AuthenticationGuard>
               <WhatsappIstatistikleri />
+            </AuthenticationGuard>
+          </Route>
+          <Route path="/toplu-teklifler">
+            <AuthenticationGuard>
+              <TopluTekliflerPage />
             </AuthenticationGuard>
           </Route>
           <Route component={NotFound} />
