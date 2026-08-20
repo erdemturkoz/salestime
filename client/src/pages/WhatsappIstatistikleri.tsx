@@ -26,12 +26,14 @@ import {
 import { MessageCircle, Search, Filter, Building, X, RefreshCw, LogIn, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WhatsappGonderim } from "@shared/schema";
 
 const WhatsappIstatistikleri = () => {
   const { user } = useAuth();
+  const { selectedSubeId } = useAppContext();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [aramaMetni, setAramaMetni] = useState("");
@@ -53,13 +55,14 @@ const WhatsappIstatistikleri = () => {
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
+    if (selectedSubeId) params.set("subeId", String(selectedSubeId));
     if (baslangicTarihi) params.set("baslangic", baslangicTarihi);
     if (bitisTarihi) params.set("bitis", bitisTarihi);
     return params.toString() ? `?${params.toString()}` : "";
   };
 
   const { data: gonderimleri = [], isLoading, isError, error, refetch } = useQuery<WhatsappGonderim[]>({
-    queryKey: ["/api/whatsapp-gonderimleri", baslangicTarihi, bitisTarihi],
+    queryKey: ["/api/whatsapp-gonderimleri", selectedSubeId, baslangicTarihi, bitisTarihi],
     queryFn: async () => {
       const qs = buildQueryString();
       const res = await fetch(`/api/whatsapp-gonderimleri${qs}`, { credentials: "include" });

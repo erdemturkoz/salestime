@@ -21,7 +21,14 @@ import {
   type InsertWhatsappGonderim
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, inArray } from "drizzle-orm";
+
+export type WhatsappGonderimFilters = {
+  subeId?: number;
+  danismanId?: number;
+  baslangicTarihi?: Date;
+  bitisTarihi?: Date;
+};
 
 export interface IStorage {
   // Eğitim Tipleri operations
@@ -61,14 +68,13 @@ export interface IStorage {
   deleteSube(id: number): Promise<boolean>;
 
   // WhatsApp Gönderim operations
-  createWhatsappGonderim(data: InsertWhatsappGonderim): Promise<WhatsappGonderim>;
-  deleteWhatsappGonderim(id: number): Promise<boolean>;
-  getAllWhatsappGonderimleri(filters?: {
-    subeId?: number;
-    danismanId?: number;
-    baslangicTarihi?: Date;
-    bitisTarihi?: Date;
-  }): Promise<WhatsappGonderim[]>;
+  getAllSubeIds(): Promise<number[]>;
+  createWhatsappGonderim(data: InsertWhatsappGonderim, yetkiliSubeIds: readonly number[]): Promise<WhatsappGonderim>;
+  deleteWhatsappGonderim(id: number, yetkiliSubeIds: readonly number[]): Promise<boolean>;
+  getAllWhatsappGonderimleri(
+    filters: WhatsappGonderimFilters | undefined,
+    yetkiliSubeIds: readonly number[],
+  ): Promise<WhatsappGonderim[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -813,7 +819,29 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async createWhatsappGonderim(data: InsertWhatsappGonderim): Promise<WhatsappGonderim> {
+  async getAllSubeIds(): Promise<number[]> {
+    const result = await db.select({ id: subeler.id }).from(subeler);
+    return result.map((sube) => sube.id);
+  }
+
+  async createWhatsappGonderim(
+    data: InsertWhatsappGonderim,
+    yetkiliSubeIds: readonly number[],
+  ): Promise<WhatsappGonderim> {
+    if (yetkiliSubeIds.length === 0 || !yetkiliSubeIds.includes(data.subeId)) {
+      throw new Error("WhatsApp kaydı için yetkili şube bulunamadı.");
+    }
+
+    // INSERT öncesi şube kaydını SQL seviyesinde yetkili kapsamla doğrula.
+    const [yetkiliSube] = await db
+      .select({ id: subeler.id })
+      .from(subeler)
+      .where(and(eq(subeler.id, data.subeId), inArray(subeler.id, [...yetkiliSubeIds])))
+      .limit(1);
+    if (!yetkiliSube) {
+      throw new Error("WhatsApp kaydı için şube yetkisi doğrulanamadı.");
+    }
+
     const [result] = await db
       .insert(whatsappGonderimleri)
       .values(data)
@@ -821,21 +849,24 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async deleteWhatsappGonderim(id: number): Promise<boolean> {
+  async deleteWhatsappGonderim(id: number, yetkiliSubeIds: readonly number[]): Promise<boolean> {
+    if (yetkiliSubeIds.length === 0) return false;
     const result = await db
       .delete(whatsappGonderimleri)
-      .where(eq(whatsappGonderimleri.id, id))
+      .where(and(
+        eq(whatsappGonderimleri.id, id),
+        inArray(whatsappGonderimleri.subeId, [...yetkiliSubeIds]),
+      ))
       .returning();
     return result.length > 0;
   }
 
-  async getAllWhatsappGonderimleri(filters?: {
-    subeId?: number;
-    danismanId?: number;
-    baslangicTarihi?: Date;
-    bitisTarihi?: Date;
-  }): Promise<WhatsappGonderim[]> {
-    const conditions = [];
+  async getAllWhatsappGonderimleri(
+    filters: WhatsappGonderimFilters | undefined,
+    yetkiliSubeIds: readonly number[],
+  ): Promise<WhatsappGonderim[]> {
+    if (yetkiliSubeIds.length === 0) return [];
+    const conditions = [inArray(whatsappGonderimleri.subeId, [...yetkiliSubeIds])];
     if (filters?.subeId) conditions.push(eq(whatsappGonderimleri.subeId, filters.subeId));
     if (filters?.danismanId) conditions.push(eq(whatsappGonderimleri.danismanId, filters.danismanId));
     if (filters?.baslangicTarihi) conditions.push(gte(whatsappGonderimleri.gonderilenAt, filters.baslangicTarihi));

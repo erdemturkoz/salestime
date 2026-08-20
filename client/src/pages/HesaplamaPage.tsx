@@ -27,7 +27,7 @@ import OfferActionBar from "@/components/hesaplama/OfferActionBar";
 import { generateTeklifPDF, generateDualTeklifPDF } from "@/utils/teklif-pdf-generator";
 
 const HesaplamaPage = () => {
-  const { kampanyalar, getKampanyalarBySubeId } = useAppContext();
+  const { kampanyalar, getKampanyalarBySubeId, selectedSubeId } = useAppContext();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -64,8 +64,8 @@ const HesaplamaPage = () => {
   const [wpTelefon, setWpTelefon] = useState("");
 
   const roller = (user as any)?.roller;
-  const ilkRol = roller?.[0];
-  const subeAdi = ilkRol?.subeAdi || "";
+  const aktifRol = roller?.find((rol: any) => Number(rol.subeId) === Number(selectedSubeId)) || roller?.[0];
+  const subeAdi = aktifRol?.subeAdi || "";
 
   // --- WhatsApp mutation (mevcut API korundu) ---
   const wpGonderimMutation = useMutation({
@@ -344,11 +344,7 @@ const HesaplamaPage = () => {
         genelToplam: kayitOffer.ozelFiyat,
         odemeTipi: odemeTipiLabel,
         taksitSayisi: kayitOffer.form.taksitSayisi,
-        danismanAdi: (user as any)?.adi || "",
-        danismanSoyadi: (user as any)?.soyadi || "",
-        subeAdi,
-        subeId: ilkRol?.subeId || null,
-        danismanId: (user as any)?.id || null,
+        subeId: aktifRol?.subeId,
       });
     }
 

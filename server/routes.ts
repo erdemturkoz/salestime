@@ -9,7 +9,7 @@ import {
   insertKullaniciSchema, 
   insertKullaniciSubeRolSchema,
   insertEgitimTipiSchema,
-  insertWhatsappGonderimSchema,
+  whatsappGonderimRequestSchema,
   loginSchema,
   changePasswordSchema,
   Roller,
@@ -43,6 +43,24 @@ function topluTeklifSubeErisimiVarMi(user: any, subeId: number): boolean {
   if (isFullAdminUser(user)) return true;
   if (isKurucuUser(user)) return getManagedSubeIds(user).includes(subeId);
   return getUserSubeIds(user).includes(subeId);
+}
+
+// WhatsApp kayıtları için oturumdaki güncel kullanıcının erişebileceği şubeler.
+// Cookie oturumlarındaki eski roller yerine her istekte veritabanındaki güncel
+// hesap okunur; istemcinin bildirdiği danışman veya şube isimleri kullanılmaz.
+async function whatsappYetkiBaglami(req: Request) {
+  const oturumKullanicisi = getSessionUser(req);
+  const kullaniciId = Number(oturumKullanicisi?.id);
+  if (!Number.isInteger(kullaniciId) || kullaniciId <= 0) return null;
+
+  const kullanici = await storage.getKullanici(kullaniciId);
+  if (!kullanici?.aktif) return null;
+
+  const yetkiliSubeIds = isFullAdminUser(kullanici)
+    ? await storage.getAllSubeIds()
+    : getUserSubeIds(kullanici);
+
+  return { kullanici, yetkiliSubeIds };
 }
 
 const TOPLU_TEKLIF_LEASE_MS = 15 * 60 * 1000;
@@ -926,11 +944,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WhatsApp Gönderim API routes
   app.post("/api/whatsapp-gonderimleri", isAuthenticated, async (req, res) => {
     try {
-      const parsed = insertWhatsappGonderimSchema.safeParse(req.body);
+      const parsed = whatsappGonderimRequestSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Geçersiz veri", details: parsed.error.errors });
       }
-      const gonderim = await storage.createWhatsappGonderim(parsed.data);
+      const yetki = await whatsappYetkiBaglami(req);
+      if (!yetki) {
+        return res.status(401).json({ error: "Oturumunuz artık geçerli değil. Lütfen yeniden giriş yapın." });
+      }
+      if (!yetki.yetkiliSubeIds.includes(parsed.data.subeId)) {
+        return res.status(403).json({ error: "Bu şube için WhatsApp kaydı oluşturma yetkiniz yok." });
+      }
+      if (!isFullAdminUser(yetki.kullanici)
+        && !yetki.kullanici.roller.some((rol) => Number(rol.subeId) === parsed.data.subeId)) {
+        return res.status(403).json({ error: "WhatsApp kaydı için seçilen şubede aktif bir rolünüz olmalıdır." });
+      }
+
+      const sube = await storage.getSube(parsed.data.subeId);
+      if (!sube) return res.status(404).json({ error: "Şube bulunamadı." });
+
+      const { subeId, ...teklifVerisi } = parsed.data;
+      const gonderim = await storage.createWhatsappGonderim({
+        ...teklifVerisi,
+        subeId,
+        subeAdi: sube.subeAdi,
+        danismanId: yetki.kullanici.id,
+        danismanAdi: yetki.kullanici.adi,
+        danismanSoyadi: yetki.kullanici.soyadi,
+      }, yetki.yetkiliSubeIds);
       res.status(201).json(gonderim);
     } catch (error) {
       console.error("WhatsApp gönderim kayıt hatası:", error);
@@ -940,14 +981,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/whatsapp-gonderimleri/:id", isAuthenticated, async (req, res) => {
     try {
-      const user = getSessionUser(req);
+      const yetki = await whatsappYetkiBaglami(req);
+      if (!yetki) {
+        return res.status(401).json({ error: "Oturumunuz artık geçerli değil. Lütfen yeniden giriş yapın." });
+      }
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ error: "Geçersiz id" });
       // Sadece yöneticiler silebilir (Sistem Yöneticisi, Kurucu, Müdür)
-      if (!isFullAdminUser(user) && !isKurucuUser(user) && !isMudurUser(user)) {
+      if (!isFullAdminUser(yetki.kullanici) && !isKurucuUser(yetki.kullanici) && !isMudurUser(yetki.kullanici)) {
         return res.status(403).json({ error: "Bu işlemi yapmak için yetkiniz yok." });
       }
-      const success = await storage.deleteWhatsappGonderim(id);
+      const success = await storage.deleteWhatsappGonderim(id, yetki.yetkiliSubeIds);
       if (!success) return res.status(404).json({ error: "Kayıt bulunamadı" });
       res.status(204).send();
     } catch (error) {
@@ -958,17 +1002,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/whatsapp-gonderimleri", isAuthenticated, async (req, res) => {
     try {
+      const yetki = await whatsappYetkiBaglami(req);
+      if (!yetki) {
+        return res.status(401).json({ error: "Oturumunuz artık geçerli değil. Lütfen yeniden giriş yapın." });
+      }
       const { subeId, danismanId, baslangic, bitis } = req.query;
       const filters: any = {};
-      if (subeId) filters.subeId = parseInt(subeId as string);
-      if (danismanId) filters.danismanId = parseInt(danismanId as string);
+      if (subeId) {
+        const requestedSubeId = parseInt(subeId as string);
+        if (isNaN(requestedSubeId)) return res.status(400).json({ error: "Geçersiz şube id" });
+        if (!yetki.yetkiliSubeIds.includes(requestedSubeId)) {
+          return res.status(403).json({ error: "Bu şubenin WhatsApp kayıtlarını görüntüleme yetkiniz yok." });
+        }
+        filters.subeId = requestedSubeId;
+      }
+      if (danismanId) {
+        const requestedDanismanId = parseInt(danismanId as string);
+        if (isNaN(requestedDanismanId)) return res.status(400).json({ error: "Geçersiz danışman id" });
+        filters.danismanId = requestedDanismanId;
+      }
       if (baslangic) filters.baslangicTarihi = new Date(baslangic as string);
       if (bitis) {
         const b = new Date(bitis as string);
         b.setHours(23, 59, 59, 999);
         filters.bitisTarihi = b;
       }
-      const gonderimleri = await storage.getAllWhatsappGonderimleri(filters);
+      const gonderimleri = await storage.getAllWhatsappGonderimleri(filters, yetki.yetkiliSubeIds);
       res.json(gonderimleri);
     } catch (error) {
       console.error("WhatsApp gönderim listesi hatası:", error);

@@ -314,8 +314,8 @@ export const whatsappGonderimleri = pgTable("whatsapp_gonderimleri", {
   danismanAdi: text("danisman_adi").notNull(),
   danismanSoyadi: text("danisman_soyadi").notNull(),
   subeAdi: text("sube_adi").notNull(),
-  subeId: integer("sube_id"),
-  danismanId: integer("danisman_id"),
+  subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: "restrict" }),
+  danismanId: integer("danisman_id").notNull().references(() => kullanicilar.id, { onDelete: "restrict" }),
   gonderilenAt: timestamp("gonderilen_at").defaultNow(),
 });
 
@@ -324,8 +324,22 @@ export const insertWhatsappGonderimSchema = createInsertSchema(whatsappGonderiml
   gonderilenAt: true,
 });
 
+// İstemcinin sadece teklif verilerini ve seçtiği şube bağlamını göndermesine
+// izin verilir. Kayıt sahibi ile şube/danışman isimleri sunucuda üretilir.
+export const whatsappGonderimRequestSchema = insertWhatsappGonderimSchema
+  .omit({
+    subeAdi: true,
+    danismanId: true,
+    danismanAdi: true,
+    danismanSoyadi: true,
+  })
+  .extend({
+    subeId: z.number().int().positive(),
+  });
+
 export type WhatsappGonderim = typeof whatsappGonderimleri.$inferSelect;
 export type InsertWhatsappGonderim = z.infer<typeof insertWhatsappGonderimSchema>;
+export type WhatsappGonderimRequest = z.infer<typeof whatsappGonderimRequestSchema>;
 
 // Eğitim Tipleri tablosu
 export const egitimTipleri = pgTable("egitim_tipleri", {
