@@ -133,9 +133,10 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
         type: "list",
         list: egitimTipleri,
         showDropDown: true,
+        allowBlank: false,
         showErrorAlert: true,
-        errorTitle: "Geçersiz Son Eğitim",
-        error: `İzinli değerler: ${egitimTipleri.join(", ")}`,
+        errorTitle: "Son Eğitim zorunludur",
+        error: `Boş bırakılamaz. İzinli değerler: ${egitimTipleri.join(", ")}`,
       } as any);
     }
   }
@@ -220,7 +221,12 @@ export async function topluTeklifExceliniOku(file: File, kampanyalar: any[], egi
   // Doğrulama için eğitim tipi adlarını küçük harfle normalize et (Türkçe locale).
   const gecerliEgitimTipleri = egitimTipleri.map((t) => t.trim().toLocaleLowerCase("tr"));
 
-  const sonuc: TopluTeklifSatiri[] = satirlar.map((ham, index) => {
+  const sonuc: TopluTeklifSatiri[] = satirlar
+    .filter((ham) => {
+      // Tüm anlamlı alanları boş olan satırlar kullanılmamış/boş satırlardır; atla.
+      return KOLONLAR.some((kolon) => metin(ham[kolon as keyof typeof ham]).length > 0);
+    })
+    .map((ham, index) => {
     const adSoyad = metin(ham["Ad Soyad"]);
     const telefon = telefonuNormalizeEt(metin(ham.Telefon));
     const sonEgitim = metin(ham["Son Eğitim"]);
@@ -238,7 +244,9 @@ export async function topluTeklifExceliniOku(file: File, kampanyalar: any[], egi
     const beklenen: string[] = [];
     if (adSoyad.split(/\s+/).length < 2 || adSoyad.length > 150) { hatalar.push("Ad soyad geçersiz."); beklenen.push("En az ad ve soyad yazın."); }
     if (telefon.length < 12 || telefon.length > 15 || !telefon.startsWith("90")) { hatalar.push("Telefon geçersiz."); beklenen.push("05xx xxx xx xx veya 90xxxxxxxxxx biçimi."); }
-    if (!sonEgitim || sonEgitim.length > 120) {
+    if (!sonEgitim) {
+      hatalar.push("Son Eğitim zorunludur."); beklenen.push(`İzinli değerler: ${egitimTipleri.length ? egitimTipleri.join(", ") : "eğitim tiplerini yönetim ekranından ekleyin"}`);
+    } else if (sonEgitim.length > 120) {
       hatalar.push("Son eğitim geçersiz."); beklenen.push("En fazla 120 karakter yazın.");
     } else if (gecerliEgitimTipleri.length > 0 && !gecerliEgitimTipleri.includes(sonEgitim.toLocaleLowerCase("tr"))) {
       hatalar.push(`Son eğitim "${sonEgitim}" tanımlı eğitim tiplerinden biri değil.`);

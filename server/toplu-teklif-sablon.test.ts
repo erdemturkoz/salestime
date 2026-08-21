@@ -1,6 +1,37 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { KOLONLAR, topluTeklifSablonuOlustur } from "../client/src/utils/toplu-teklif-excel";
+import { Workbook } from "@node-projects/excelforge";
+import {
+  KOLONLAR,
+  topluTeklifExceliniOku,
+  topluTeklifSablonuOlustur,
+} from "../client/src/utils/toplu-teklif-excel";
+
+// ---------------------------------------------------------------------------
+// Yardımcı: verilen satır dizisinden minimal bir Excel dosyası oluşturur ve
+// topluTeklifExceliniOku'nun beklediği Upload nesnesine dönüştürür.
+// ---------------------------------------------------------------------------
+async function mockExcelDosyasi(
+  satirlar: Record<string, string>[],
+): Promise<{ name: string; size: number; arrayBuffer: () => Promise<ArrayBuffer> }> {
+  const wb = new Workbook();
+  const ws = wb.addSheet("Teklif Listesi");
+  ws.writeRow(1, 1, [...KOLONLAR]);
+  satirlar.forEach((satir, i) => {
+    ws.writeRow(
+      i + 2,
+      1,
+      KOLONLAR.map((k) => satir[k] ?? ""),
+    );
+  });
+  const buffer = await wb.build();
+  const ab = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  return {
+    name: "test.xlsx",
+    size: (ab as ArrayBuffer).byteLength,
+    arrayBuffer: async () => ab as ArrayBuffer,
+  };
+}
 
 const ORNEK_KAMPANYALAR = [
   {
@@ -75,4 +106,89 @@ test("şablon eğitim tipi listesi olmadan oluşturulduğunda Son Eğitim hücre
   const teklifListesi = workbook.getSheet("Teklif Listesi")!;
   // Eğitim tipi verilmediğinde örnek hücre boş olmalı; asla sabit "Lise" yazmamalı.
   assert.notEqual(teklifListesi.getCell(2, 3).value, "Lise");
+});
+
+// ---------------------------------------------------------------------------
+// Son Eğitim zorunluluk ve boş satır testleri
+// ---------------------------------------------------------------------------
+
+const ORNEK_KAMPANYA_OBJ = {
+  id: 21,
+  kampanyaAdi: "YOĞUN İNGİLİZCE",
+  egitimTipi: "Genel İngilizce",
+  kurSayisi: 3,
+  maxKrediKartiTaksit: 3,
+  maxSenetTaksit: 2,
+  kitapFiyati: 0,
+  hediyeler: [],
+};
+const EGITIM_TIPLERI = ["Genel İngilizce", "Genel Almanca", "Junior İngilizce"];
+
+test("veri içeren satırda Son Eğitim boşsa kayıt duzeltmeli olarak reddedilir", async () => {
+  const dosya = await mockExcelDosyasi([
+    {
+      "Ad Soyad": "Ayşe Demir",
+      "Telefon": "05321234567",
+      "Son Eğitim": "",           // boş — zorunlu
+      "Son Kur": "A2",
+      "Teklif Edilecek Kur": "1",
+      "Ödeme 1": "Nakit",
+      "Ödeme 2": "Kredi Kartı - 3 Taksit",
+      "Kampanya": "YOĞUN İNGİLİZCE",
+    },
+  ]);
+  const sonuc = await topluTeklifExceliniOku(dosya as any, [ORNEK_KAMPANYA_OBJ], EGITIM_TIPLERI);
+  assert.equal(sonuc.length, 1);
+  assert.equal(sonuc[0].durum, "duzeltmeli");
+  assert.ok(
+    sonuc[0].hatalar.some((h) => h.includes("Son Eğitim zorunludur")),
+    `Beklenen hata bulunamadı. Hatalar: ${sonuc[0].hatalar.join(", ")}`,
+  );
+});
+
+test("tamamen boş satırlar sonuca dahil edilmez", async () => {
+  const dosya = await mockExcelDosyasi([
+    {
+      "Ad Soyad": "Ayşe Demir",
+      "Telefon": "05321234567",
+      "Son Eğitim": "Genel İngilizce",
+      "Son Kur": "A2",
+      "Teklif Edilecek Kur": "1",
+      "Ödeme 1": "Nakit",
+      "Ödeme 2": "Kredi Kartı - 3 Taksit",
+      "Kampanya": "YOĞUN İNGİLİZCE",
+    },
+    // Tamamen boş satır (kullanılmamış)
+    {
+      "Ad Soyad": "", "Telefon": "", "Son Eğitim": "", "Son Kur": "",
+      "Teklif Edilecek Kur": "", "Ödeme 1": "", "Ödeme 2": "", "Kampanya": "",
+    },
+    // Bir başka tamamen boş satır
+    {
+      "Ad Soyad": "", "Telefon": "", "Son Eğitim": "", "Son Kur": "",
+      "Teklif Edilecek Kur": "", "Ödeme 1": "", "Ödeme 2": "", "Kampanya": "",
+    },
+  ]);
+  const sonuc = await topluTeklifExceliniOku(dosya as any, [ORNEK_KAMPANYA_OBJ], EGITIM_TIPLERI);
+  // Yalnızca veri içeren satır döner; boş satırlar yok sayılır.
+  assert.equal(sonuc.length, 1);
+});
+
+test("geçerli eğitim tipiyle dolu satır hazır kabul edilir", async () => {
+  const dosya = await mockExcelDosyasi([
+    {
+      "Ad Soyad": "Ayşe Demir",
+      "Telefon": "05321234567",
+      "Son Eğitim": "Genel İngilizce",
+      "Son Kur": "A2",
+      "Teklif Edilecek Kur": "1",
+      "Ödeme 1": "Nakit",
+      "Ödeme 2": "Kredi Kartı - 3 Taksit",
+      "Kampanya": "YOĞUN İNGİLİZCE",
+    },
+  ]);
+  const sonuc = await topluTeklifExceliniOku(dosya as any, [ORNEK_KAMPANYA_OBJ], EGITIM_TIPLERI);
+  assert.equal(sonuc.length, 1);
+  assert.equal(sonuc[0].durum, "hazir");
+  assert.equal(sonuc[0].hatalar.length, 0);
 });
