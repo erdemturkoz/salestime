@@ -1,16 +1,17 @@
 /**
- * topluMesajOlustur — WhatsApp mesaj şablon testleri (Task #15)
+ * topluMesajOlustur — WhatsApp mesaj şablon testleri
  *
  * Test kapsamı:
  *  - sonKur dolu  → kişiselleştirilmiş selamlama
  *  - sonKur boş   → genel selamlama fallback
- *  - hediyeEdildi → "HEDİYE" satırı + hediyeIndirimi satırı
- *  - fiyat eşitliği: mesajdaki Ödenecek = teklif.ozelFiyat
+ *  - toggle kapalı → Satış Fiyatı, HEDİYE satırı yok
+ *  - toggle açık  → Hediyesiz Son Fiyat, HEDİYE satırları, Toplam Hediye İndirimi
+ *  - topluOdemeDetayi → nakit ve taksit formatı
  */
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { topluMesajOlustur } from "./toplu-mesaj-utils";
+import { topluMesajOlustur, topluOdemeDetayi } from "./toplu-mesaj-utils";
 
 // ─── Sabit mock teklif ───────────────────────────────────────────────────────
 
@@ -23,9 +24,14 @@ function mockTeklif(overrides: Partial<any> = {}): any {
     indirimTutari: 35_000,
     indirimYuzdesi: 35,
     hediyeler: [{ isim: "Türkçe Seti", fiyat: 5_000 }],
-    hediyeIndirimi: 0,
     hediyeEdildi: {},
+    hediyeIndirimi: 0,
+    hediyesizFiyat: 81_000,
+    toplamHediyeIndirimi: 0,
+    kitapHediyeEdildi: false,
+    kitapUcreti: 1_000,
     ozelFiyat: 81_000,
+    toplamOdeme: 81_000,
     pesinat: 0,
     aylikOdeme: 81_000,
     odemeTipiText: "Nakit",
@@ -36,7 +42,7 @@ function mockTeklif(overrides: Partial<any> = {}): any {
 
 const DANISMAN = { adi: "Ali", soyadi: "Yılmaz", telefon: "05321112233" };
 
-// ─── Testler ─────────────────────────────────────────────────────────────────
+// ─── Selamlama testleri ───────────────────────────────────────────────────────
 
 test("sonKur dolu iken selamlama kişiselleştirilmiş kur ifadesini içerir", () => {
   const satir = { ogrenciAdi: "Ayşe Demir", sonKur: "B1" };
@@ -61,45 +67,134 @@ test("sonKur null iken genel selamlama fallback'i kullanılır", () => {
   assert.match(mesaj, /Mevcut eğitim durumunuza göre/);
 });
 
-test("hediyeEdildi set iken mesajda HEDİYE satırı ve hediyeIndirimi görünür", () => {
+// ─── Toggle kapalı (hediye yok) ───────────────────────────────────────────────
+
+test("toggle kapalıyken mesajda HEDİYE satırı ve Toplam Hediye İndirimi bulunmaz", () => {
+  const mesaj = topluMesajOlustur(
+    { ogrenciAdi: "Can Arslan", sonKur: "A2" },
+    mockTeklif(),
+    mockTeklif(),
+    "Üsküdar",
+    DANISMAN,
+  );
+
+  assert.doesNotMatch(mesaj, /HEDİYE/);
+  assert.doesNotMatch(mesaj, /Toplam Hediye İndirimi/);
+  assert.doesNotMatch(mesaj, /Hediyesiz Son Fiyat/);
+});
+
+test("toggle kapalıyken mesajda Satış Fiyatı ve Liste Fiyatı görünür", () => {
+  const teklif = mockTeklif({ ozelFiyat: 81_000, toplamOdeme: 81_000 });
+  const mesaj = topluMesajOlustur(
+    { ogrenciAdi: "Test", sonKur: "A1" },
+    teklif,
+    mockTeklif(),
+    "Şube",
+    DANISMAN,
+  );
+
+  assert.match(mesaj, /Liste Fiyatı: 100\.000 TL/);
+  assert.match(mesaj, /Satış Fiyatı: 81\.000 TL/);
+});
+
+// ─── Toggle açık (hediyeler ücretsiz) ────────────────────────────────────────
+
+test("toggle açıkken mesajda Hediyesiz Son Fiyat, HEDİYE satırı ve Toplam Hediye İndirimi görünür", () => {
   const teklif = mockTeklif({
     hediyeEdildi: { "Türkçe Seti": true },
     hediyeIndirimi: 5_000,
-    ozelFiyat: 76_000,
+    hediyesizFiyat: 81_000,
+    toplamHediyeIndirimi: 6_000,   // 5_000 hediye + 1_000 kitap
+    kitapHediyeEdildi: true,
+    kitapUcreti: 1_000,
+    ozelFiyat: 75_000,
+    toplamOdeme: 75_000,
   });
-  const mesaj = topluMesajOlustur({ ogrenciAdi: "Can Arslan", sonKur: "A2" }, teklif, mockTeklif(), "Üsküdar", DANISMAN);
+  const mesaj = topluMesajOlustur(
+    { ogrenciAdi: "Can Arslan", sonKur: "A2" },
+    teklif,
+    mockTeklif(),
+    "Üsküdar",
+    DANISMAN,
+  );
 
-  assert.match(mesaj, /🎁 Türkçe Seti.*HEDİYE/);
-  assert.match(mesaj, /Hediye İndirimi: -5\.000 TL/);
-  assert.match(mesaj, /Ödenecek: 76\.000 TL/);
+  assert.match(mesaj, /Hediyesiz Son Fiyat: 81\.000 TL/);
+  assert.match(mesaj, /🎁 Türkçe Seti \(5\.000 TL\) — HEDİYE/);
+  assert.match(mesaj, /🎁 Kitap Seti \(1\.000 TL\) — HEDİYE/);
+  assert.match(mesaj, /Toplam Hediye İndirimi: -6\.000 TL/);
+  assert.match(mesaj, /Satış Fiyatı: 75\.000 TL/);
 });
 
-test("hediyeEdildi boşken HEDİYE satırı ve Hediye İndirimi mesajda bulunmaz", () => {
-  const mesaj = topluMesajOlustur({ ogrenciAdi: "Can Arslan", sonKur: "A2" }, mockTeklif(), mockTeklif(), "Üsküdar", DANISMAN);
+test("toggle açıkken Hediyesiz Son Fiyat - Toplam Hediye İndirimi = Satış Fiyatı", () => {
+  const hediyesizFiyat = 81_000;
+  const toplamHediyeIndirimi = 16_000;
+  const ozelFiyat = hediyesizFiyat - toplamHediyeIndirimi; // 65_000
+  const teklif = mockTeklif({
+    hediyeEdildi: { "Türkçe Seti": true, "Online Paket": true },
+    hediyeler: [{ isim: "Türkçe Seti", fiyat: 5_000 }, { isim: "Online Paket", fiyat: 10_000 }],
+    hediyeIndirimi: 15_000,
+    hediyesizFiyat,
+    toplamHediyeIndirimi,
+    kitapHediyeEdildi: true,
+    kitapUcreti: 1_000,
+    ozelFiyat,
+    toplamOdeme: ozelFiyat,
+  });
+  const mesaj = topluMesajOlustur(
+    { ogrenciAdi: "Test", sonKur: "B1" },
+    teklif,
+    mockTeklif(),
+    "Merkez",
+    DANISMAN,
+  );
 
-  assert.doesNotMatch(mesaj, /HEDİYE/);
-  assert.doesNotMatch(mesaj, /Hediye İndirimi/);
+  assert.match(mesaj, /Hediyesiz Son Fiyat: 81\.000 TL/);
+  assert.match(mesaj, /Toplam Hediye İndirimi: -16\.000 TL/);
+  assert.match(mesaj, /Satış Fiyatı: 65\.000 TL/);
 });
 
-test("mesajdaki Ödenecek değeri teklif.ozelFiyat ile örtüşür", () => {
-  const ozelFiyat = 66_000;
-  const teklif = mockTeklif({ ozelFiyat });
-  const mesaj = topluMesajOlustur({ ogrenciAdi: "Test Aday", sonKur: "A1" }, teklif, mockTeklif(), "Test Şube", DANISMAN);
+// ─── Ödeme detay formatı ─────────────────────────────────────────────────────
 
-  assert.match(mesaj, new RegExp(`Ödenecek: ${ozelFiyat.toLocaleString("tr-TR")} TL`));
+test("topluOdemeDetayi: nakit → 'Nakit · X TL'", () => {
+  const teklif = mockTeklif({ toplamOdeme: 81_000 });
+  const detay = topluOdemeDetayi(teklif);
+  assert.match(detay, /Nakit · 81\.000 TL/);
 });
 
-test("liste fiyatı ve kampanya indirimi mesajda ayrı satırlarda yer alır", () => {
-  const teklif = mockTeklif({ listeFiyati: 100_000, indirimTutari: 35_000, indirimYuzdesi: 35 });
-  const mesaj = topluMesajOlustur({ ogrenciAdi: "Test", sonKur: "A1" }, teklif, mockTeklif(), "Şube", DANISMAN);
+test("topluOdemeDetayi: kredi kartı taksit → 'X × Y TL = Z TL' formatı", () => {
+  const teklif = mockTeklif({
+    odemeTipiText: "Kredi Kartı",
+    form: { odemeTipi: "kredi-karti", taksitSayisi: 4, gecerlilikGunu: 2 },
+    aylikOdeme: 20_250,
+    toplamOdeme: 81_000,
+    pesinat: 0,
+  });
+  const detay = topluOdemeDetayi(teklif);
+  assert.match(detay, /Kredi Kartı · 4 × 20\.250 TL = 81\.000 TL/);
+});
 
-  assert.match(mesaj, /Liste Fiyatı: 100\.000 TL/);
-  assert.match(mesaj, /Kampanya İndirimi: -35\.000 TL \(%35\)/);
+test("topluOdemeDetayi: peşinatlı senet → peşinat satırı dahil", () => {
+  const teklif = mockTeklif({
+    odemeTipiText: "Senet",
+    form: { odemeTipi: "senet", taksitSayisi: 3, gecerlilikGunu: 2 },
+    pesinat: 10_000,
+    aylikOdeme: 24_000,
+    toplamOdeme: 82_000,
+  });
+  const detay = topluOdemeDetayi(teklif);
+  assert.match(detay, /10\.000 TL peşinat/);
+  assert.match(detay, /3 × 24\.000 TL = 82\.000 TL/);
 });
 
 test("danışman telefonu null olduğunda mesaj telefon satırı içermez", () => {
   const danismanTelefonsuz = { adi: "Ali", soyadi: "Yılmaz" };
-  const mesaj = topluMesajOlustur({ ogrenciAdi: "Test", sonKur: "B2" }, mockTeklif(), mockTeklif(), "Şube", danismanTelefonsuz as any);
+  const mesaj = topluMesajOlustur(
+    { ogrenciAdi: "Test", sonKur: "B2" },
+    mockTeklif(),
+    mockTeklif(),
+    "Şube",
+    danismanTelefonsuz as any,
+  );
 
   assert.doesNotMatch(mesaj, /05\d{9}/);
 });

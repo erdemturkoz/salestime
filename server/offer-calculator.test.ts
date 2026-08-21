@@ -104,3 +104,74 @@ test("toggle açık/kapalı fark: toggle açıkken ozelFiyat hediye tutarı kada
   const fark = kapali.ozelFiyat - acik.ozelFiyat;
   assert.equal(fark, 15_000, "toggle açıldığında fiyat tam hediye toplamı kadar düşmeli");
 });
+
+// ─── Toplu Teklif toggle tam açık (hediyeEdildi + kitapHediyeEdildi) ─────────
+
+test("Toplu Teklif toggle tam açık: hediyeEdildi + kitapHediyeEdildi → ozelFiyat = nakitFiyati", () => {
+  const result = computeOffer(
+    FORM,
+    KAMPANYA,
+    {
+      id: "t1",
+      title: "T1",
+      hediyeEdildi: { "Türkçe Seti": true, "Online Paket": true },
+      kitapHediyeEdildi: true,
+    },
+  );
+  // ozelFiyat = 65_000 + 1_000 + 15_000 − 15_000 − 1_000 = 65_000 = nakitFiyati
+  assert.equal(result.ozelFiyat, 65_000, "tüm hediyeler + kitap ücretsizken ozelFiyat = nakitFiyati olmalı");
+  assert.equal(result.toplamHediyeIndirimi, 16_000, "toplamHediyeIndirimi = hediyelerToplam + kitapFiyati");
+  assert.equal(result.hediyesizFiyat, 81_000, "hediyesizFiyat hediyesiz kampanya fiyatını göstermeli");
+  assert.equal(result.kitapHediyeIndirimi, 1_000, "kitapHediyeIndirimi = kitapFiyati");
+});
+
+// ─── Yeni alanlar: hediyesizFiyat, toplamHediyeIndirimi, toplamOdeme ─────────
+
+test("hediye toggle kapalıyken: hediyesizFiyat = ozelFiyat ve toplamHediyeIndirimi sıfır", () => {
+  const result = computeOffer(FORM, KAMPANYA, { id: "t1", title: "T1" });
+  assert.equal(result.hediyesizFiyat, 81_000, "toggle kapalıyken hediyesizFiyat = genelToplam");
+  assert.equal(result.toplamHediyeIndirimi, 0);
+  assert.equal(result.kitapHediyeIndirimi, 0);
+  // nakit: toplamOdeme = ozelFiyat
+  assert.equal(result.toplamOdeme, result.ozelFiyat);
+});
+
+test("kredi kartı taksit: toplamOdeme = pesinat + taksitSayisi × aylikOdeme", () => {
+  const krediForm = { ...FORM, odemeTipi: "kredi-karti" as const, taksitSayisi: 4 };
+  const result = computeOffer(krediForm, KAMPANYA, { id: "t1", title: "T1" });
+  assert.equal(
+    result.toplamOdeme,
+    result.pesinat + result.form.taksitSayisi * result.aylikOdeme,
+    "toplamOdeme taksit × aylikOdeme + pesinat olmalı",
+  );
+  // toplamOdeme ≥ ozelFiyat (yuvarlama nedeniyle 1 TL artış olabilir)
+  assert.ok(result.toplamOdeme >= result.ozelFiyat, "toplamOdeme ozelFiyat'tan küçük olamaz");
+});
+
+test("Ücret Hesaplama ↔ Toplu Teklif parite: toggle ON için aynı fiyatı üretir", () => {
+  // Ücret Hesaplama akışı: tüm hediyeler + kitap işaretli
+  const ucretHesaplama = computeOffer(
+    FORM,
+    KAMPANYA,
+    {
+      id: "uc",
+      title: "Ücret Hesaplama",
+      hediyeEdildi: { "Türkçe Seti": true, "Online Paket": true },
+      kitapHediyeEdildi: true,
+    },
+  );
+  // Toplu Teklif akışı: tumHediyelerUcretsiz = true
+  const topluTeklif = computeOffer(
+    FORM,
+    KAMPANYA,
+    {
+      id: "tt",
+      title: "Toplu Teklif",
+      hediyeEdildi: { "Türkçe Seti": true, "Online Paket": true },
+      kitapHediyeEdildi: true,
+    },
+  );
+  assert.equal(ucretHesaplama.ozelFiyat, topluTeklif.ozelFiyat, "her iki akış toggle ON için aynı nakit fiyatı üretmeli");
+  assert.equal(ucretHesaplama.toplamOdeme, topluTeklif.toplamOdeme);
+  assert.equal(ucretHesaplama.hediyesizFiyat, topluTeklif.hediyesizFiyat);
+});

@@ -1113,7 +1113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mudurIndirimTipi: "yuzde" as const,
             mudurIndirimDegeri: 0,
             gecerlilikGunu: 2,
-          }, kampanya, { id: `batch-${gonderim.id}-${index + 1}-${title}`, title, isRecommended: title === "Teklif 1", hediyeEdildi });
+          }, kampanya, { id: `batch-${gonderim.id}-${index + 1}-${title}`, title, isRecommended: title === "Teklif 1", hediyeEdildi, kitapHediyeEdildi: tumHediyelerUcretsiz });
           const teklif1 = teklifOlustur(teklif.odeme1, "Teklif 1");
           const teklif2 = teklifOlustur(teklif.odeme2, "Teklif 2");
           const sonGecerlilik = new Date(olusturmaTarihi);

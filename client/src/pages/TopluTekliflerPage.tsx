@@ -64,9 +64,9 @@ const eklentiDurumRenkleri: Record<string, string> = {
 };
 
 function odemeDetayi(odeme: OfferResult): string {
-  if (odeme.form.odemeTipi === "nakit") return `${odeme.odemeTipiText} · ${formatCurrency(odeme.ozelFiyat)}`;
+  if (odeme.form.odemeTipi === "nakit") return `${odeme.odemeTipiText} · ${formatCurrency(odeme.toplamOdeme)}`;
   const pesinat = odeme.pesinat > 0 ? `${formatCurrency(odeme.pesinat)} peşinat + ` : "";
-  return `${odeme.odemeTipiText} · ${pesinat}${odeme.form.taksitSayisi} × ${formatCurrency(odeme.aylikOdeme)}`;
+  return `${odeme.odemeTipiText} · ${pesinat}${odeme.form.taksitSayisi} × ${formatCurrency(odeme.aylikOdeme)} = ${formatCurrency(odeme.toplamOdeme)}`;
 }
 
 function mesajOlustur(satir: TopluTeklifSatiri, teklif1: OfferResult, teklif2: OfferResult, subeAdi: string, user: any): string {
@@ -83,17 +83,20 @@ function mesajOlustur(satir: TopluTeklifSatiri, teklif1: OfferResult, teklif2: O
       `*${baslik}*`,
       `Eğitim: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
       `Liste Fiyatı: ${formatCurrency(teklif.listeFiyati)}`,
-      `Kampanya İndirimi: -${formatCurrency(teklif.indirimTutari)} (%${teklif.indirimYuzdesi})`,
     ];
-    teklif.hediyeler.forEach((h) => {
-      if (teklif.hediyeEdildi?.[h.isim] && h.fiyat > 0) {
-        blok.push(`🎁 ${h.isim} (${formatCurrency(h.fiyat)}) — HEDİYE`);
+    if (teklif.toplamHediyeIndirimi > 0) {
+      blok.push(`Hediyesiz Son Fiyat: ${formatCurrency(teklif.hediyesizFiyat)}`);
+      teklif.hediyeler.forEach((h) => {
+        if (teklif.hediyeEdildi?.[h.isim] && h.fiyat > 0) {
+          blok.push(`🎁 ${h.isim} (${formatCurrency(h.fiyat)}) — HEDİYE`);
+        }
+      });
+      if (teklif.kitapHediyeEdildi && teklif.kitapUcreti > 0) {
+        blok.push(`🎁 Kitap Seti (${formatCurrency(teklif.kitapUcreti)}) — HEDİYE`);
       }
-    });
-    if (teklif.hediyeIndirimi > 0) {
-      blok.push(`Hediye İndirimi: -${formatCurrency(teklif.hediyeIndirimi)}`);
+      blok.push(`Toplam Hediye İndirimi: -${formatCurrency(teklif.toplamHediyeIndirimi)}`);
     }
-    blok.push(`Ödenecek: ${formatCurrency(teklif.ozelFiyat)}`);
+    blok.push(`Satış Fiyatı: ${formatCurrency(teklif.ozelFiyat)}`);
     blok.push(`Ödeme: ${odemeDetayi(teklif)}`);
     return blok.join("\n");
   };
@@ -188,7 +191,7 @@ export default function TopluTekliflerPage() {
         toplamDersSaati: Number(satir.kampanya.toplamDersSaati),
         odemeTipi: odeme.odemeTipi,
         taksitSayisi: odeme.taksitSayisi,
-      }, satir.kampanya, { id: `${satir.id}-${title}`, title, isRecommended: title === "Teklif 1", hediyeEdildi });
+      }, satir.kampanya, { id: `${satir.id}-${title}`, title, isRecommended: title === "Teklif 1", hediyeEdildi, kitapHediyeEdildi: tumHediyelerUcretsiz });
       const teklif1 = teklifOlustur(satir.odeme1!, "Teklif 1");
       const teklif2 = teklifOlustur(satir.odeme2!, "Teklif 2");
       return { ...satir, teklif1, teklif2, mesaj: mesajOlustur(satir, teklif1, teklif2, subeAdi, user) };
@@ -506,11 +509,15 @@ export default function TopluTekliflerPage() {
                             <div className="mt-2 space-y-1 text-xs text-gray-600">
                               <div className="flex justify-between"><span>Liste fiyatı</span><span>{formatCurrency(offer.listeFiyati)}</span></div>
                               <div className="flex justify-between text-emerald-700"><span>Kampanya indirimi</span><span>-{formatCurrency(offer.indirimTutari)} (%{offer.indirimYuzdesi})</span></div>
-                              {offer.hediyeIndirimi > 0 && (<>
+                              {offer.toplamHediyeIndirimi > 0 && (<>
+                                <div className="flex justify-between border-t border-gray-100 pt-1 font-medium"><span>Hediyesiz son fiyat</span><span>{formatCurrency(offer.hediyesizFiyat)}</span></div>
                                 {offer.hediyeler.filter((h) => offer.hediyeEdildi?.[h.isim] && h.fiyat > 0).map((h) => (
-                                  <div key={h.isim} className="flex justify-between text-amber-700"><span>🎁 {h.isim}</span><span>HEDİYE</span></div>
+                                  <div key={h.isim} className="flex justify-between text-amber-700"><span>🎁 {h.isim}</span><span>-{formatCurrency(h.fiyat)}</span></div>
                                 ))}
-                                <div className="flex justify-between font-medium text-amber-700"><span>Hediye indirimi</span><span>-{formatCurrency(offer.hediyeIndirimi)}</span></div>
+                                {offer.kitapHediyeEdildi && offer.kitapUcreti > 0 && (
+                                  <div className="flex justify-between text-amber-700"><span>🎁 Kitap Seti</span><span>-{formatCurrency(offer.kitapUcreti)}</span></div>
+                                )}
+                                <div className="flex justify-between font-medium text-amber-700"><span>Toplam hediye indirimi</span><span>-{formatCurrency(offer.toplamHediyeIndirimi)}</span></div>
                               </>)}
                             </div>
                             <p className="mt-3 text-2xl font-bold text-gray-900">{formatCurrency(offer.ozelFiyat)}</p>

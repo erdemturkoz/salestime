@@ -130,6 +130,9 @@ export function computeOffer(
     (toplam, h) => (hediyeEdildi[h.isim] && h.fiyat > 0 ? toplam + h.fiyat : toplam),
     0
   );
+  const hediyesizFiyat = genelToplam; // fiyat, herhangi bir hediye düşülmeden önce
+  const kitapHediyeIndirimi = kitapHediyeEdildi && kitapF > 0 ? kitapF : 0;
+  const toplamHediyeIndirimi = kitapHediyeIndirimi + Math.round(hediyeIndirimi);
   let duzeltilmisGenelToplam = genelToplam;
   if (kitapHediyeEdildi && kitapF > 0) {
     duzeltilmisGenelToplam -= kitapF;
@@ -142,12 +145,18 @@ export function computeOffer(
   if (duzeltilmisOzelFiyat < 0) duzeltilmisOzelFiyat = 0;
 
   const duzeltilmisKalan = duzeltilmisOzelFiyat - safePesinat;
+  // Taksit hesabında yukarı yuvarlama: taksitSayisi × aylikOdeme ≥ ozelFiyat
   const duzeltilmisAylik =
     odemeTipi === "nakit"
       ? duzeltilmisOzelFiyat
       : taksitSayisi > 1
-      ? Math.round(duzeltilmisKalan / taksitSayisi)
+      ? Math.ceil(duzeltilmisKalan / taksitSayisi)
       : duzeltilmisKalan;
+  // Müşterinin fiilen ödeyeceği toplam tutar (nakit'te ozelFiyat ile aynı)
+  const toplamOdeme =
+    odemeTipi === "nakit"
+      ? duzeltilmisOzelFiyat
+      : safePesinat + taksitSayisi * duzeltilmisAylik;
 
   return {
     id: extra.id,
@@ -161,10 +170,14 @@ export function computeOffer(
     kitapUcreti: kitapF,
     hediyeler: kampanya.hediyeler,
     hediyelerToplam: Math.round(hediyelerToplam),
+    hediyesizFiyat: Math.round(hediyesizFiyat),
     hediyeIndirimi: Math.round(hediyeIndirimi),
+    kitapHediyeIndirimi: Math.round(kitapHediyeIndirimi),
+    toplamHediyeIndirimi: Math.round(toplamHediyeIndirimi),
     genelToplam: duzeltilmisGenelToplam,
     mudurIndirimTutari,
     ozelFiyat: duzeltilmisOzelFiyat,
+    toplamOdeme: Math.round(toplamOdeme),
     pesinat: safePesinat,
     kalanTutar: Math.max(0, duzeltilmisKalan),
     aylikOdeme: duzeltilmisAylik,

@@ -8,9 +8,10 @@ export function topluPara(tutar: number): string {
 }
 
 export function topluOdemeDetayi(teklif: any): string {
-  if (teklif.form.odemeTipi === "nakit") return `${teklif.odemeTipiText} · ${topluPara(teklif.ozelFiyat)}`;
+  if (teklif.form.odemeTipi === "nakit")
+    return `${teklif.odemeTipiText} · ${topluPara(teklif.toplamOdeme)}`;
   const pesinat = teklif.pesinat > 0 ? `${topluPara(teklif.pesinat)} peşinat + ` : "";
-  return `${teklif.odemeTipiText} · ${pesinat}${teklif.form.taksitSayisi} × ${topluPara(teklif.aylikOdeme)}`;
+  return `${teklif.odemeTipiText} · ${pesinat}${teklif.form.taksitSayisi} × ${topluPara(teklif.aylikOdeme)} = ${topluPara(teklif.toplamOdeme)}`;
 }
 
 export function topluMesajOlustur(
@@ -33,17 +34,20 @@ export function topluMesajOlustur(
       `*${baslik}*`,
       `Eğitim: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
       `Liste Fiyatı: ${topluPara(teklif.listeFiyati)}`,
-      `Kampanya İndirimi: -${topluPara(teklif.indirimTutari)} (%${teklif.indirimYuzdesi})`,
     ];
-    (teklif.hediyeler || []).forEach((h: any) => {
-      if (teklif.hediyeEdildi?.[h.isim] && h.fiyat > 0) {
-        blokSatirlari.push(`🎁 ${h.isim} (${topluPara(h.fiyat)}) — HEDİYE`);
+    if ((teklif.toplamHediyeIndirimi || 0) > 0) {
+      blokSatirlari.push(`Hediyesiz Son Fiyat: ${topluPara(teklif.hediyesizFiyat)}`);
+      (teklif.hediyeler || []).forEach((h: any) => {
+        if (teklif.hediyeEdildi?.[h.isim] && h.fiyat > 0) {
+          blokSatirlari.push(`🎁 ${h.isim} (${topluPara(h.fiyat)}) — HEDİYE`);
+        }
+      });
+      if (teklif.kitapHediyeEdildi && (teklif.kitapUcreti || 0) > 0) {
+        blokSatirlari.push(`🎁 Kitap Seti (${topluPara(teklif.kitapUcreti)}) — HEDİYE`);
       }
-    });
-    if ((teklif.hediyeIndirimi || 0) > 0) {
-      blokSatirlari.push(`Hediye İndirimi: -${topluPara(teklif.hediyeIndirimi)}`);
+      blokSatirlari.push(`Toplam Hediye İndirimi: -${topluPara(teklif.toplamHediyeIndirimi)}`);
     }
-    blokSatirlari.push(`Ödenecek: ${topluPara(teklif.ozelFiyat)}`);
+    blokSatirlari.push(`Satış Fiyatı: ${topluPara(teklif.ozelFiyat)}`);
     blokSatirlari.push(`Ödeme: ${topluOdemeDetayi(teklif)}`);
     return blokSatirlari.join("\n");
   };

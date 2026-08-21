@@ -40,10 +40,14 @@ export interface OfferResult {
   kitapUcreti: number;
   hediyeler: Array<{ isim: string; fiyat: number }>;
   hediyelerToplam: number;
+  hediyesizFiyat: number;
   hediyeIndirimi: number;
+  kitapHediyeIndirimi: number;
+  toplamHediyeIndirimi: number;
   genelToplam: number;
   mudurIndirimTutari: number;
   ozelFiyat: number;
+  toplamOdeme: number;
   pesinat: number;
   kalanTutar: number;
   aylikOdeme: number;
