@@ -73,17 +73,48 @@ function mesajOlustur(satir: TopluTeklifSatiri, teklif1: OfferResult, teklif2: O
   const tarih = new Date();
   tarih.setDate(tarih.getDate() + teklif1.form.gecerlilikGunu);
   const gecerlilik = tarih.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const teklifSatiri = (baslik: string, teklif: OfferResult) => [
-    `*${baslik}*`, `Eğitim: ${teklif.egitimTipi}`, `Kur: ${teklif.kurSayisi} / ${teklif.dersSaati} Ders Saati`,
-    `Toplam: ${formatCurrency(teklif.ozelFiyat)}`, `Ödeme: ${odemeDetayi(teklif)}`,
-  ].join("\n");
-  return [
-    `Merhaba ${satir.adSoyad},`, "",
-    `English Time ${subeAdi} olarak mevcut eğitim durumunuza göre iki farklı teklif seçeneği hazırladık.`, "",
-    teklifSatiri("1. TEKLİF", teklif1), "", teklifSatiri("2. TEKLİF", teklif2), "",
-    `Teklif geçerlilik süresi: ${gecerlilik}`, "",
-    `${user?.adi || ""} ${user?.soyadi || ""}`.trim(), "Eğitim Danışmanı", `English Time ${subeAdi}`, user?.telefon || "",
-  ].filter((satir) => satir !== "").join("\n");
+
+  const hitap = satir.sonKur
+    ? `Son aldığınız ${satir.sonKur} seviyesinin ardından size özel hazırladığımız teklif seçenekleri:`
+    : `Mevcut eğitim durumunuza göre size özel hazırladığımız teklif seçenekleri:`;
+
+  const teklifBlok = (baslik: string, teklif: OfferResult) => {
+    const blok: string[] = [
+      `*${baslik}*`,
+      `Eğitim: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
+      `Liste Fiyatı: ${formatCurrency(teklif.listeFiyati)}`,
+      `Kampanya İndirimi: -${formatCurrency(teklif.indirimTutari)} (%${teklif.indirimYuzdesi})`,
+    ];
+    teklif.hediyeler.forEach((h) => {
+      if (teklif.hediyeEdildi?.[h.isim] && h.fiyat > 0) {
+        blok.push(`🎁 ${h.isim} (${formatCurrency(h.fiyat)}) — HEDİYE`);
+      }
+    });
+    if (teklif.hediyeIndirimi > 0) {
+      blok.push(`Hediye İndirimi: -${formatCurrency(teklif.hediyeIndirimi)}`);
+    }
+    blok.push(`Ödenecek: ${formatCurrency(teklif.ozelFiyat)}`);
+    blok.push(`Ödeme: ${odemeDetayi(teklif)}`);
+    return blok.join("\n");
+  };
+
+  const lines: string[] = [
+    `Merhaba ${satir.adSoyad},`,
+    "",
+    `English Time ${subeAdi} — ${hitap}`,
+    "",
+    teklifBlok("1. TEKLİF", teklif1),
+    "",
+    teklifBlok("2. TEKLİF", teklif2),
+    "",
+    `⏳ Teklif geçerlilik süresi: ${gecerlilik}`,
+    "",
+    `${user?.adi || ""} ${user?.soyadi || ""}`.trim(),
+    "Eğitim Danışmanı",
+    `English Time ${subeAdi}`,
+  ];
+  if (user?.telefon) lines.push(user.telefon);
+  return lines.join("\n");
 }
 
 function pdfVerisineDonustur(offer: OfferResult, kayit: KayitliTeklif) {
@@ -130,6 +161,7 @@ export default function TopluTekliflerPage() {
   const [manuelGonderimId, setManuelGonderimId] = useState<number | null>(null);
   const [manuelOnayKaydi, setManuelOnayKaydi] = useState<KayitliTeklif | null>(null);
   const [eslestirmeBaglami, setEslestirmeBaglami] = useState<{ gonderimId: number; subeAdi: string; pairingCode: string; expiresAt: string } | null>(null);
+  const [tumHediyelerUcretsiz, setTumHediyelerUcretsiz] = useState(false);
   const yuklenenSubeRef = useRef<number | null>(null);
 
   const aktifRol = roller.find((rol) => Number(rol.subeId) === Number(aktifSubeId)) || roller[0];
@@ -145,6 +177,9 @@ export default function TopluTekliflerPage() {
   const hazirTeklifler = useMemo<HazirTeklif[]>(() => satirlar
     .filter((satir) => satir.durum === "hazir" && satir.kampanya && satir.odeme1 && satir.odeme2 && satir.teklifKur)
     .map((satir) => {
+      const hediyeEdildi: Record<string, boolean> = tumHediyelerUcretsiz
+        ? Object.fromEntries((satir.kampanya.hediyeler || []).map((h: any) => [h.isim, true]))
+        : {};
       const teklifOlustur = (odeme: OdemePlani, title: string) => computeOffer({
         ...defaultFormState,
         egitimTipi: satir.kampanya.egitimTipi,
@@ -153,11 +188,11 @@ export default function TopluTekliflerPage() {
         toplamDersSaati: Number(satir.kampanya.toplamDersSaati),
         odemeTipi: odeme.odemeTipi,
         taksitSayisi: odeme.taksitSayisi,
-      }, satir.kampanya, { id: `${satir.id}-${title}`, title, isRecommended: title === "Teklif 1" });
+      }, satir.kampanya, { id: `${satir.id}-${title}`, title, isRecommended: title === "Teklif 1", hediyeEdildi });
       const teklif1 = teklifOlustur(satir.odeme1!, "Teklif 1");
       const teklif2 = teklifOlustur(satir.odeme2!, "Teklif 2");
       return { ...satir, teklif1, teklif2, mesaj: mesajOlustur(satir, teklif1, teklif2, subeAdi, user) };
-    }), [satirlar, subeAdi, user]);
+    }), [satirlar, subeAdi, user, tumHediyelerUcretsiz]);
 
   const secilenTeklif = hazirTeklifler.find((teklif) => teklif.id === secilenId) || hazirTeklifler[0];
   const gorunenSatirlar = satirlar.filter((satir) => {
@@ -192,7 +227,7 @@ export default function TopluTekliflerPage() {
       }));
       return apiRequest("/api/toplu-gonderimler", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baslik: `Toplu teklif · ${new Date().toLocaleDateString("tr-TR")}`, subeId: aktifSubeId, teklifler }),
+        body: JSON.stringify({ baslik: `Toplu teklif · ${new Date().toLocaleDateString("tr-TR")}`, subeId: aktifSubeId, tumHediyelerUcretsiz, teklifler }),
       });
     },
     onSuccess: () => {
@@ -451,11 +486,38 @@ export default function TopluTekliflerPage() {
 
                 {hazirTeklifler.length > 0 && (
                   <Card className="border-gray-200 shadow-sm"><CardContent className="p-0">
-                    <div className="flex flex-col gap-3 border-b border-gray-100 p-4 md:flex-row md:items-center md:justify-between"><div><h2 className="font-semibold text-gray-900">Teklif önizleme</h2><p className="text-xs text-gray-500">Öğrenciyi seçin; iki alternatif ve kişiselleştirilmiş WhatsApp mesajını kontrol edin.</p></div><Button className="bg-[#F26207] hover:bg-[#D95205]" onClick={() => setOnayAcik(true)}><Send className="mr-2 h-4 w-4" /> {hazirTeklifler.length} teklifi kuyruğa al</Button></div>
+                    <div className="flex flex-col gap-3 border-b border-gray-100 p-4 md:flex-row md:items-center md:justify-between">
+                      <div><h2 className="font-semibold text-gray-900">Teklif önizleme</h2><p className="text-xs text-gray-500">Öğrenciyi seçin; iki alternatif ve kişiselleştirilmiş WhatsApp mesajını kontrol edin.</p></div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm text-gray-700 select-none">
+                          <input type="checkbox" checked={tumHediyelerUcretsiz} onChange={(e) => setTumHediyelerUcretsiz(e.target.checked)} className="h-4 w-4 accent-[#F26207]" />
+                          🎁 Tüm hediyeler ücretsiz
+                        </label>
+                        <Button className="bg-[#F26207] hover:bg-[#D95205]" onClick={() => setOnayAcik(true)}><Send className="mr-2 h-4 w-4" /> {hazirTeklifler.length} teklifi kuyruğa al</Button>
+                      </div>
+                    </div>
                     <div className="grid min-h-[500px] lg:grid-cols-[300px_1fr]">
                       <div className="border-b border-gray-100 bg-gray-50/50 p-3 lg:border-b-0 lg:border-r"><div className="mb-3 flex items-center justify-between text-xs font-medium text-gray-500"><span>HAZIR ADAYLAR</span><span>{hazirTeklifler.length}</span></div><div className="max-h-[520px] space-y-1 overflow-y-auto">{hazirTeklifler.map((teklif) => <button onClick={() => setSecilenId(teklif.id)} key={teklif.id} className={`w-full rounded-lg p-3 text-left transition ${secilenTeklif?.id === teklif.id ? "bg-white shadow-sm ring-1 ring-[#F26207]/30" : "hover:bg-white"}`}><p className="text-sm font-semibold text-gray-900">{teklif.adSoyad}</p><p className="mt-0.5 text-xs text-gray-500">{teklif.kampanyaAdi} · {teklif.teklifKur} Kur</p></button>)}</div></div>
                       {secilenTeklif && <div className="p-5"><div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-lg font-bold text-gray-900">{secilenTeklif.adSoyad}</h3><p className="text-sm text-gray-500">{secilenTeklif.sonEgitim} · Son kur: {secilenTeklif.sonKur} · {secilenTeklif.telefon}</p></div><Badge variant="outline">{secilenTeklif.kampanyaAdi}</Badge></div>
-                        <div className="mb-5 grid gap-4 md:grid-cols-2">{[secilenTeklif.teklif1, secilenTeklif.teklif2].map((offer, i) => <div key={offer.id} className={`rounded-xl border p-4 ${i === 0 ? "border-[#F26207]/30 bg-orange-50/40" : "border-blue-200 bg-blue-50/40"}`}><p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">{i + 1}. alternatif</p><p className="text-sm font-semibold text-gray-900">{offer.odemeTipiText}</p><p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(offer.ozelFiyat)}</p><p className="mt-1 text-sm text-gray-600">{odemeDetayi(offer)}</p><p className="mt-3 border-t border-gray-200 pt-3 text-xs text-gray-500">{offer.kurSayisi} Kur · {offer.dersSaati} ders saati · {offer.indirimYuzdesi}% kampanya avantajı</p></div>)}</div>
+                        <div className="mb-5 grid gap-4 md:grid-cols-2">{[secilenTeklif.teklif1, secilenTeklif.teklif2].map((offer, i) => (
+                          <div key={offer.id} className={`rounded-xl border p-4 ${i === 0 ? "border-[#F26207]/30 bg-orange-50/40" : "border-blue-200 bg-blue-50/40"}`}>
+                            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">{i + 1}. alternatif</p>
+                            <p className="text-sm font-semibold text-gray-900">{offer.odemeTipiText}</p>
+                            <div className="mt-2 space-y-1 text-xs text-gray-600">
+                              <div className="flex justify-between"><span>Liste fiyatı</span><span>{formatCurrency(offer.listeFiyati)}</span></div>
+                              <div className="flex justify-between text-emerald-700"><span>Kampanya indirimi</span><span>-{formatCurrency(offer.indirimTutari)} (%{offer.indirimYuzdesi})</span></div>
+                              {offer.hediyeIndirimi > 0 && (<>
+                                {offer.hediyeler.filter((h) => offer.hediyeEdildi?.[h.isim] && h.fiyat > 0).map((h) => (
+                                  <div key={h.isim} className="flex justify-between text-amber-700"><span>🎁 {h.isim}</span><span>HEDİYE</span></div>
+                                ))}
+                                <div className="flex justify-between font-medium text-amber-700"><span>Hediye indirimi</span><span>-{formatCurrency(offer.hediyeIndirimi)}</span></div>
+                              </>)}
+                            </div>
+                            <p className="mt-3 text-2xl font-bold text-gray-900">{formatCurrency(offer.ozelFiyat)}</p>
+                            <p className="mt-1 text-sm text-gray-600">{odemeDetayi(offer)}</p>
+                            <p className="mt-3 border-t border-gray-200 pt-3 text-xs text-gray-500">{offer.kurSayisi} Kur · {offer.dersSaati} ders saati</p>
+                          </div>
+                        ))}</div>
                         <div className="rounded-xl border border-green-200 bg-green-50/50 p-4"><div className="mb-2 flex items-center gap-2 text-sm font-semibold text-green-800"><MessageCircle className="h-4 w-4" /> WhatsApp mesajı</div><pre className="max-h-52 overflow-y-auto whitespace-pre-wrap font-sans text-sm leading-6 text-gray-700">{secilenTeklif.mesaj}</pre></div>
                       </div>}
                     </div>

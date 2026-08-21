@@ -176,43 +176,17 @@ const topluTeklifSatirSchema = z.object({
 const topluGonderimOlusturSchema = z.object({
   baslik: z.string().trim().min(1).max(160),
   subeId: z.number().int().positive(),
+  tumHediyelerUcretsiz: z.boolean().optional().default(false),
   teklifler: z.array(topluTeklifSatirSchema).min(1).max(1000),
 });
 
-function topluPara(tutar: number): string {
-  return `${Math.round(tutar).toLocaleString("tr-TR")} TL`;
-}
-
-function topluOdemeDetayi(teklif: any): string {
-  if (teklif.form.odemeTipi === "nakit") return `${teklif.odemeTipiText} · ${topluPara(teklif.ozelFiyat)}`;
-  const pesinat = teklif.pesinat > 0 ? `${topluPara(teklif.pesinat)} peşinat + ` : "";
-  return `${teklif.odemeTipiText} · ${pesinat}${teklif.form.taksitSayisi} × ${topluPara(teklif.aylikOdeme)}`;
-}
+import { topluMesajOlustur, topluOdemeDetayi, topluPara } from "./toplu-mesaj-utils";
 
 function topluOdemeEtiketi(odeme: { odemeTipi: string; taksitSayisi: number }): string {
   if (odeme.odemeTipi === "nakit") return "Nakit";
   return `${odeme.odemeTipi === "kredi-karti" ? "Kredi Kartı" : "Senet"} - ${odeme.taksitSayisi} Taksit`;
 }
 
-function topluMesajOlustur(satir: any, teklif1: any, teklif2: any, subeAdi: string, user: any): string {
-  const bitis = new Date();
-  bitis.setDate(bitis.getDate() + teklif1.form.gecerlilikGunu);
-  const tarih = bitis.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const teklifSatiri = (baslik: string, teklif: any) => [
-    `*${baslik}*`,
-    `Eğitim: ${teklif.egitimTipi}`,
-    `Kur: ${teklif.kurSayisi} / ${teklif.dersSaati} Ders Saati`,
-    `Toplam: ${topluPara(teklif.ozelFiyat)}`,
-    `Ödeme: ${topluOdemeDetayi(teklif)}`,
-  ].join("\n");
-  return [
-    `Merhaba ${satir.ogrenciAdi},`, "",
-    `English Time ${subeAdi} olarak mevcut eğitim durumunuza göre iki farklı teklif seçeneği hazırladık.`, "",
-    teklifSatiri("1. TEKLİF", teklif1), "", teklifSatiri("2. TEKLİF", teklif2), "",
-    `Teklif geçerlilik süresi: ${tarih}`, "",
-    `${user?.adi || ""} ${user?.soyadi || ""}`.trim(), "Eğitim Danışmanı", `English Time ${subeAdi}`, user?.telefon || "",
-  ].filter((line) => line !== "").join("\n");
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Oturum yönetimi kurulumu
@@ -1116,8 +1090,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .returning();
 
         const olusturmaTarihi = new Date();
+        const tumHediyelerUcretsiz = parsed.data.tumHediyelerUcretsiz ?? false;
         const kayitlar = teklifler.map((teklif, index) => {
           const kampanya = { ...(kampanyalar[index] as any), hediyeler: (kampanyalar[index] as any).hediyeler || [] };
+          const hediyeEdildi: Record<string, boolean> = tumHediyelerUcretsiz
+            ? Object.fromEntries(kampanya.hediyeler.map((h: any) => [h.isim, true]))
+            : {};
           const teklifOlustur = (odeme: any, title: string) => computeOffer({
             egitimTipi: kampanya.egitimTipi,
             kampanyaId: String(kampanya.id),
@@ -1130,7 +1108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mudurIndirimTipi: "yuzde" as const,
             mudurIndirimDegeri: 0,
             gecerlilikGunu: 2,
-          }, kampanya, { id: `batch-${gonderim.id}-${index + 1}-${title}`, title, isRecommended: title === "Teklif 1" });
+          }, kampanya, { id: `batch-${gonderim.id}-${index + 1}-${title}`, title, isRecommended: title === "Teklif 1", hediyeEdildi });
           const teklif1 = teklifOlustur(teklif.odeme1, "Teklif 1");
           const teklif2 = teklifOlustur(teklif.odeme2, "Teklif 2");
           const sonGecerlilik = new Date(olusturmaTarihi);
@@ -1139,6 +1117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             kampanya,
             teklif1,
             teklif2,
+            tumHediyelerUcretsiz,
             danisman: { adi: user.adi || "", soyadi: user.soyadi || "", telefon: user.telefon || "" },
             sube: { subeAdi: sube.subeAdi, subeAdresi: sube.subeAdresi || "", subeTelefon: sube.subeTelefon || "" },
             pdf: {

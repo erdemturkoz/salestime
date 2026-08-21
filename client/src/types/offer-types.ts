@@ -39,6 +39,8 @@ export interface OfferResult {
   kampanyaliFiyat: number;
   kitapUcreti: number;
   hediyeler: Array<{ isim: string; fiyat: number }>;
+  hediyelerToplam: number;
+  hediyeIndirimi: number;
   genelToplam: number;
   mudurIndirimTutari: number;
   ozelFiyat: number;

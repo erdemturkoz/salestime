@@ -126,15 +126,15 @@ export function computeOffer(
   const hediyeEdildi = extra.hediyeEdildi ?? {};
 
   // Hediye toggle sonrası genel toplam düzeltmesi
+  const hediyeIndirimi = kampanya.hediyeler.reduce(
+    (toplam, h) => (hediyeEdildi[h.isim] && h.fiyat > 0 ? toplam + h.fiyat : toplam),
+    0
+  );
   let duzeltilmisGenelToplam = genelToplam;
   if (kitapHediyeEdildi && kitapF > 0) {
     duzeltilmisGenelToplam -= kitapF;
   }
-  kampanya.hediyeler.forEach((h) => {
-    if (hediyeEdildi[h.isim] && h.fiyat > 0) {
-      duzeltilmisGenelToplam -= h.fiyat;
-    }
-  });
+  duzeltilmisGenelToplam -= hediyeIndirimi;
   let duzeltilmisOzelFiyat =
     mudurIndirimTutari > 0
       ? duzeltilmisGenelToplam - mudurIndirimTutari
@@ -160,6 +160,8 @@ export function computeOffer(
     kampanyaliFiyat: kampanyaFiyat,
     kitapUcreti: kitapF,
     hediyeler: kampanya.hediyeler,
+    hediyelerToplam: Math.round(hediyelerToplam),
+    hediyeIndirimi: Math.round(hediyeIndirimi),
     genelToplam: duzeltilmisGenelToplam,
     mudurIndirimTutari,
     ozelFiyat: duzeltilmisOzelFiyat,

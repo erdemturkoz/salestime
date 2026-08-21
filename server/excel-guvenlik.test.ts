@@ -50,8 +50,11 @@ test("indirilen iki sayfalı toplu teklif şablonu tekrar yüklenebilir", async 
     maxSenetTaksit: 2,
     hediyeler: [],
   };
-  const file = await fileFromWorkbook(topluTeklifSablonuOlustur({ kampanyalar: [kampanya] }));
-  const satirlar = await topluTeklifExceliniOku(file, [kampanya]);
+  const egitimTipleri = ["Genel İngilizce"];
+  // Şablona egitimTipleri geçilmeli; böylece örnek "Son Eğitim" hücresi
+  // boş kalmaz ve "Son Eğitim zorunludur" doğrulamasını geçer.
+  const file = await fileFromWorkbook(topluTeklifSablonuOlustur({ kampanyalar: [kampanya], egitimTipleri }));
+  const satirlar = await topluTeklifExceliniOku(file, [kampanya], egitimTipleri);
   assert.equal(satirlar.length, 1);
   assert.equal(satirlar[0].durum, "hazir");
 });
