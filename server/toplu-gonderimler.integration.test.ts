@@ -258,3 +258,78 @@ test("heartbeat geçerli lease'i yeniler ve claim sabit idempotency anahtarı d�
   assert.ok(yenilenmis.claimedAt);
   assert.ok(yenilenmis.claimedAt!.getTime() > oncekiLease.getTime());
 });
+
+test("batch durdurulduğunda islemde kayıtların claim/lease bilgisi temizlenir", async (t) => {
+  const claimToken = randomUUID();
+  const fixture = await seedBatch(t, [
+    { durum: "islemde", claimToken, claimedAt: new Date() },
+    { durum: "bekliyor" },
+  ]);
+
+  const durdur = await api(fixture.token, `/api/toplu-gonderimler/${fixture.gonderim.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action: "durdur" }),
+  });
+  assert.equal(durdur.response.status, 200);
+
+  const satirlar = await db
+    .select()
+    .from(topluTeklifler)
+    .where(eq(topluTeklifler.gonderimId, fixture.gonderim.id));
+
+  // Tüm kayıtlar bekliyor'a dönmüş olmalı; claim token/claimedAt temizlenmiş olmalı
+  for (const satir of satirlar) {
+    assert.equal(satir.durum, "bekliyor");
+    assert.equal(satir.claimToken, null);
+    assert.equal(satir.claimedAt, null);
+  }
+});
+
+test("durdurulan batch için heartbeat 409 döner (session/Bearer yolu)", async (t) => {
+  const claimToken = randomUUID();
+  const fixture = await seedBatch(t, [
+    { durum: "islemde", claimToken, claimedAt: new Date() },
+  ]);
+
+  // Batch'i durdur — bu aynı zamanda leasi temizler
+  await api(fixture.token, `/api/toplu-gonderimler/${fixture.gonderim.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action: "durdur" }),
+  });
+
+  // Lease temizlenmiş olduğu için, heartbeat artık 409 döner
+  const heartbeat = await api(
+    fixture.token,
+    `/api/toplu-teklifler/${fixture.satirlar[0].id}/kuyruk/heartbeat`,
+    { method: "PATCH", body: JSON.stringify({ claimToken }) },
+  );
+  assert.equal(heartbeat.response.status, 409);
+});
+
+test("durdurulan batch için sonuç bildirimi 409 döner (session/Bearer yolu)", async (t) => {
+  const claimToken = randomUUID();
+  const fixture = await seedBatch(t, [
+    { durum: "islemde", claimToken, claimedAt: new Date() },
+  ]);
+
+  // Batch'i durdur
+  await api(fixture.token, `/api/toplu-gonderimler/${fixture.gonderim.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action: "durdur" }),
+  });
+
+  // Stop sonrası sonuç bildirimi kabul edilmemeli
+  const sonuc = await api(
+    fixture.token,
+    `/api/toplu-teklifler/${fixture.satirlar[0].id}/sonuc`,
+    { method: "PATCH", body: JSON.stringify({ durum: "gonderildi", claimToken }) },
+  );
+  assert.equal(sonuc.response.status, 409);
+
+  // Kayıt durumu islemde değil bekliyor olmalı (stop lease temizledi)
+  const [satir] = await db
+    .select()
+    .from(topluTeklifler)
+    .where(eq(topluTeklifler.id, fixture.satirlar[0].id));
+  assert.equal(satir.durum, "bekliyor");
+});

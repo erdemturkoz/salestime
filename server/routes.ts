@@ -1421,6 +1421,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isNull(topluEklentiEslestirmeleri.usedAt),
             isNull(topluEklentiEslestirmeleri.revokedAt),
           ));
+          // Stop anında aktif lease'leri geçersizleştir: bekliyor'a alınan kayıtlar
+          // sonradan mesaj üretemez (claim token ve claimedAt temizlenir).
+          await tx
+            .update(topluTeklifler)
+            .set({ durum: "bekliyor", claimToken: null, claimedAt: null, updatedAt: now })
+            .where(and(eq(topluTeklifler.gonderimId, id), eq(topluTeklifler.durum, "islemde")));
         }
         return { updated };
       });
@@ -1510,6 +1516,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (grant && !await eklentiAktifGonderimMi(grant)) {
         return res.status(409).json({ error: "Gönderim artık aktif değil; eklenti erişimi kesildi." });
       }
+      // Session/Bearer yolunda da batch durumu kontrol edilir (grant yoluyla eşdeğer stop koruması).
+      if (!grant) {
+        const [hbGonderim] = await db.select({ durum: topluGonderimler.durum })
+          .from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId)).limit(1);
+        if (!hbGonderim || hbGonderim.durum !== "aktif") {
+          return res.status(409).json({ error: "Gönderim artık aktif değil." });
+        }
+      }
       const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
       const [updated] = await db
         .update(topluTeklifler)
@@ -1550,6 +1564,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (grant && !await eklentiAktifGonderimMi(grant)) {
         return res.status(409).json({ error: "Gönderim artık aktif değil; eklenti erişimi kesildi." });
+      }
+      // Session/Bearer yolunda da batch durumu kontrol edilir (grant yoluyla eşdeğer stop koruması).
+      if (!grant) {
+        const [sonucGonderim] = await db.select({ durum: topluGonderimler.durum })
+          .from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId)).limit(1);
+        if (!sonucGonderim || sonucGonderim.durum !== "aktif") {
+          return res.status(409).json({ error: "Gönderim durduruldu; sonuç kabul edilemez." });
+        }
       }
       if (["gonderildi", "hata"].includes(teklif.durum)) {
         return res.json(grant ? eklentiSonucVerisi(teklif) : teklif); // idempotent tekrar bildirimi
