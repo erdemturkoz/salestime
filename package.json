@@ -113,5 +113,9 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "packageManager": "pnpm@10.26.1",
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
