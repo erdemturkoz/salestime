@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
+import { useEgitimTipleri } from "@/hooks/use-egitim-tipleri";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/utils";
 import { computeOffer } from "@/hooks/useOfferCalculator";
@@ -111,6 +112,8 @@ export default function TopluTekliflerPage() {
   const { user } = useAuth();
   const { kampanyalar, getKampanyalarBySubeId } = useAppContext();
   const { toast } = useToast();
+  const { egitimTipleri: egitimTipleriKayitlari } = useEgitimTipleri();
+  const egitimTipleriAdlari = egitimTipleriKayitlari.map((t: any) => t.egitimTipi as string);
   const roller = ((user as any)?.roller || []) as any[];
   const [aktifSubeId, setAktifSubeId] = useState<number | null>(roller[0]?.subeId || null);
   const [sekme, setSekme] = useState<Sekme>("yeni");
@@ -312,7 +315,7 @@ export default function TopluTekliflerPage() {
       return;
     }
     try {
-      const sonuc = await topluTeklifExceliniOku(file, kampanyalar as any[]);
+      const sonuc = await topluTeklifExceliniOku(file, kampanyalar as any[], egitimTipleriAdlari);
       setSatirlar(sonuc); setSecilenId(null);
       toast({ title: "Excel doğrulandı", description: `${sonuc.length} satır okundu; yalnızca hazır satırlar teklif kapsamına alınacak.` });
     } catch (error: any) {
@@ -334,6 +337,7 @@ export default function TopluTekliflerPage() {
       await topluTeklifSablonuIndir({
         subeAdi,
         kampanyalar: Array.isArray(tazeKampanyalar) ? tazeKampanyalar : [],
+        egitimTipleri: egitimTipleriAdlari,
       });
     } catch (error: any) {
       toast({ title: "Şablon oluşturulamadı", description: error.message || "Güncel kampanyalar alınamadı.", variant: "destructive" });
