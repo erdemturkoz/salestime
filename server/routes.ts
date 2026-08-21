@@ -18,7 +18,8 @@ import {
   topluGonderimler,
   topluTeklifler,
   topluEklentiEslestirmeleri,
-  topluEklentiGrantleri
+  topluEklentiGrantleri,
+  TOPLU_TEKLIF_MAX_DENEME_SAYISI,
 } from "@shared/schema";
 import { db } from "./db";
 import { z } from "zod";
@@ -157,9 +158,14 @@ function sadeceEklentiGrantIle(req: Request, res: Response, next: NextFunction) 
   return res.status(405).json({ error: "Bu GET endpoint'i yalnızca Chrome eklentisi grant'i veya Bearer token ile kullanılabilir. Cookie oturumu için POST kullanın." });
 }
 
-async function eklentiAktifGonderimMi(grant: EklentiGrantBaglami): Promise<boolean> {
-  const [gonderim] = await db.select().from(topluGonderimler).where(eq(topluGonderimler.id, grant.gonderimId)).limit(1);
-  return !!gonderim && gonderim.subeId === grant.subeId && gonderim.durum === "aktif";
+function topluKuyrukLeaseIcinGonderimDurumuUygunMu(durum: string): boolean {
+  // Pause is a drain state: an already claimed item may finish, but no new
+  // item can be claimed. Stop is a hard barrier and cancels all leases.
+  return durum === "aktif" || durum === "duraklatildi";
+}
+
+function topluKuyrukClaimIcinGonderimDurumuUygunMu(durum: string): boolean {
+  return durum === "aktif";
 }
 
 const topluTeklifSatirSchema = z.object({
@@ -186,7 +192,6 @@ function topluOdemeEtiketi(odeme: { odemeTipi: string; taksitSayisi: number }): 
   if (odeme.odemeTipi === "nakit") return "Nakit";
   return `${odeme.odemeTipi === "kredi-karti" ? "Kredi Kartı" : "Senet"} - ${odeme.taksitSayisi} Taksit`;
 }
-
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Oturum yönetimi kurulumu
@@ -1227,18 +1232,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = Number(req.params.id);
       if (!Number.isInteger(id)) return res.status(400).json({ error: "Geçersiz gönderim kaydı." });
       const user = getSessionUser(req) as any;
-      const [gonderim] = await db.select().from(topluGonderimler).where(eq(topluGonderimler.id, id)).limit(1);
-      if (!gonderim) return res.status(404).json({ error: "Gönderim bulunamadı." });
-      if (!topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) {
-        return res.status(403).json({ error: "Bu gönderim için eklenti bağlama yetkiniz yok." });
-      }
-      if (["durduruldu", "tamamlandi"].includes(gonderim.durum)) {
-        return res.status(409).json({ error: "Durdurulmuş veya tamamlanmış gönderim için eklenti bağlanamaz." });
-      }
-
       const pairingCode = eklentiGizliDegerUret();
       const expiresAt = new Date(Date.now() + EKLENTI_ESLESTIRME_SURESI_MS);
-      await db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT id FROM ${topluGonderimler} WHERE ${topluGonderimler.id} = ${id} FOR UPDATE`);
+        const [gonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, id));
+        if (!gonderim) return { error: "Gönderim bulunamadı.", status: 404 };
+        if (!topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) {
+          return { error: "Bu gönderim için eklenti bağlama yetkiniz yok.", status: 403 };
+        }
+        if (["durduruldu", "tamamlandi"].includes(gonderim.durum)) {
+          return { error: "Durdurulmuş veya tamamlanmış gönderim için eklenti bağlanamaz.", status: 409 };
+        }
         // Aynı batch için önceki, kullanılmamış eşleştirme kodları geçersizdir.
         await tx.update(topluEklentiEslestirmeleri)
           .set({ revokedAt: new Date() })
@@ -1254,11 +1259,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           olusturanId: Number(user.id),
           expiresAt,
         });
+        return { gonderim };
       });
+      if ("error" in result) return res.status(result.status ?? 500).json({ error: result.error });
       res.status(201).json({
         pairingCode,
-        gonderimId: gonderim.id,
-        subeId: gonderim.subeId,
+        gonderimId: result.gonderim.id,
+        subeId: result.gonderim.subeId,
         expiresAt: expiresAt.toISOString(),
       });
     } catch (error) {
@@ -1284,6 +1291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .limit(1);
         if (!pairing || pairing.usedAt || pairing.revokedAt || pairing.expiresAt <= now) return { error: "invalid", status: 401 };
 
+        await tx.execute(sql`SELECT id FROM ${topluGonderimler} WHERE ${topluGonderimler.id} = ${pairing.gonderimId} FOR UPDATE`);
         const [gonderim] = await tx.select().from(topluGonderimler)
           .where(eq(topluGonderimler.id, pairing.gonderimId))
           .limit(1);
@@ -1391,6 +1399,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .returning();
         if (action.data === "durdur") {
           const now = new Date();
+          // "Durdur" is a hard stop: old provider tokens cannot report a
+          // result after this transaction commits.
+          await tx.update(topluTeklifler).set({
+            durum: "bekliyor",
+            claimToken: null,
+            claimedAt: null,
+            updatedAt: now,
+          }).where(and(
+            eq(topluTeklifler.gonderimId, id),
+            eq(topluTeklifler.durum, "islemde"),
+          ));
           await tx.update(topluEklentiGrantleri).set({ revokedAt: now }).where(and(
             eq(topluEklentiGrantleri.gonderimId, id),
             isNull(topluEklentiGrantleri.revokedAt),
@@ -1400,12 +1419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isNull(topluEklentiEslestirmeleri.usedAt),
             isNull(topluEklentiEslestirmeleri.revokedAt),
           ));
-          // Stop anında aktif lease'leri geçersizleştir: bekliyor'a alınan kayıtlar
-          // sonradan mesaj üretemez (claim token ve claimedAt temizlenir).
-          await tx
-            .update(topluTeklifler)
-            .set({ durum: "bekliyor", claimToken: null, claimedAt: null, updatedAt: now })
-            .where(and(eq(topluTeklifler.gonderimId, id), eq(topluTeklifler.durum, "islemde")));
         }
         return { updated };
       });
@@ -1434,7 +1447,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!grant && !topluTeklifSubeErisimiVarMi(user, gonderim.subeId)) {
           return { error: "Bu gönderime erişim yetkiniz yok.", status: 403 };
         }
-        if (gonderim.durum !== "aktif") return { error: "Gönderim kuyruğu henüz başlatılmadı veya duraklatıldı.", status: 409 };
+        if (!topluKuyrukClaimIcinGonderimDurumuUygunMu(gonderim.durum)) {
+          return { error: "Gönderim kuyruğu aktif değil; yeni kayıt alınamaz.", status: 409 };
+        }
         const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
         await tx
           .update(topluTeklifler)
@@ -1443,7 +1458,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [aday] = await tx
           .select()
           .from(topluTeklifler)
-          .where(and(eq(topluTeklifler.gonderimId, id), eq(topluTeklifler.durum, "bekliyor")))
+          .where(and(
+            eq(topluTeklifler.gonderimId, id),
+            eq(topluTeklifler.durum, "bekliyor"),
+            lt(topluTeklifler.denemeSayisi, TOPLU_TEKLIF_MAX_DENEME_SAYISI),
+          ))
           .limit(1);
         if (!aday) return { empty: true };
         const claimToken = randomUUID();
@@ -1484,37 +1503,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Number.isInteger(id) || !parsed.success) return res.status(400).json({ error: "Geçersiz lease yenileme isteği." });
       const user = getSessionUser(req) as any;
       const grant = eklentiGrantBaglami(req);
-      const [teklif] = await db.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
-      if (!teklif) return res.status(404).json({ error: "Teklif bulunamadı." });
-      if (grant && (grant.gonderimId !== teklif.gonderimId || grant.subeId !== teklif.subeId)) {
-        return res.status(403).json({ error: "Eklenti izni bu teklif veya şube için geçerli değil." });
-      }
-      if (!grant && !topluTeklifSubeErisimiVarMi(user, teklif.subeId)) {
-        return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
-      }
-      if (grant && !await eklentiAktifGonderimMi(grant)) {
-        return res.status(409).json({ error: "Gönderim artık aktif değil; eklenti erişimi kesildi." });
-      }
-      // Session/Bearer yolunda da batch durumu kontrol edilir (grant yoluyla eşdeğer stop koruması).
-      if (!grant) {
-        const [hbGonderim] = await db.select({ durum: topluGonderimler.durum })
-          .from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId)).limit(1);
-        if (!hbGonderim || hbGonderim.durum !== "aktif") {
-          return res.status(409).json({ error: "Gönderim artık aktif değil." });
-        }
-      }
       const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
-      const [updated] = await db
-        .update(topluTeklifler)
-        .set({ claimedAt: new Date(), updatedAt: new Date() })
-        .where(and(
-          eq(topluTeklifler.id, id),
-          eq(topluTeklifler.durum, "islemde"),
-          eq(topluTeklifler.claimToken, parsed.data.claimToken),
-          gt(topluTeklifler.claimedAt, leaseCutoff),
-        ))
-        .returning();
-      if (!updated) return res.status(409).json({ error: "Lease geçersiz veya başka bir sağlayıcıya devredildi." });
+      const result = await db.transaction(async (tx) => {
+        const [teklif] = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
+        if (!teklif) return { error: "Teklif bulunamadı.", status: 404 };
+        if (grant && (grant.gonderimId !== teklif.gonderimId || grant.subeId !== teklif.subeId)) {
+          return { error: "Eklenti izni bu teklif veya şube için geçerli değil.", status: 403 };
+        }
+        if (!grant && !topluTeklifSubeErisimiVarMi(user, teklif.subeId)) {
+          return { error: "Bu teklife erişim yetkiniz yok.", status: 403 };
+        }
+        await tx.execute(sql`SELECT id FROM ${topluGonderimler} WHERE ${topluGonderimler.id} = ${teklif.gonderimId} FOR UPDATE`);
+        const [gonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId));
+        if (!gonderim || gonderim.subeId !== teklif.subeId) {
+          return { error: "Gönderim ve teklif şubesi uyuşmuyor.", status: 409 };
+        }
+        if (!topluKuyrukLeaseIcinGonderimDurumuUygunMu(gonderim.durum)) {
+          return { error: "Gönderim artık lease kabul etmiyor.", status: 409 };
+        }
+        const [updated] = await tx
+          .update(topluTeklifler)
+          .set({ claimedAt: new Date(), updatedAt: new Date() })
+          .where(and(
+            eq(topluTeklifler.id, id),
+            eq(topluTeklifler.durum, "islemde"),
+            eq(topluTeklifler.claimToken, parsed.data.claimToken),
+            gt(topluTeklifler.claimedAt, leaseCutoff),
+          ))
+          .returning();
+        if (!updated) return { error: "Lease geçersiz veya başka bir sağlayıcıya devredildi.", status: 409 };
+        return { updated };
+      });
+      if ("error" in result) return res.status(result.status ?? 500).json({ error: result.error });
       res.json({ ok: true, leaseExpiresAt: new Date(Date.now() + TOPLU_TEKLIF_LEASE_MS).toISOString() });
     } catch (error) {
       console.error("Kuyruk heartbeat hatası:", error);
@@ -1533,36 +1553,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Number.isInteger(id) || !parsed.success) return res.status(400).json({ error: "Geçersiz sonuç bildirimi." });
       const user = getSessionUser(req) as any;
       const grant = eklentiGrantBaglami(req);
-      const [teklif] = await db.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
-      if (!teklif) return res.status(404).json({ error: "Teklif bulunamadı." });
-      if (grant && (grant.gonderimId !== teklif.gonderimId || grant.subeId !== teklif.subeId)) {
-        return res.status(403).json({ error: "Eklenti izni bu teklif veya şube için geçerli değil." });
-      }
-      if (!grant && !topluTeklifSubeErisimiVarMi(user, teklif.subeId)) {
-        return res.status(403).json({ error: "Bu teklife erişim yetkiniz yok." });
-      }
-      if (grant && !await eklentiAktifGonderimMi(grant)) {
-        return res.status(409).json({ error: "Gönderim artık aktif değil; eklenti erişimi kesildi." });
-      }
-      // Session/Bearer yolunda da batch durumu kontrol edilir (grant yoluyla eşdeğer stop koruması).
-      if (!grant) {
-        const [sonucGonderim] = await db.select({ durum: topluGonderimler.durum })
-          .from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId)).limit(1);
-        if (!sonucGonderim || sonucGonderim.durum !== "aktif") {
-          return res.status(409).json({ error: "Gönderim durduruldu; sonuç kabul edilemez." });
-        }
-      }
-      if (["gonderildi", "hata"].includes(teklif.durum)) {
-        return res.json(grant ? eklentiSonucVerisi(teklif) : teklif); // idempotent tekrar bildirimi
-      }
-
       const updated = await db.transaction(async (tx) => {
-        // Aynı batch'in sayaç ve terminal durumu bu kilit altında seri güncellenir.
+        const [teklif] = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
+        if (!teklif) return { error: "Teklif bulunamadı.", status: 404 };
+        if (grant && (grant.gonderimId !== teklif.gonderimId || grant.subeId !== teklif.subeId)) {
+          return { error: "Eklenti izni bu teklif veya şube için geçerli değil.", status: 403 };
+        }
+        if (!grant && !topluTeklifSubeErisimiVarMi(user, teklif.subeId)) {
+          return { error: "Bu teklife erişim yetkiniz yok.", status: 403 };
+        }
+        // The batch lock makes stop-vs-result a single linearized state
+        // transition for cookies, Bearer tokens, and extension grants alike.
         await tx.execute(sql`SELECT id FROM ${topluGonderimler} WHERE ${topluGonderimler.id} = ${teklif.gonderimId} FOR UPDATE`);
         const [kilitliGonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId));
         const [guncelTeklif] = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
-        if (!guncelTeklif || !kilitliGonderim) return null;
-        if (["gonderildi", "hata"].includes(guncelTeklif.durum)) return guncelTeklif;
+        if (!guncelTeklif || !kilitliGonderim || kilitliGonderim.subeId !== guncelTeklif.subeId) {
+          return { error: "Gönderim ve teklif şubesi uyuşmuyor.", status: 409 };
+        }
+        if (["gonderildi", "hata"].includes(guncelTeklif.durum)) {
+          return { terminal: guncelTeklif };
+        }
+        if (!topluKuyrukLeaseIcinGonderimDurumuUygunMu(kilitliGonderim.durum)) {
+          return { error: "Gönderim artık sonuç kabul etmiyor.", status: 409 };
+        }
         const leaseCutoff = new Date(Date.now() - TOPLU_TEKLIF_LEASE_MS);
 
         const [sonuc] = await tx
@@ -1582,7 +1595,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gt(topluTeklifler.claimedAt, leaseCutoff),
           ))
           .returning();
-        if (!sonuc) return null;
+        if (!sonuc) {
+          return { error: "Kuyruk kaydının işlem yetkisi geçersiz veya süresi dolmuş.", status: 409 };
+        }
 
         const tumTeklifler = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.gonderimId, teklif.gonderimId));
         const gonderildi = tumTeklifler.filter((t) => t.durum === "gonderildi").length;
@@ -1603,10 +1618,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedAt: new Date(),
           })
           .where(eq(topluGonderimler.id, teklif.gonderimId));
-        return sonuc;
+        return { updated: sonuc };
       });
-      if (!updated) return res.status(409).json({ error: "Kuyruk kaydının işlem yetkisi geçersiz veya süresi dolmuş." });
-      res.json(grant ? eklentiSonucVerisi(updated) : updated);
+      if ("error" in updated) return res.status(updated.status ?? 500).json({ error: updated.error });
+      const result = "terminal" in updated ? updated.terminal : updated.updated;
+      res.json(grant ? eklentiSonucVerisi(result) : result);
     } catch (error) {
       console.error("Toplu teklif sonuç hatası:", error);
       res.status(500).json({ error: "Gönderim sonucu kaydedilemedi." });
@@ -1615,7 +1631,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // WhatsApp sayfasını açmak gönderim kanıtı değildir. Önce manuel onay bekleyen
   // duruma geçilir; danışman WhatsApp'tan döndüğünde sonucu ayrıca kaydeder.
-  // Duraklatma/durdurma mevcut lease'leri iptal etmez; yalnızca yeni claim'leri engeller.
+  // Duraklatma mevcut lease'lerin tamamlanmasına izin verir. Durdurma ise
+  // sağlayıcı lease'lerini iptal eden hard stop'tur.
   app.post("/api/toplu-teklifler/:id/manuel-gonderim", isAuthenticated, async (req, res) => {
     try {
       const id = Number(req.params.id);
@@ -1630,9 +1647,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [gonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId));
         const [guncelTeklif] = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
         if (!gonderim || !guncelTeklif) return null;
+        if (["durduruldu", "tamamlandi"].includes(gonderim.durum)) {
+          return { error: "Durdurulmuş veya tamamlanmış gönderim için manuel gönderim başlatılamaz.", status: 409 };
+        }
         if (guncelTeklif.durum === "islemde") return { error: "Bu teklif şu anda sağlayıcı tarafından işleniyor.", status: 409 };
         if (guncelTeklif.durum === "manuel_bekliyor") return { teklif: guncelTeklif, manualPending: true };
         if (guncelTeklif.durum === "gonderildi") return { teklif: guncelTeklif, alreadyFinal: true };
+        if (gonderim.durum !== "aktif") {
+          return { error: "Duraklatılmış gönderim için yeni manuel gönderim başlatılamaz.", status: 409 };
+        }
 
         const [manuelTeklif] = await tx
           .update(topluTeklifler)
@@ -1689,6 +1712,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [gonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, teklif.gonderimId));
         const [guncelTeklif] = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.id, id));
         if (!gonderim || !guncelTeklif) return null;
+        if (["durduruldu", "tamamlandi"].includes(gonderim.durum)) {
+          return { error: "Durdurulmuş veya tamamlanmış gönderim manuel sonuç kabul etmez.", status: 409 };
+        }
         if (guncelTeklif.durum !== "manuel_bekliyor") return { error: "Bu teklif manuel gönderim onayı beklemiyor.", status: 409 };
         const yeniDurum = action.data === "onayla" ? "gonderildi" : "bekliyor";
         const [updated] = await tx
@@ -1731,7 +1757,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const yeniden = await tx
           .update(topluTeklifler)
           .set({ durum: "bekliyor", hataMesaji: null, claimToken: null, claimedAt: null, updatedAt: new Date() })
-          .where(and(eq(topluTeklifler.gonderimId, id), eq(topluTeklifler.durum, "hata")))
+          .where(and(
+            eq(topluTeklifler.gonderimId, id),
+            eq(topluTeklifler.durum, "hata"),
+            lt(topluTeklifler.denemeSayisi, TOPLU_TEKLIF_MAX_DENEME_SAYISI),
+          ))
           .returning();
         const tumTeklifler = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.gonderimId, id));
         const gonderildi = tumTeklifler.filter((t) => t.durum === "gonderildi").length;

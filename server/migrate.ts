@@ -17,6 +17,8 @@ const MIGRATIONS = [
   "migrations/0000_toplu_teklifler.sql",
   "migrations/0001_whatsapp_gonderimleri_yetki.sql",
   "migrations/0002_kullanici_auth_version.sql",
+  "migrations/0003_toplu_kuyruk_butunlugu.sql",
+  "migrations/0004_sessions.sql",
 ];
 
 async function main(): Promise<void> {

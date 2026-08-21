@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS "toplu_gonderimler" (
   "created_at" timestamp DEFAULT now(),
   "updated_at" timestamp DEFAULT now(),
   "started_at" timestamp,
-  "completed_at" timestamp
+  "completed_at" timestamp,
+  CONSTRAINT "toplu_gonderimler_durum_check"
+    CHECK ("durum" IN ('hazir', 'aktif', 'duraklatildi', 'durduruldu', 'tamamlandi'))
 );
 
 CREATE TABLE IF NOT EXISTS "toplu_teklifler" (
@@ -45,7 +47,17 @@ CREATE TABLE IF NOT EXISTS "toplu_teklifler" (
   "claimed_at" timestamp,
   "gonderildi_at" timestamp,
   "created_at" timestamp DEFAULT now(),
-  "updated_at" timestamp DEFAULT now()
+  "updated_at" timestamp DEFAULT now(),
+  CONSTRAINT "toplu_teklifler_durum_check"
+    CHECK ("durum" IN ('bekliyor', 'islemde', 'manuel_bekliyor', 'gonderildi', 'hata')),
+  CONSTRAINT "toplu_teklifler_deneme_sayisi_check"
+    CHECK ("deneme_sayisi" >= 0 AND "deneme_sayisi" <= 3),
+  CONSTRAINT "toplu_teklifler_lease_durum_check"
+    CHECK (
+      ("durum" = 'islemde' AND "claim_token" IS NOT NULL AND "claimed_at" IS NOT NULL)
+      OR
+      ("durum" <> 'islemde' AND "claim_token" IS NULL AND "claimed_at" IS NULL)
+    )
 );
 
 -- Safe for environments where the two tables were previously provisioned
@@ -59,6 +71,28 @@ CREATE INDEX IF NOT EXISTS "toplu_gonderimler_sube_created_idx"
   ON "toplu_gonderimler" ("sube_id", "created_at");
 CREATE INDEX IF NOT EXISTS "toplu_teklifler_batch_status_idx"
   ON "toplu_teklifler" ("gonderim_id", "durum");
+CREATE INDEX IF NOT EXISTS "toplu_teklifler_kuyruk_idx"
+  ON "toplu_teklifler" ("gonderim_id", "durum", "claimed_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "toplu_teklifler_claim_token_unique"
+  ON "toplu_teklifler" ("claim_token")
+  WHERE "claim_token" IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "toplu_gonderimler_id_sube_unique"
+  ON "toplu_gonderimler" ("id", "sube_id");
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'toplu_teklifler_gonderim_sube_fkey'
+      AND conrelid = 'toplu_teklifler'::regclass
+  ) THEN
+    ALTER TABLE "toplu_teklifler"
+      ADD CONSTRAINT "toplu_teklifler_gonderim_sube_fkey"
+      FOREIGN KEY ("gonderim_id", "sube_id")
+      REFERENCES "toplu_gonderimler" ("id", "sube_id")
+      ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- Chrome eklentisi için kullanıcı oturumundan bağımsız, kısa ömürlü
 -- eşleştirme kodları ve hash'lenmiş dar kapsamlı çalışma izinleri.

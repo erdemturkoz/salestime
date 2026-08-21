@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, json, timestamp, varchar, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, json, timestamp, varchar, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -34,6 +34,10 @@ export const Roller = {
   SATIS_DANISMANI: "Satış Danışmanı",
   SISTEM_YONETICISI: "Sistem Yöneticisi"
 } as const;
+
+// A provider may retry a failed delivery, but a stuck provider must not
+// consume the same candidate indefinitely.
+export const TOPLU_TEKLIF_MAX_DENEME_SAYISI = 3;
 
 // Kullanıcı tablosu
 export const kullanicilar = pgTable("kullanicilar", {
@@ -231,7 +235,10 @@ export const topluGonderimler = pgTable("toplu_gonderimler", {
   updatedAt: timestamp("updated_at").defaultNow(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
-});
+}, (table) => ({
+  durumIdx: index("toplu_gonderimler_durum_idx").on(table.durum),
+  idSubeUnique: uniqueIndex("toplu_gonderimler_id_sube_unique").on(table.id, table.subeId),
+}));
 
 export const topluTeklifler = pgTable("toplu_teklifler", {
   id: serial("id").primaryKey(),
@@ -258,7 +265,10 @@ export const topluTeklifler = pgTable("toplu_teklifler", {
   gonderildiAt: timestamp("gonderildi_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  kuyrukIdx: index("toplu_teklifler_kuyruk_idx").on(table.gonderimId, table.durum, table.claimedAt),
+  claimTokenUnique: uniqueIndex("toplu_teklifler_claim_token_unique").on(table.claimToken),
+}));
 
 // Chrome eklentisinin kullanıcı oturumunu görmeden, yalnızca belirli bir
 // gönderim kuyruğuna bağlanması için tek kullanımlık eşleştirme kodları.

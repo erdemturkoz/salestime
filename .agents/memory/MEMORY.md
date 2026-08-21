@@ -2,3 +2,4 @@
 - [Session cookies in preview iframe](session-cookies-iframe.md) — session cookie must be SameSite=None; Secure or login silently fails inside the Replit preview iframe (works in new tab only).
 - [Chrome extension grants](chrome-extension-grants.md) — Pairing is same-origin-only; extension exchange is limited to configured `CHROME_EXTENSION_ORIGIN` and never uses cookie credentials.
 - [WhatsApp attribution migrations](whatsapp-attribution-migrations.md) — historical WhatsApp records must never be matched across branches by display name alone; abort ambiguous migrations.
+- [Bulk delivery lease policy](bulk-delivery-lease-policy.md) — pause drains valid in-flight work; hard stop revokes every delivery path before a result can commit.
