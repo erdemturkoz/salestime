@@ -262,9 +262,18 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
       });
     });
     const mappingEndRow = egitimAdlari.length + 1;
+    // Excel, veri doğrulamasında başka bir sayfaya doğrudan başvuran formülleri
+    // sürüme göre reddedebiliyor veya eski listeyi göstermeye devam edebiliyor.
+    // Eşleştirme tablosunu da adlandırılmış aralık üzerinden kullanmak bu çapraz
+    // sayfa kısıtını kaldırır ve Kampanya listesini aynı satırdaki E hücresine bağlar.
+    const mappingRangeName = "SalesTime_Egitim_Kampanya_Eslestirme";
+    workbook.addNamedRange({
+      name: mappingRangeName,
+      ref: `'Kullanım Kılavuzu'!$J$2:$K$${mappingEndRow}`,
+    });
     veriSayfasi.addDataValidation("I2:I1001", {
       type: "list",
-      formula1: `INDIRECT(VLOOKUP($E2,'Kullanım Kılavuzu'!$J$2:$K$${mappingEndRow},2,FALSE))`,
+      formula1: `INDIRECT(VLOOKUP($E2,${mappingRangeName},2,FALSE))`,
       showDropDown: true,
       allowBlank: false,
       showErrorAlert: true,
@@ -283,7 +292,9 @@ export async function topluTeklifSablonuIndir(baglami: TopluTeklifSablonuBaglami
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "toplu-teklifler-sablonu.xlsx";
+  // Eski, tarayıcıda önbelleğe alınmış şablonlarla karışmaması için dosya adı
+  // bağımlı Kampanya listesi sürümünü açıkça belirtir.
+  anchor.download = "toplu-teklifler-sablonu-v2.xlsx";
   anchor.click();
   URL.revokeObjectURL(url);
 }

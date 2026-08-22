@@ -72,13 +72,19 @@ test("Kampanya listesi aynı satırdaki Teklif Eğitimi seçimine bağlıdır", 
   });
   const validation = workbook.getSheet("Teklif Listesi")!.getDataValidations().get("I2:I1001") as any;
   assert.match(validation.formula1, /INDIRECT\(VLOOKUP\(\$E2/);
-  assert.match(validation.formula1, /'Kullanım Kılavuzu'!\$J\$2:\$K\$4/);
+  assert.match(validation.formula1, /SalesTime_Egitim_Kampanya_Eslestirme/);
+  assert.doesNotMatch(validation.formula1, /Kullanım Kılavuzu/);
 
   const guide = workbook.getSheet("Kullanım Kılavuzu")!;
   assert.equal(guide.getCell(2, 12).value, "1+1 İNGİLİZCE");
   assert.equal(guide.getCell(3, 12).value, "1+1 ALMANCA");
   assert.equal(guide.getCell(4, 12).value, "KIŞ OKULU");
-  assert.equal(workbook.getNamedRanges().length, 3);
+  const namedRanges = workbook.getNamedRanges();
+  assert.equal(namedRanges.length, 4);
+  assert.ok(namedRanges.some((range: any) =>
+    range.name === "SalesTime_Egitim_Kampanya_Eslestirme"
+      && range.ref === "'Kullanım Kılavuzu'!$J$2:$K$4"
+  ));
 
   // Üretilen dosya gerçek .xlsx turundan sonra da aynı bağımlı doğrulamayı korumalıdır.
   const bytes = await workbook.build();
