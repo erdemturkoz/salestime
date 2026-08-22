@@ -1,6 +1,6 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { Server, createServer } from "http";
-import { eq, and, desc, gt, isNull, lt, sql } from "drizzle-orm";
+import { eq, and, desc, gt, inArray, isNull, lt, sql } from "drizzle-orm";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import { storage } from "./storage";
 import { 
@@ -1211,6 +1211,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Toplu teklif geçmişi hatası:", error);
       res.status(500).json({ error: "Toplu teklif geçmişi yüklenemedi." });
+    }
+  });
+
+  // Henüz sağlayıcı tarafından alınmamış bekleyen teklifler tekli veya toplu
+  // silinebilir. İşlemdeki ve sonuçlanmış kayıtlar denetim izi için korunur.
+  app.delete("/api/toplu-teklifler", isAuthenticated, requireMutationProtection, async (req, res) => {
+    try {
+      const parsed = z.object({
+        ids: z.array(z.number().int().positive()).min(1).max(500),
+      }).safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Silinecek teklif kayıtları geçersiz." });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const user = getSessionUser(req) as any;
+
+      const sonuc = await db.transaction(async (tx) => {
+        const kayitlar = await tx.select().from(topluTeklifler).where(inArray(topluTeklifler.id, ids));
+        if (kayitlar.length !== ids.length) return { error: "Tekliflerden biri bulunamadı.", status: 404 };
+        if (kayitlar.some((kayit) => !topluTeklifSubeErisimiVarMi(user, kayit.subeId))) {
+          return { error: "Bu tekliflerden birini silme yetkiniz yok.", status: 403 };
+        }
+        if (kayitlar.some((kayit) => kayit.durum !== "bekliyor")) {
+          return { error: "Yalnızca henüz gönderilmemiş Bekliyor teklifleri silinebilir.", status: 409 };
+        }
+
+        const silinenler = await tx.delete(topluTeklifler)
+          .where(and(inArray(topluTeklifler.id, ids), eq(topluTeklifler.durum, "bekliyor")))
+          .returning({ id: topluTeklifler.id, gonderimId: topluTeklifler.gonderimId });
+        if (silinenler.length !== ids.length) {
+          const cakisma = new Error("Tekliflerden biri bu sırada gönderime alındı; hiçbir riskli kayıt silinmedi.") as Error & { status?: number };
+          cakisma.status = 409;
+          throw cakisma;
+        }
+
+        const gonderimIds = [...new Set(silinenler.map((kayit) => kayit.gonderimId))];
+        for (const gonderimId of gonderimIds) {
+          const kalanlar = await tx.select().from(topluTeklifler).where(eq(topluTeklifler.gonderimId, gonderimId));
+          if (kalanlar.length === 0) {
+            await tx.delete(topluGonderimler).where(eq(topluGonderimler.id, gonderimId));
+            continue;
+          }
+          const gonderildi = kalanlar.filter((kayit) => kayit.durum === "gonderildi").length;
+          const hata = kalanlar.filter((kayit) => kayit.durum === "hata").length;
+          const bekliyor = kalanlar.filter((kayit) => ["bekliyor", "islemde", "manuel_bekliyor"].includes(kayit.durum)).length;
+          const [gonderim] = await tx.select().from(topluGonderimler).where(eq(topluGonderimler.id, gonderimId)).limit(1);
+          await tx.update(topluGonderimler).set({
+            toplam: kalanlar.length,
+            gonderildi,
+            hata,
+            bekliyor,
+            durum: bekliyor === 0 ? "tamamlandi" : gonderim?.durum || "hazir",
+            completedAt: bekliyor === 0 ? new Date() : null,
+            updatedAt: new Date(),
+          }).where(eq(topluGonderimler.id, gonderimId));
+        }
+        return { silinen: silinenler.length };
+      });
+
+      if ("error" in sonuc) return res.status(Number(sonuc.status) || 400).json({ error: sonuc.error });
+      res.json(sonuc);
+    } catch (error) {
+      console.error("Bekleyen toplu teklif silme hatası:", error);
+      const durum = Number((error as any)?.status) || 500;
+      res.status(durum).json({ error: durum === 409 ? (error as Error).message : "Bekleyen teklifler silinemedi.", details: String(error) });
     }
   });
 

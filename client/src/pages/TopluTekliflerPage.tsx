@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, Building2, CheckCircle2, ChevronRight, CirclePause, CircleStop,
   Download, FileSpreadsheet, FileText, Filter, History, Loader2, MessageCircle,
-  Copy, Link2, Play, RefreshCw, Search, Send, Unplug, Upload, Users, XCircle,
+  Copy, Link2, Play, RefreshCw, Search, Send, Trash2, Unplug, Upload, Users, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -169,6 +169,7 @@ export default function TopluTekliflerPage() {
   const [manuelOnayKaydi, setManuelOnayKaydi] = useState<KayitliTeklif | null>(null);
   const [eslestirmeBaglami, setEslestirmeBaglami] = useState<{ gonderimId: number; subeAdi: string; pairingCode: string; expiresAt: string } | null>(null);
   const [tumHediyelerUcretsiz, setTumHediyelerUcretsiz] = useState(false);
+  const [secilenBekleyenler, setSecilenBekleyenler] = useState<number[]>([]);
   const yuklenenSubeRef = useRef<number | null>(null);
 
   const aktifRol = roller.find((rol) => Number(rol.subeId) === Number(aktifSubeId)) || roller[0];
@@ -285,6 +286,29 @@ export default function TopluTekliflerPage() {
     },
     onError: (error: Error) => toast({ title: "Eklenti erişimi iptal edilemedi", description: error.message, variant: "destructive" }),
   });
+  const bekleyenleriSil = useMutation({
+    mutationFn: (ids: number[]) => apiRequest("/api/toplu-teklifler", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    }),
+    onSuccess: (_sonuc: any, ids: number[]) => {
+      setSecilenBekleyenler((mevcut) => mevcut.filter((id) => !ids.includes(id)));
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-teklifler"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toplu-gonderimler/eklenti-durumlari"] });
+      toast({ title: ids.length === 1 ? "Bekleyen teklif silindi" : `${ids.length} bekleyen teklif silindi` });
+    },
+    onError: (error: Error) => toast({ title: "Teklifler silinemedi", description: error.message, variant: "destructive" }),
+  });
+
+  const silmeyiOnayla = (ids: number[]) => {
+    if (!ids.length) return;
+    const mesaj = ids.length === 1
+      ? "Bu bekleyen teklif kalıcı olarak silinsin mi?"
+      : `Seçili ${ids.length} bekleyen teklif kalıcı olarak silinsin mi?`;
+    if (window.confirm(mesaj)) bekleyenleriSil.mutate(ids);
+  };
 
   const eslestirmeKodunuKopyala = async () => {
     if (!eslestirmeBaglami) return;
@@ -395,6 +419,9 @@ export default function TopluTekliflerPage() {
       && (!gecmisBaslangic || (tarih && tarih >= new Date(gecmisBaslangic)))
       && (!gecmisBitis || (tarih && tarih <= new Date(`${gecmisBitis}T23:59:59`)));
   });
+  const gorunenBekleyenIdleri = gecmisFiltreli.filter((kayit) => kayit.durum === "bekliyor").map((kayit) => Number(kayit.id));
+  const tumGorunenBekleyenlerSecili = gorunenBekleyenIdleri.length > 0
+    && gorunenBekleyenIdleri.every((id) => secilenBekleyenler.includes(id));
 
   const snapshotPDF = (kayit: KayitliTeklif) => {
     const snapshot = kayit.snapshot as any;
@@ -573,7 +600,33 @@ export default function TopluTekliflerPage() {
                     })}
                 </div>
               </CardContent></Card>
-              <Card className="border-gray-200 shadow-sm"><CardContent className="p-0"><div className="flex items-center justify-between border-b border-gray-100 p-4"><div><h2 className="font-semibold">Teklif geçmişi</h2><p className="text-xs text-gray-500">{gecmisFiltreli.length} kayıt bulundu</p></div><Filter className="h-4 w-4 text-gray-400" /></div><div className="overflow-x-auto"><table className="w-full min-w-[690px] text-sm"><thead className="bg-gray-50 text-left text-xs text-gray-500"><tr><th className="px-4 py-3">Aday</th><th className="px-4 py-3">Kampanya</th><th className="px-4 py-3">Teklif</th><th className="px-4 py-3">Durum</th><th className="px-4 py-3"></th></tr></thead><tbody>{gecmisFiltreli.map((kayit) => <tr key={kayit.id} className="border-t border-gray-100 hover:bg-gray-50"><td className="px-4 py-3"><p className="font-medium">{kayit.ogrenciAdi}</p><p className="text-xs text-gray-500">{kayit.ogrenciTelefon}</p></td><td className="px-4 py-3"><p>{kayit.kampanyaAdi}</p><p className="text-xs text-gray-500">{kayit.egitimTipi} · {kayit.teklifKur} Kur</p></td><td className="px-4 py-3 text-xs text-gray-600">{kayit.odeme1}<br />{kayit.odeme2}</td><td className="px-4 py-3"><Badge className={durumRenkleri[kayit.durum]} variant="secondary">{durumEtiketi[kayit.durum] || kayit.durum}</Badge></td><td className="px-4 py-3"><Button size="sm" variant="ghost" onClick={() => setDetayKaydi(kayit)}>Detay <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button></td></tr>)}</tbody></table></div></CardContent></Card>
+              <Card className="border-gray-200 shadow-sm"><CardContent className="p-0">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 p-4">
+                  <div><h2 className="font-semibold">Teklif geçmişi</h2><p className="text-xs text-gray-500">{gecmisFiltreli.length} kayıt bulundu</p></div>
+                  <div className="flex items-center gap-2">
+                    {secilenBekleyenler.length > 0 && <Button size="sm" variant="outline" className="text-rose-700" disabled={bekleyenleriSil.isPending} onClick={() => silmeyiOnayla(secilenBekleyenler)}><Trash2 className="mr-1 h-3.5 w-3.5" /> Seçilenleri sil ({secilenBekleyenler.length})</Button>}
+                    <Filter className="h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+                <div className="overflow-x-auto"><table className="w-full min-w-[740px] text-sm">
+                  <thead className="bg-gray-50 text-left text-xs text-gray-500"><tr>
+                    <th className="w-10 px-4 py-3"><input type="checkbox" aria-label="Görünen bekleyen tekliflerin tümünü seç" checked={tumGorunenBekleyenlerSecili} disabled={gorunenBekleyenIdleri.length === 0} onChange={(event) => setSecilenBekleyenler((mevcut) => event.target.checked ? [...new Set([...mevcut, ...gorunenBekleyenIdleri])] : mevcut.filter((id) => !gorunenBekleyenIdleri.includes(id)))} /></th>
+                    <th className="px-4 py-3">Aday</th><th className="px-4 py-3">Kampanya</th><th className="px-4 py-3">Teklif</th><th className="px-4 py-3">Durum</th><th className="px-4 py-3"></th>
+                  </tr></thead>
+                  <tbody>{gecmisFiltreli.map((kayit) => {
+                    const silinebilir = kayit.durum === "bekliyor";
+                    const kayitId = Number(kayit.id);
+                    return <tr key={kayit.id} className="border-t border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3"><input type="checkbox" aria-label={`${kayit.ogrenciAdi} teklifini seç`} disabled={!silinebilir} checked={secilenBekleyenler.includes(kayitId)} onChange={(event) => setSecilenBekleyenler((mevcut) => event.target.checked ? [...new Set([...mevcut, kayitId])] : mevcut.filter((id) => id !== kayitId))} /></td>
+                      <td className="px-4 py-3"><p className="font-medium">{kayit.ogrenciAdi}</p><p className="text-xs text-gray-500">{kayit.ogrenciTelefon}</p></td>
+                      <td className="px-4 py-3"><p>{kayit.kampanyaAdi}</p><p className="text-xs text-gray-500">{kayit.egitimTipi} · {kayit.teklifKur} Kur</p></td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{kayit.odeme1}<br />{kayit.odeme2}</td>
+                      <td className="px-4 py-3"><Badge className={durumRenkleri[kayit.durum]} variant="secondary">{durumEtiketi[kayit.durum] || kayit.durum}</Badge></td>
+                      <td className="px-4 py-3"><div className="flex items-center justify-end gap-1"><Button size="sm" variant="ghost" onClick={() => setDetayKaydi(kayit)}>Detay <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button>{silinebilir && <Button size="sm" variant="ghost" className="text-rose-700" disabled={bekleyenleriSil.isPending} onClick={() => silmeyiOnayla([kayitId])} aria-label={`${kayit.ogrenciAdi} bekleyen teklifini sil`}><Trash2 className="h-4 w-4" /></Button>}</div></td>
+                    </tr>;
+                  })}</tbody>
+                </table></div>
+              </CardContent></Card>
             </div>
           </div>
         )}
