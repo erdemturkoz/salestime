@@ -48,7 +48,12 @@ function inspectZip(buffer: ArrayBuffer): void {
   if (uncompressedBytes > MAX_UNCOMPRESSED_BYTES) invalid("açıldığında izin verilen boyutu aşan dosya kabul edilmez.");
 }
 
-function inspectWorksheet(worksheet: Worksheet, expectedHeaders: readonly string[], validateHeaders: boolean): void {
+function inspectWorksheet(
+  worksheet: Worksheet,
+  expectedHeaders: readonly string[],
+  validateHeaders: boolean,
+  headerMismatchMessage?: string,
+): void {
   if ((worksheet.options as any)?.state && (worksheet.options as any).state !== "visible") invalid("gizli sayfa içeren çalışma kitapları kabul edilmez.");
   const cells = worksheet.readAllCells();
   const maxRow = cells.reduce((max, entry) => Math.max(max, entry.row), 0);
@@ -56,7 +61,9 @@ function inspectWorksheet(worksheet: Worksheet, expectedHeaders: readonly string
   if (maxRow > MAX_ROWS || maxColumn > MAX_COLUMNS || cells.length > MAX_CELLS) invalid("çalışma kitabı satır, sütun veya hücre sınırını aşıyor.");
   if (validateHeaders) {
     const headers = expectedHeaders.map((_, index) => cellText(worksheet.getCell(1, index + 1).value));
-    if (maxColumn !== expectedHeaders.length || headers.some((header, index) => header !== expectedHeaders[index])) invalid("sütun başlıkları beklenen şablonla birebir eşleşmiyor.");
+    if (maxColumn !== expectedHeaders.length || headers.some((header, index) => header !== expectedHeaders[index])) {
+      invalid(headerMismatchMessage || "sütun başlıkları beklenen şablonla birebir eşleşmiyor.");
+    }
   }
   let textBytes = 0;
   for (const { cell } of cells) {
@@ -69,7 +76,11 @@ function inspectWorksheet(worksheet: Worksheet, expectedHeaders: readonly string
   }
 }
 
-export async function loadSafeXlsx(file: Upload, expectedHeaders: readonly string[]): Promise<Workbook> {
+export async function loadSafeXlsx(
+  file: Upload,
+  expectedHeaders: readonly string[],
+  options: { headerMismatchMessage?: string } = {},
+): Promise<Workbook> {
   if (!file.name.toLocaleLowerCase("tr").endsWith(".xlsx")) invalid("yalnızca .xlsx dosyaları kabul edilir; eski .xls biçimi desteklenmez.");
   if (!Number.isFinite(file.size) || file.size < 4 || file.size > MAX_FILE_BYTES) invalid("dosya boş veya en fazla 5 MiB sınırını aşıyor.");
   const rawBuffer = await file.arrayBuffer();
@@ -89,7 +100,9 @@ export async function loadSafeXlsx(file: Upload, expectedHeaders: readonly strin
   if (!sheetNames.length || sheetNames.length > MAX_WORKSHEETS) invalid("çalışma kitabı sayfa sınırını aşıyor.");
   if ((workbook!.properties as any)?.workbookProtection || (workbook!.properties as any)?.fileSharing) invalid("korumalı çalışma kitabı kabul edilmez.");
   if (sheetNames.length === 2 && sheetNames[1] !== "Kullanım Kılavuzu") invalid("beklenmeyen ek çalışma sayfası içeremez.");
-  sheetNames.forEach((name, index) => inspectWorksheet(workbook!.getSheet(name)!, expectedHeaders, index === 0));
+  sheetNames.forEach((name, index) =>
+    inspectWorksheet(workbook!.getSheet(name)!, expectedHeaders, index === 0, options.headerMismatchMessage),
+  );
   return workbook!;
 }
 

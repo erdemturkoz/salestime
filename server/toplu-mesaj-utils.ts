@@ -15,7 +15,7 @@ export function topluOdemeDetayi(teklif: any): string {
 }
 
 export function topluMesajOlustur(
-  satir: { ogrenciAdi: string; sonKur?: string | null },
+  satir: { ogrenciAdi: string; sonEgitim?: string | null; sonKur?: string | null },
   teklif1: any,
   teklif2: any,
   subeAdi: string,
@@ -25,14 +25,15 @@ export function topluMesajOlustur(
   bitis.setDate(bitis.getDate() + teklif1.form.gecerlilikGunu);
   const tarih = bitis.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+  const gecmisEgitim = satir.sonEgitim ? `Geçmiş eğitiminiz: ${satir.sonEgitim}. ` : "";
   const hitap = satir.sonKur
-    ? `Son aldığınız ${satir.sonKur} seviyesinin ardından size özel hazırladığımız teklif seçenekleri:`
-    : `Mevcut eğitim durumunuza göre size özel hazırladığımız teklif seçenekleri:`;
+    ? `${gecmisEgitim}Son aldığınız ${satir.sonKur} seviyesinin ardından size özel hazırladığımız teklif seçenekleri:`
+    : `${gecmisEgitim}Mevcut eğitim durumunuza göre size özel hazırladığımız teklif seçenekleri:`;
 
   const teklifBlok = (baslik: string, teklif: any) => {
     const blokSatirlari: string[] = [
       `*${baslik}*`,
-      `Eğitim: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
+      `Teklif Eğitimi: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
       `Liste Fiyatı: ${topluPara(teklif.listeFiyati)}`,
     ];
     if ((teklif.toplamHediyeIndirimi || 0) > 0) {

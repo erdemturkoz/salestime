@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Workbook } from "@node-projects/excelforge";
 import { loadSafeXlsx } from "../client/src/utils/excel-security";
-import { topluTeklifExceliniOku, topluTeklifSablonuOlustur } from "../client/src/utils/toplu-teklif-excel";
+import { KOLONLAR, topluTeklifExceliniOku, topluTeklifSablonuOlustur } from "../client/src/utils/toplu-teklif-excel";
 
 const headers = ["Ad Soyad", "Telefon"] as const;
 
@@ -45,6 +45,7 @@ test("güvenli Excel okuyucu beklenmeyen sayfa ve bozuk arşivi reddeder", async
 test("indirilen iki sayfalı toplu teklif şablonu tekrar yüklenebilir", async () => {
   const kampanya = {
     kampanyaAdi: "GENEL İNGİLİZCE",
+    egitimTipi: "Genel İngilizce",
     kurSayisi: 3,
     maxKrediKartiTaksit: 3,
     maxSenetTaksit: 2,
@@ -57,4 +58,19 @@ test("indirilen iki sayfalı toplu teklif şablonu tekrar yüklenebilir", async 
   const satirlar = await topluTeklifExceliniOku(file, [kampanya], egitimTipleri);
   assert.equal(satirlar.length, 1);
   assert.equal(satirlar[0].durum, "hazir");
+});
+
+test("eski sekiz sütunlu toplu teklif şablonu güncel şablon uyarısıyla reddedilir", async () => {
+  const workbook = new Workbook();
+  const worksheet = workbook.addSheet("Teklif Listesi");
+  worksheet.writeRow(1, 1, [
+    "Ad Soyad", "Telefon", "Son Eğitim", "Son Kur", "Teklif Edilecek Kur", "Ödeme 1", "Ödeme 2", "Kampanya",
+  ]);
+  worksheet.writeRow(2, 1, ["Ayşe Demir", "05321234567", "Genel İngilizce", "A2", "1", "Nakit", "Kredi Kartı - 3 Taksit", "GENEL İNGİLİZCE"]);
+  const file = await fileFromWorkbook(workbook);
+  await assert.rejects(
+    () => topluTeklifExceliniOku(file, [], []),
+    /Teklif Eğitimi.*güncel şablonu indirin/i,
+  );
+  assert.equal(KOLONLAR.length, 9);
 });

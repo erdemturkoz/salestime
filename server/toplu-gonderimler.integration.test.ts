@@ -15,6 +15,8 @@ import {
   topluTeklifler,
   topluEklentiEslestirmeleri,
   topluEklentiGrantleri,
+  kampanyalar,
+  egitimTipleri,
 } from "@shared/schema";
 
 const LEASE_MS = 15 * 60 * 1000;
@@ -178,6 +180,80 @@ async function createExtensionGrant(
   });
   return grantSecret;
 }
+
+test("toplu teklif oluşturma endpoint'i teklif eğitimini kampanyayla yeniden doğrular ve snapshot'a yazar", async (t) => {
+  const fixture = await seedBatch(t, [{ durum: "bekliyor" }]);
+  const marker = randomUUID();
+  const teklifEgitimi = `Program ${marker}`;
+  const farkliEgitim = `Farklı Program ${marker}`;
+  await db.insert(egitimTipleri).values([{ egitimTipi: teklifEgitimi }, { egitimTipi: farkliEgitim }]);
+  t.after(async () => {
+    await db.delete(egitimTipleri).where(eq(egitimTipleri.egitimTipi, teklifEgitimi));
+    await db.delete(egitimTipleri).where(eq(egitimTipleri.egitimTipi, farkliEgitim));
+  });
+  const [kampanya] = await db.insert(kampanyalar).values({
+    kampanyaAdi: `Eğitim Eşleşme Testi ${marker}`,
+    egitimTipi: teklifEgitimi,
+    kurSayisi: 2,
+    toplamDersSaati: 48,
+    listeFiyati: 20_000,
+    nakitFiyati: 15_000,
+    indirimOrani: 25,
+    faizOrani: 0,
+    kitapFiyati: 0,
+    kitapSetSayisi: 1,
+    maxKrediKartiTaksit: 3,
+    maxSenetTaksit: 2,
+    hediyeler: [],
+    subeId: fixture.gonderim.subeId,
+  }).returning();
+
+  const satir = {
+    ogrenciAdi: "Eğitim Kontrol Adayı",
+    ogrenciTelefon: "05325551234",
+    sonEgitim: farkliEgitim,
+    sonKur: "A2",
+    teklifEgitimi,
+    teklifKur: 1,
+    kampanyaId: kampanya.id,
+    odeme1: { odemeTipi: "nakit", taksitSayisi: 1 },
+    odeme2: { odemeTipi: "kredi-karti", taksitSayisi: 2 },
+  };
+  const basarili = await api(fixture.token, "/api/toplu-gonderimler", {
+    method: "POST",
+    body: JSON.stringify({ baslik: "Eğitim eşleşme testi", subeId: fixture.gonderim.subeId, teklifler: [satir] }),
+  });
+  assert.equal(basarili.response.status, 201);
+  const [kayit] = await db.select().from(topluTeklifler).where(eq(topluTeklifler.gonderimId, basarili.body.id));
+  assert.equal(kayit.egitimTipi, teklifEgitimi);
+  assert.deepEqual((kayit.snapshot as any).ogrenci, {
+    sonEgitim: farkliEgitim,
+    sonKur: "A2",
+    teklifEgitimi,
+  });
+
+  const uyusmayan = await api(fixture.token, "/api/toplu-gonderimler", {
+    method: "POST",
+    body: JSON.stringify({
+      baslik: "Geçersiz eğitim eşleşmesi",
+      subeId: fixture.gonderim.subeId,
+      teklifler: [{ ...satir, ogrenciTelefon: "05325551235", teklifEgitimi: farkliEgitim }],
+    }),
+  });
+  assert.equal(uyusmayan.response.status, 400);
+  assert.match(uyusmayan.body.error, /Teklif Eğitimi .* ancak seçilen/);
+
+  const gecmisEgitimiGecersiz = await api(fixture.token, "/api/toplu-gonderimler", {
+    method: "POST",
+    body: JSON.stringify({
+      baslik: "Geçersiz geçmiş eğitim",
+      subeId: fixture.gonderim.subeId,
+      teklifler: [{ ...satir, ogrenciTelefon: "05325551236", sonEgitim: "<img src=x onerror=alert(1)>" }],
+    }),
+  });
+  assert.equal(gecmisEgitimiGecersiz.response.status, 400);
+  assert.match(gecmisEgitimiGecersiz.body.error, /Son Eğitimi \(Geçmiş\).*güncel eğitim tiplerinden/i);
+});
 
 test("eşzamanlı sonuç ve tekrar deneme batch sayaçlarını tutarlı bırakır", async (t) => {
   const claimToken = randomUUID();

@@ -69,13 +69,17 @@ test("toplu teklif şablonu aktif şubenin tüm kampanya, kur ve ödeme alternat
   assert.deepEqual(workbook.getSheetNames(), ["Teklif Listesi", "Kullanım Kılavuzu"]);
   const teklifListesi = workbook.getSheet("Teklif Listesi")!;
   assert.deepEqual(KOLONLAR.map((_, index) => teklifListesi.getCell(1, index + 1).value), [
-    "Ad Soyad", "Telefon", "Son Eğitim", "Son Kur",
+    "Ad Soyad", "Telefon", "Öğrencinin Son Eğitimi (Geçmiş)", "Son Kur", "Teklif Eğitimi",
     "Teklif Edilecek Kur", "Ödeme 1", "Ödeme 2", "Kampanya",
   ]);
 
   // Örnek satır: Son Eğitim hücresi eğitim tiplerinden ilkini göstermeli, "Lise" gibi
   // sabit bir okul düzeyi değil.
   assert.equal(teklifListesi.getCell(2, 3).value, ORNEK_EGITIM_TIPLERI[0]);
+  const ornekKampanya = ORNEK_KAMPANYALAR.find(
+    (kampanya) => kampanya.kampanyaAdi === teklifListesi.getCell(2, 9).value,
+  );
+  assert.equal(teklifListesi.getCell(2, 5).value, ornekKampanya?.egitimTipi);
 
   const kilavuz = workbook.getSheet("Kullanım Kılavuzu")!;
   const tumMetin = kilavuz.readAllCells().map(({ cell }) => String(cell.value ?? "")).join("\n");
@@ -93,6 +97,8 @@ test("toplu teklif şablonu aktif şubenin tüm kampanya, kur ve ödeme alternat
   assert.match(tumMetin, /Genel İngilizce/);
   assert.match(tumMetin, /Genel Almanca/);
   assert.match(tumMetin, /Junior İngilizce/);
+  assert.match(tumMetin, /GEÇMİŞ EĞİTİM VE TEKLİF EĞİTİMİ AYRIMI/);
+  assert.match(tumMetin, /Teklif Eğitimi/);
   // "Lise" gibi sabit okul düzeyi değeri kılavuzda bulunmamalı.
   assert.doesNotMatch(tumMetin, /\bLise\b/);
 });
@@ -109,7 +115,7 @@ test("şablon eğitim tipi listesi olmadan oluşturulduğunda Son Eğitim hücre
 });
 
 // ---------------------------------------------------------------------------
-// Son Eğitim zorunluluk ve boş satır testleri
+// Geçmiş eğitim, teklif eğitimi ve boş satır testleri
 // ---------------------------------------------------------------------------
 
 const ORNEK_KAMPANYA_OBJ = {
@@ -124,13 +130,14 @@ const ORNEK_KAMPANYA_OBJ = {
 };
 const EGITIM_TIPLERI = ["Genel İngilizce", "Genel Almanca", "Junior İngilizce"];
 
-test("veri içeren satırda Son Eğitim boşsa kayıt duzeltmeli olarak reddedilir", async () => {
+test("veri içeren satırda geçmiş eğitim boşsa kayıt duzeltmeli olarak reddedilir", async () => {
   const dosya = await mockExcelDosyasi([
     {
       "Ad Soyad": "Ayşe Demir",
       "Telefon": "05321234567",
-      "Son Eğitim": "",           // boş — zorunlu
+      "Öğrencinin Son Eğitimi (Geçmiş)": "", // boş — zorunlu
       "Son Kur": "A2",
+      "Teklif Eğitimi": "Genel İngilizce",
       "Teklif Edilecek Kur": "1",
       "Ödeme 1": "Nakit",
       "Ödeme 2": "Kredi Kartı - 3 Taksit",
@@ -141,7 +148,7 @@ test("veri içeren satırda Son Eğitim boşsa kayıt duzeltmeli olarak reddedil
   assert.equal(sonuc.length, 1);
   assert.equal(sonuc[0].durum, "duzeltmeli");
   assert.ok(
-    sonuc[0].hatalar.some((h) => h.includes("Son Eğitim zorunludur")),
+    sonuc[0].hatalar.some((h) => h.includes("Geçmiş) zorunludur")),
     `Beklenen hata bulunamadı. Hatalar: ${sonuc[0].hatalar.join(", ")}`,
   );
 });
@@ -151,8 +158,9 @@ test("tamamen boş satırlar sonuca dahil edilmez", async () => {
     {
       "Ad Soyad": "Ayşe Demir",
       "Telefon": "05321234567",
-      "Son Eğitim": "Genel İngilizce",
+      "Öğrencinin Son Eğitimi (Geçmiş)": "Genel Almanca",
       "Son Kur": "A2",
+      "Teklif Eğitimi": "Genel İngilizce",
       "Teklif Edilecek Kur": "1",
       "Ödeme 1": "Nakit",
       "Ödeme 2": "Kredi Kartı - 3 Taksit",
@@ -160,12 +168,12 @@ test("tamamen boş satırlar sonuca dahil edilmez", async () => {
     },
     // Tamamen boş satır (kullanılmamış)
     {
-      "Ad Soyad": "", "Telefon": "", "Son Eğitim": "", "Son Kur": "",
+      "Ad Soyad": "", "Telefon": "", "Öğrencinin Son Eğitimi (Geçmiş)": "", "Son Kur": "", "Teklif Eğitimi": "",
       "Teklif Edilecek Kur": "", "Ödeme 1": "", "Ödeme 2": "", "Kampanya": "",
     },
     // Bir başka tamamen boş satır
     {
-      "Ad Soyad": "", "Telefon": "", "Son Eğitim": "", "Son Kur": "",
+      "Ad Soyad": "", "Telefon": "", "Öğrencinin Son Eğitimi (Geçmiş)": "", "Son Kur": "", "Teklif Eğitimi": "",
       "Teklif Edilecek Kur": "", "Ödeme 1": "", "Ödeme 2": "", "Kampanya": "",
     },
   ]);
@@ -174,13 +182,14 @@ test("tamamen boş satırlar sonuca dahil edilmez", async () => {
   assert.equal(sonuc.length, 1);
 });
 
-test("geçerli eğitim tipiyle dolu satır hazır kabul edilir", async () => {
+test("geçmiş ve teklif eğitimi farklı olsa da doğrulanmış kampanyayla satır hazır kabul edilir", async () => {
   const dosya = await mockExcelDosyasi([
     {
       "Ad Soyad": "Ayşe Demir",
       "Telefon": "05321234567",
-      "Son Eğitim": "Genel İngilizce",
+      "Öğrencinin Son Eğitimi (Geçmiş)": "Genel Almanca",
       "Son Kur": "A2",
+      "Teklif Eğitimi": "Genel İngilizce",
       "Teklif Edilecek Kur": "1",
       "Ödeme 1": "Nakit",
       "Ödeme 2": "Kredi Kartı - 3 Taksit",
@@ -191,4 +200,28 @@ test("geçerli eğitim tipiyle dolu satır hazır kabul edilir", async () => {
   assert.equal(sonuc.length, 1);
   assert.equal(sonuc[0].durum, "hazir");
   assert.equal(sonuc[0].hatalar.length, 0);
+  assert.equal(sonuc[0].teklifEgitimi, "Genel İngilizce");
+});
+
+test("boş veya kampanyayla uyuşmayan Teklif Eğitimi hazır kabul edilmez", async () => {
+  const [bosDosya, uyusmayanDosya] = await Promise.all([
+    mockExcelDosyasi([{
+      "Ad Soyad": "Ayşe Demir", "Telefon": "05321234567",
+      "Öğrencinin Son Eğitimi (Geçmiş)": "Genel Almanca", "Son Kur": "A2", "Teklif Eğitimi": "",
+      "Teklif Edilecek Kur": "1", "Ödeme 1": "Nakit", "Ödeme 2": "Kredi Kartı - 3 Taksit", "Kampanya": "YOĞUN İNGİLİZCE",
+    }]),
+    mockExcelDosyasi([{
+      "Ad Soyad": "Mehmet Kaya", "Telefon": "05321234568",
+      "Öğrencinin Son Eğitimi (Geçmiş)": "Genel İngilizce", "Son Kur": "B1", "Teklif Eğitimi": "Genel Almanca",
+      "Teklif Edilecek Kur": "1", "Ödeme 1": "Nakit", "Ödeme 2": "Kredi Kartı - 3 Taksit", "Kampanya": "YOĞUN İNGİLİZCE",
+    }]),
+  ]);
+  const [bos, uyusmayan] = await Promise.all([
+    topluTeklifExceliniOku(bosDosya as any, [ORNEK_KAMPANYA_OBJ], EGITIM_TIPLERI),
+    topluTeklifExceliniOku(uyusmayanDosya as any, [ORNEK_KAMPANYA_OBJ], EGITIM_TIPLERI),
+  ]);
+  assert.equal(bos[0].durum, "duzeltmeli");
+  assert.match(bos[0].hatalar.join("\n"), /Teklif Eğitimi zorunludur/);
+  assert.equal(uyusmayan[0].durum, "duzeltmeli");
+  assert.match(uyusmayan[0].hatalar.join("\n"), /ancak seçilen YOĞUN İNGİLİZCE Genel İngilizce içindir/);
 });

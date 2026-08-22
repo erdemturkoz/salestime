@@ -74,14 +74,15 @@ function mesajOlustur(satir: TopluTeklifSatiri, teklif1: OfferResult, teklif2: O
   tarih.setDate(tarih.getDate() + teklif1.form.gecerlilikGunu);
   const gecerlilik = tarih.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+  const gecmisEgitim = satir.sonEgitim ? `Geçmiş eğitiminiz: ${satir.sonEgitim}. ` : "";
   const hitap = satir.sonKur
-    ? `Son aldığınız ${satir.sonKur} seviyesinin ardından size özel hazırladığımız teklif seçenekleri:`
-    : `Mevcut eğitim durumunuza göre size özel hazırladığımız teklif seçenekleri:`;
+    ? `${gecmisEgitim}Son aldığınız ${satir.sonKur} seviyesinin ardından size özel hazırladığımız teklif seçenekleri:`
+    : `${gecmisEgitim}Mevcut eğitim durumunuza göre size özel hazırladığımız teklif seçenekleri:`;
 
   const teklifBlok = (baslik: string, teklif: OfferResult) => {
     const blok: string[] = [
       `*${baslik}*`,
-      `Eğitim: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
+      `Teklif Eğitimi: ${teklif.egitimTipi} | ${teklif.kurSayisi} Kur · ${teklif.dersSaati} Ders Saati`,
       `Liste Fiyatı: ${formatCurrency(teklif.listeFiyati)}`,
     ];
     if (teklif.toplamHediyeIndirimi > 0) {
@@ -135,6 +136,9 @@ function pdfVerisineDonustur(offer: OfferResult, kayit: KayitliTeklif) {
     hediyeEdildi: offer.hediyeEdildi, mudurIndirimTutari: offer.mudurIndirimTutari,
     mudurIndirimTipi: offer.form.mudurIndirimTipi, mudurIndirimDegeri: offer.form.mudurIndirimDegeri,
     ogrenciAdi: kayit.ogrenciAdi, gecerlilikGunu: offer.form.gecerlilikGunu,
+    sonEgitim: snapshot.ogrenci?.sonEgitim || kayit.sonEgitim,
+    sonKur: snapshot.ogrenci?.sonKur || kayit.sonKur,
+    teklifEgitimi: snapshot.ogrenci?.teklifEgitimi || kayit.egitimTipi || offer.egitimTipi,
     danismanAdi: snapshot.danisman?.adi || "", danismanSoyadi: snapshot.danisman?.soyadi || "",
     danismanTelefon: snapshot.danisman?.telefon || "", subeAdi: sube.subeAdi || "",
     subeAdresi: sube.subeAdresi || "", subeTelefon: sube.subeTelefon || "", pesinat: offer.pesinat, kalanTutar: offer.kalanTutar,
@@ -224,6 +228,7 @@ export default function TopluTekliflerPage() {
       if (!aktifSubeId) throw new Error("İşlem yapılacak şube seçilmedi.");
       const teklifler = hazirTeklifler.map((teklif) => ({
         ogrenciAdi: teklif.adSoyad, ogrenciTelefon: teklif.telefon, sonEgitim: teklif.sonEgitim, sonKur: teklif.sonKur,
+        teklifEgitimi: teklif.teklifEgitimi,
         teklifKur: teklif.teklifKur!, kampanyaId: Number(teklif.kampanya.id),
         odeme1: { odemeTipi: teklif.odeme1!.odemeTipi, taksitSayisi: teklif.odeme1!.taksitSayisi },
         odeme2: { odemeTipi: teklif.odeme2!.odemeTipi, taksitSayisi: teklif.odeme2!.taksitSayisi },
@@ -483,7 +488,7 @@ export default function TopluTekliflerPage() {
                       </div>
                     </div>
                     <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead className="bg-gray-50 text-left text-xs text-gray-500"><tr><th className="px-4 py-3">Satır</th><th className="px-4 py-3">Aday</th><th className="px-4 py-3">Kampanya / Kur</th><th className="px-4 py-3">Ödeme alternatifleri</th><th className="px-4 py-3">Durum</th><th className="px-4 py-3">Açıklama</th></tr></thead>
-                      <tbody>{gorunenSatirlar.map((satir) => <tr key={satir.id} className="border-t border-gray-100 align-top hover:bg-gray-50/60"><td className="px-4 py-3 text-xs text-gray-400">#{satir.sira}</td><td className="px-4 py-3"><p className="font-medium text-gray-900">{satir.adSoyad || "—"}</p><p className="text-xs text-gray-500">{satir.telefon || "Telefon yok"}</p></td><td className="px-4 py-3"><p>{satir.kampanyaAdi || "—"}</p><p className="text-xs text-gray-500">{satir.teklifKur ? `${satir.teklifKur} Kur` : "Kur geçersiz"}</p></td><td className="px-4 py-3 text-xs text-gray-600">{satir.odeme1Raw || "—"}<br />{satir.odeme2Raw || "—"}</td><td className="px-4 py-3"><Badge className={durumRenkleri[satir.durum]} variant="secondary">{satir.durum === "hazir" ? "Hazır" : satir.durum === "mukerrer" ? "Mükerrer" : "Düzeltilmeli"}</Badge></td><td className="max-w-xs px-4 py-3 text-xs text-gray-500">{satir.hatalar.length ? <><p className="text-rose-600">{satir.hatalar[0]}</p><p className="mt-1">{satir.beklenen[0]}</p></> : "Teklif üretimine hazır."}</td></tr>)}</tbody></table></div>
+                      <tbody>{gorunenSatirlar.map((satir) => <tr key={satir.id} className="border-t border-gray-100 align-top hover:bg-gray-50/60"><td className="px-4 py-3 text-xs text-gray-400">#{satir.sira}</td><td className="px-4 py-3"><p className="font-medium text-gray-900">{satir.adSoyad || "—"}</p><p className="text-xs text-gray-500">{satir.telefon || "Telefon yok"}</p><p className="mt-1 text-xs text-gray-500">Geçmiş eğitim: {satir.sonEgitim || "—"} · Son kur: {satir.sonKur || "—"}</p></td><td className="px-4 py-3"><p>{satir.kampanyaAdi || "—"}</p><p className="text-xs text-gray-500">Teklif Eğitimi: {satir.teklifEgitimi || "—"}</p><p className="text-xs text-gray-500">{satir.teklifKur ? `${satir.teklifKur} Kur` : "Kur geçersiz"}</p></td><td className="px-4 py-3 text-xs text-gray-600">{satir.odeme1Raw || "—"}<br />{satir.odeme2Raw || "—"}</td><td className="px-4 py-3"><Badge className={durumRenkleri[satir.durum]} variant="secondary">{satir.durum === "hazir" ? "Hazır" : satir.durum === "mukerrer" ? "Mükerrer" : "Düzeltilmeli"}</Badge></td><td className="max-w-xs px-4 py-3 text-xs text-gray-500">{satir.hatalar.length ? <><p className="text-rose-600">{satir.hatalar[0]}</p><p className="mt-1">{satir.beklenen[0]}</p></> : "Teklif üretimine hazır."}</td></tr>)}</tbody></table></div>
                   </CardContent>
                 </Card>
 
@@ -501,7 +506,7 @@ export default function TopluTekliflerPage() {
                     </div>
                     <div className="grid min-h-[500px] lg:grid-cols-[300px_1fr]">
                       <div className="border-b border-gray-100 bg-gray-50/50 p-3 lg:border-b-0 lg:border-r"><div className="mb-3 flex items-center justify-between text-xs font-medium text-gray-500"><span>HAZIR ADAYLAR</span><span>{hazirTeklifler.length}</span></div><div className="max-h-[520px] space-y-1 overflow-y-auto">{hazirTeklifler.map((teklif) => <button onClick={() => setSecilenId(teklif.id)} key={teklif.id} className={`w-full rounded-lg p-3 text-left transition ${secilenTeklif?.id === teklif.id ? "bg-white shadow-sm ring-1 ring-[#F26207]/30" : "hover:bg-white"}`}><p className="text-sm font-semibold text-gray-900">{teklif.adSoyad}</p><p className="mt-0.5 text-xs text-gray-500">{teklif.kampanyaAdi} · {teklif.teklifKur} Kur</p></button>)}</div></div>
-                      {secilenTeklif && <div className="p-5"><div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-lg font-bold text-gray-900">{secilenTeklif.adSoyad}</h3><p className="text-sm text-gray-500">{secilenTeklif.sonEgitim} · Son kur: {secilenTeklif.sonKur} · {secilenTeklif.telefon}</p></div><Badge variant="outline">{secilenTeklif.kampanyaAdi}</Badge></div>
+                      {secilenTeklif && <div className="p-5"><div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-lg font-bold text-gray-900">{secilenTeklif.adSoyad}</h3><p className="text-sm text-gray-500">Geçmiş eğitim: {secilenTeklif.sonEgitim} · Son kur: {secilenTeklif.sonKur} · {secilenTeklif.telefon}</p><p className="mt-1 text-sm font-medium text-[#C84D05]">Teklif Eğitimi: {secilenTeklif.teklifEgitimi}</p></div><Badge variant="outline">{secilenTeklif.kampanyaAdi}</Badge></div>
                         <div className="mb-5 grid gap-4 md:grid-cols-2">{[secilenTeklif.teklif1, secilenTeklif.teklif2].map((offer, i) => (
                           <div key={offer.id} className={`rounded-xl border p-4 ${i === 0 ? "border-[#F26207]/30 bg-orange-50/40" : "border-blue-200 bg-blue-50/40"}`}>
                             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">{i + 1}. alternatif</p>

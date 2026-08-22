@@ -14,6 +14,7 @@ export type TopluTeklifSatiri = {
   telefon: string;
   sonEgitim: string;
   sonKur: string;
+  teklifEgitimi: string;
   teklifKur: number | null;
   odeme1Raw: string;
   odeme2Raw: string;
@@ -29,8 +30,9 @@ export type TopluTeklifSatiri = {
 export const KOLONLAR = [
   "Ad Soyad",
   "Telefon",
-  "Son Eğitim",
+  "Öğrencinin Son Eğitimi (Geçmiş)",
   "Son Kur",
+  "Teklif Eğitimi",
   "Teklif Edilecek Kur",
   "Ödeme 1",
   "Ödeme 2",
@@ -85,8 +87,15 @@ const krediKartiEtiketleri = (kampanya: any) =>
 const senetEtiketleri = (kampanya: any) =>
   aralik(sayiyiSinirla(kampanya?.maxSenetTaksit, 24)).map((taksit) => `Senet - ${taksit} Taksit`);
 
-function styleRow(sheet: Worksheet, row: number, color: string, fontColor = "#1F1F1F", bold = false) {
-  for (let column = 1; column <= 8; column += 1) {
+function styleRow(
+  sheet: Worksheet,
+  row: number,
+  color: string,
+  fontColor = "#1F1F1F",
+  bold = false,
+  columnCount = 8,
+) {
+  for (let column = 1; column <= columnCount; column += 1) {
     sheet.setStyle(row, column, {
       fill: { type: "pattern", pattern: "solid", fgColor: color },
       font: { bold, color: fontColor },
@@ -107,38 +116,56 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
   const workbook = new Workbook();
   workbook.coreProperties = { creator: "SalesTime" };
   const veriSayfasi = workbook.addSheet("Teklif Listesi");
-  [24, 18, 18, 13, 20, 28, 28, 38].forEach((width, index) => veriSayfasi.setColumnWidth(index + 1, width));
+  [24, 18, 31, 13, 22, 20, 28, 28, 38].forEach((width, index) => veriSayfasi.setColumnWidth(index + 1, width));
   veriSayfasi.writeRow(1, 1, [...KOLONLAR]).freeze(1, 0);
   const guncelKampanyalar = [...kampanyalar].sort((a, b) =>
     String(a.kampanyaAdi || "").localeCompare(String(b.kampanyaAdi || ""), "tr"),
   );
   const ilkKampanya = guncelKampanyalar[0];
   const ornekOdeme2 = krediKartiEtiketleri(ilkKampanya)[0] || senetEtiketleri(ilkKampanya)[0] || "Kredi Kartı - 1 Taksit";
-  // Son Eğitim örneği: eğitim tipi listesinden ilk geçerli değer; liste boşsa boş bırak.
+  // Geçmiş eğitim teklif fiyatını belirlemez; örnek için ilk güncel eğitim tipi kullanılır.
   const ornekSonEgitim = egitimTipleri[0] || "";
+  const ornekTeklifEgitimi = ilkKampanya?.egitimTipi || "";
   veriSayfasi.writeRow(2, 1, [
-    "Ayşe Demir", "0532 123 45 67", ornekSonEgitim, "A2", "1", "Nakit", ornekOdeme2,
+    "Ayşe Demir", "0532 123 45 67", ornekSonEgitim, "A2", ornekTeklifEgitimi, "1", "Nakit", ornekOdeme2,
     safeSpreadsheetText(ilkKampanya?.kampanyaAdi || "Aktif şubedeki kampanya adını birebir yazın"),
   ]);
-  styleRow(veriSayfasi, 1, "#F26207", "#FFFFFF", true);
+  styleRow(veriSayfasi, 1, "#F26207", "#FFFFFF", true, 9);
   veriSayfasi.setRowHeight(1, 24).setRowHeight(2, 34);
 
-  // Son Eğitim sütununa (C) dropdown doğrulaması ekle: yalnızca güncel eğitim tipleri seçilebilir.
-  // Excel inline liste 255 karakteri geçemez; sığmazsa doğrulama atlanır, yükleme sırasında
-  // sunucu tarafı validasyonu yine de çalışır.
+  // Geçmiş eğitim (C) ve zorunlu teklif eğitimi (E), güncel Eğitim Tipleri
+  // Yönetimi listesinden seçilir. Liste Excel sınırına sığmazsa parser/server
+  // doğrulaması yine zorunludur.
   if (egitimTipleri.length > 0) {
     const listeMetni = egitimTipleri.join(",");
     if (listeMetni.length <= 255) {
-      veriSayfasi.addDataValidation("C2:C1001", {
-        type: "list",
-        list: egitimTipleri,
-        showDropDown: true,
-        allowBlank: false,
-        showErrorAlert: true,
-        errorTitle: "Son Eğitim zorunludur",
-        error: `Boş bırakılamaz. İzinli değerler: ${egitimTipleri.join(", ")}`,
-      } as any);
+      [
+        ["C2:C1001", "Geçmiş eğitim zorunludur", "Öğrencinin geçmiş eğitim bilgisini listeden seçin."],
+        ["E2:E1001", "Teklif Eğitimi zorunludur", "Teklif eğitimini güncel listeden seçin."],
+      ].forEach(([range, errorTitle, error]) => {
+        veriSayfasi.addDataValidation(range, {
+          type: "list",
+          list: egitimTipleri,
+          showDropDown: true,
+          allowBlank: false,
+          showErrorAlert: true,
+          errorTitle,
+          error,
+        } as any);
+      });
     }
+  }
+  const kampanyaAdlari = guncelKampanyalar.map((kampanya) => String(kampanya.kampanyaAdi || "").trim()).filter(Boolean);
+  if (kampanyaAdlari.length > 0 && kampanyaAdlari.join(",").length <= 255) {
+    veriSayfasi.addDataValidation("I2:I1001", {
+      type: "list",
+      list: kampanyaAdlari,
+      showDropDown: true,
+      allowBlank: false,
+      showErrorAlert: true,
+      errorTitle: "Kampanya zorunludur",
+      error: "Aktif şubedeki kampanyalardan birini seçin.",
+    } as any);
   }
 
   const sonEgitimKurali = egitimTipleri.length > 0
@@ -152,20 +179,28 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
     [],
     ["NASIL KULLANILIR?"],
     ["1", "Şube seçimini kontrol edin; ilk sayfadaki sütun adlarını değiştirmeyin."],
-    ["2", "Kampanya adını aşağıdaki güncel listeden birebir kopyalayın."],
-    ["3", "Fiyat sütunu eklemeyin; sistem güncel kampanya kurallarıyla hesaplar."],
-    ["4", "Aynı telefon numarasını dosyada yalnızca bir kez kullanın."],
+    ["2", "Teklif Eğitimi'ni seçin; Kampanya yalnızca bu eğitim tipiyle eşleşirse kabul edilir."],
+    ["3", "Kampanyayı aktif şube listesinden seçin; fiyatı elle yazmayın."],
+    ["4", "Fiyat, ödeme sınırı ve hediyeler doğrulanmış kampanyadan gelir."],
+    ["5", "Aynı telefon numarasını dosyada yalnızca bir kez kullanın."],
     [],
     ["SÜTUN KURALLARI"],
     ["Sütun adı", "Durum", "Kural", "Geçerli örnek"],
     ["Ad Soyad", "Zorunlu", "En az iki kelime.", "Ayşe Demir"],
     ["Telefon", "Zorunlu", "90XXXXXXXXXX biçimine normalize edilir.", "0532 123 45 67"],
-    ["Son Eğitim", "Zorunlu", sonEgitimKurali, ornekSonEgitim || "—"],
+    ["Öğrencinin Son Eğitimi (Geçmiş)", "Zorunlu", `Yalnız geçmiş bilgi ve kişiselleştirme içindir. ${sonEgitimKurali}`, ornekSonEgitim || "—"],
     ["Son Kur", "Zorunlu", "Serbest metin.", "A2"],
+    ["Teklif Eğitimi", "Zorunlu", `Fiyatın eğitim tipi; kampanyayla birebir aynı olmalıdır. ${sonEgitimKurali}`, ornekTeklifEgitimi || "—"],
     ["Teklif Edilecek Kur", "Zorunlu", `İzinli değerler: ${tumKurler.join(" · ") || "Kampanya yok"}`, "3"],
     ["Ödeme 1", "Zorunlu", tumOdemeSecenekleri.join(" · ") || "Kampanya yok", "Nakit"],
     ["Ödeme 2", "Zorunlu", "Ödeme 1'den farklı olmalı.", "Kredi Kartı - 6 Taksit"],
-    ["Kampanya", "Zorunlu", "Seçili şubedeki adı birebir yazın.", ilkKampanya?.kampanyaAdi || "—"],
+    ["Kampanya", "Zorunlu", "Aktif şubedeki kampanyadan seçin; Teklif Eğitimi ile eşleşmelidir.", ilkKampanya?.kampanyaAdi || "—"],
+    [],
+    ["GEÇMİŞ EĞİTİM VE TEKLİF EĞİTİMİ AYRIMI"],
+    ["Geçmiş eğitim", "Öğrencinin daha önce aldığı eğitimdir; fiyatı veya teklif eğitimini belirlemez."],
+    ["Teklif eğitimi", "Sunulan programın eğitim tipidir; kampanya ve tüm fiyat kuralları bununla doğrulanır."],
+    ["Genel Almanca örneği", "Geçmiş eğitim Genel Almanca olsun veya olmasın, Teklif Eğitimi Genel Almanca ise 1+1 KUR ALMANCA kampanyasını seçin."],
+    ["Genel İngilizce örneği", "Teklif Eğitimi Genel İngilizce ise 1+1 KAMPANYASI kampanyasını seçin."],
     [],
     ["GÜNCEL KAMPANYALAR VE GEÇERLİ ALTERNATİFLER"],
     ["Kampanya adı", "Eğitim tipi", "Toplam kur", "Kullanılabilecek kur", "Nakit", "Kredi kartı", "Senet", "Teklif notu"],
@@ -180,7 +215,7 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
     [],
     ["ÖNEMLİ UYARILAR"],
     ["Fiyat", "Fiyat/liste fiyatı/tutar sütunu eklemeyin."],
-    ["Kampanya uyumu", "Kur ve ödeme seçeneği aynı satırdaki kampanyanın sınırlarına uymalıdır."],
+    ["Kampanya uyumu", "Teklif Eğitimi, kur ve ödeme seçeneği aynı satırdaki kampanyanın eğitim tipi ve sınırlarına uymalıdır."],
     ["Mükerrer telefon", "Aynı normalize telefon numarası birden fazla olamaz."],
   ];
 
@@ -188,7 +223,10 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
   [30, 18, 42, 58, 30, 52, 52, 48].forEach((width, index) => rehber.setColumnWidth(index + 1, width));
   rehberSatirlari.forEach((row, index) => rehber.writeRow(index + 1, 1, row));
   rehber.merge(1, 1, 1, 8).merge(2, 1, 2, 8).freeze(22, 0);
-  [4, 10, 21, rehberSatirlari.length - 4].forEach((rowNumber) => {
+  rehberSatirlari
+    .map((row, index) => row.length === 1 ? index + 1 : 0)
+    .filter(Boolean)
+    .forEach((rowNumber) => {
     rehber.merge(rowNumber, 1, rowNumber, 8);
     styleRow(rehber, rowNumber, "#2F75B5", "#FFFFFF", true);
   });
@@ -214,7 +252,9 @@ export async function topluTeklifSablonuIndir(baglami: TopluTeklifSablonuBaglami
 }
 
 export async function topluTeklifExceliniOku(file: File, kampanyalar: any[], egitimTipleri: string[] = []): Promise<TopluTeklifSatiri[]> {
-  const workbook = await loadSafeXlsx(file, KOLONLAR);
+  const workbook = await loadSafeXlsx(file, KOLONLAR, {
+    headerMismatchMessage: "Eksik veya eski Toplu Teklifler şablonu. “Teklif Eğitimi” sütunu zorunludur; güncel şablonu indirin.",
+  });
   const satirlar = worksheetRowsAsRecords(workbook.getSheetByIndex(0)!, KOLONLAR);
   if (satirlar.length > 1_000) throw new Error("Bir dosyada en fazla 1.000 teklif satırı olabilir.");
 
@@ -229,8 +269,9 @@ export async function topluTeklifExceliniOku(file: File, kampanyalar: any[], egi
     .map((ham, index) => {
     const adSoyad = metin(ham["Ad Soyad"]);
     const telefon = telefonuNormalizeEt(metin(ham.Telefon));
-    const sonEgitim = metin(ham["Son Eğitim"]);
+    const sonEgitim = metin(ham["Öğrencinin Son Eğitimi (Geçmiş)"]);
     const sonKur = metin(ham["Son Kur"]);
+    const teklifEgitimi = metin(ham["Teklif Eğitimi"]);
     const teklifKur = kuruAyikla(metin(ham["Teklif Edilecek Kur"]));
     const odeme1Raw = metin(ham["Ödeme 1"]);
     const odeme2Raw = metin(ham["Ödeme 2"]);
@@ -245,16 +286,30 @@ export async function topluTeklifExceliniOku(file: File, kampanyalar: any[], egi
     if (adSoyad.split(/\s+/).length < 2 || adSoyad.length > 150) { hatalar.push("Ad soyad geçersiz."); beklenen.push("En az ad ve soyad yazın."); }
     if (telefon.length < 12 || telefon.length > 15 || !telefon.startsWith("90")) { hatalar.push("Telefon geçersiz."); beklenen.push("05xx xxx xx xx veya 90xxxxxxxxxx biçimi."); }
     if (!sonEgitim) {
-      hatalar.push("Son Eğitim zorunludur."); beklenen.push(`İzinli değerler: ${egitimTipleri.length ? egitimTipleri.join(", ") : "eğitim tiplerini yönetim ekranından ekleyin"}`);
+      hatalar.push("Öğrencinin Son Eğitimi (Geçmiş) zorunludur."); beklenen.push(`İzinli değerler: ${egitimTipleri.length ? egitimTipleri.join(", ") : "eğitim tiplerini yönetim ekranından ekleyin"}`);
     } else if (sonEgitim.length > 120) {
       hatalar.push("Son eğitim geçersiz."); beklenen.push("En fazla 120 karakter yazın.");
     } else if (gecerliEgitimTipleri.length > 0 && !gecerliEgitimTipleri.includes(sonEgitim.toLocaleLowerCase("tr"))) {
-      hatalar.push(`Son eğitim "${sonEgitim}" tanımlı eğitim tiplerinden biri değil.`);
+      hatalar.push(`Öğrencinin geçmiş eğitimi "${sonEgitim}" tanımlı eğitim tiplerinden biri değil.`);
+      beklenen.push(`İzinli değerler: ${egitimTipleri.join(", ")}`);
+    }
+    if (!teklifEgitimi) {
+      hatalar.push("Teklif Eğitimi zorunludur.");
+      beklenen.push(`İzinli değerler: ${egitimTipleri.length ? egitimTipleri.join(", ") : "eğitim tiplerini yönetim ekranından ekleyin"}`);
+    } else if (teklifEgitimi.length > 120) {
+      hatalar.push("Teklif Eğitimi geçersiz.");
+      beklenen.push("En fazla 120 karakter yazın.");
+    } else if (gecerliEgitimTipleri.length > 0 && !gecerliEgitimTipleri.includes(teklifEgitimi.toLocaleLowerCase("tr"))) {
+      hatalar.push(`Teklif Eğitimi "${teklifEgitimi}" tanımlı eğitim tiplerinden biri değil.`);
       beklenen.push(`İzinli değerler: ${egitimTipleri.join(", ")}`);
     }
     if (!sonKur || sonKur.length > 60) { hatalar.push("Son kur geçersiz."); beklenen.push("En fazla 60 karakter yazın."); }
     if (!teklifKur) { hatalar.push("Teklif edilecek kur geçersiz."); beklenen.push("1–24 arası pozitif tam sayı yazın."); }
     if (!kampanya) { hatalar.push("Kampanya bulunamadı."); beklenen.push("Seçili şubedeki kampanya adını birebir yazın."); }
+    if (kampanya && teklifEgitimi && String(kampanya.egitimTipi).trim().toLocaleLowerCase("tr") !== teklifEgitimi.toLocaleLowerCase("tr")) {
+      hatalar.push(`Teklif Eğitimi ${teklifEgitimi} ancak seçilen ${kampanya.kampanyaAdi} ${kampanya.egitimTipi} içindir.`);
+      beklenen.push(`${kampanya.egitimTipi} kampanyası seçin veya Teklif Eğitimi'ni ${kampanya.egitimTipi} yapın.`);
+    }
     if (!odeme1) { hatalar.push("Ödeme 1 geçersiz."); beklenen.push("Nakit, Kredi Kartı - 6 Taksit veya Senet - 6 Taksit."); }
     if (!odeme2) { hatalar.push("Ödeme 2 geçersiz."); beklenen.push("Nakit, Kredi Kartı - 6 Taksit veya Senet - 6 Taksit."); }
     if (odeme1 && odeme2 && odeme1.etiket === odeme2.etiket) { hatalar.push("İki ödeme alternatifi aynı."); beklenen.push("Ödeme 1 ve Ödeme 2 farklı olmalı."); }
@@ -264,7 +319,7 @@ export async function topluTeklifExceliniOku(file: File, kampanyalar: any[], egi
     }
     if (kampanya && teklifKur && teklifKur > Number(kampanya.kurSayisi)) { hatalar.push("Teklif kur sayısı kampanya limitini aşıyor."); beklenen.push(`En fazla ${kampanya.kurSayisi} kur kullanın.`); }
     return {
-      id: `excel-${index + 2}`, sira: index + 2, adSoyad, telefon, sonEgitim, sonKur, teklifKur, odeme1Raw, odeme2Raw, kampanyaAdi,
+      id: `excel-${index + 2}`, sira: index + 2, adSoyad, telefon, sonEgitim, sonKur, teklifEgitimi, teklifKur, odeme1Raw, odeme2Raw, kampanyaAdi,
       kampanya, odeme1: odeme1 || undefined, odeme2: odeme2 || undefined, hatalar, beklenen,
       durum: hatalar.length ? "duzeltmeli" as const : "hazir" as const,
     };

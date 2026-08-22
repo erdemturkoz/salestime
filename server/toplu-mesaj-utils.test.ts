@@ -45,10 +45,12 @@ const DANISMAN = { adi: "Ali", soyadi: "Yılmaz", telefon: "05321112233" };
 // ─── Selamlama testleri ───────────────────────────────────────────────────────
 
 test("sonKur dolu iken selamlama kişiselleştirilmiş kur ifadesini içerir", () => {
-  const satir = { ogrenciAdi: "Ayşe Demir", sonKur: "B1" };
+  const satir = { ogrenciAdi: "Ayşe Demir", sonEgitim: "Genel Almanca", sonKur: "B1" };
   const mesaj = topluMesajOlustur(satir, mockTeklif(), mockTeklif(), "Kadıköy", DANISMAN);
 
   assert.match(mesaj, /Son aldığınız B1 seviyesinin ardından/);
+  assert.match(mesaj, /Geçmiş eğitiminiz: Genel Almanca/);
+  assert.match(mesaj, /Teklif Eğitimi: Genel İngilizce/);
   assert.doesNotMatch(mesaj, /Mevcut eğitim durumunuza göre/);
 });
 

@@ -173,6 +173,7 @@ const topluTeklifSatirSchema = z.object({
   ogrenciTelefon: z.string().trim().min(10).max(20),
   sonEgitim: z.string().trim().min(1).max(120),
   sonKur: z.string().trim().min(1).max(60),
+  teklifEgitimi: z.string().trim().min(1).max(120),
   teklifKur: z.number().int().positive().max(24),
   kampanyaId: z.number().int().positive(),
   odeme1: z.object({ odemeTipi: z.enum(["nakit", "kredi-karti", "senet"]), taksitSayisi: z.number().int().min(1).max(24) }),
@@ -1054,12 +1055,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // İstemci yalnızca aday ve ödeme tercihlerini gönderir. Kampanya, fiyat,
       // mesaj ve snapshot burada, mevcut computeOffer motoru ile üretilir.
-      const kampanyalar = await Promise.all(teklifler.map((teklif) => storage.getKampanya(teklif.kampanyaId)));
+      const [kampanyalar, egitimTipleri] = await Promise.all([
+        Promise.all(teklifler.map((teklif) => storage.getKampanya(teklif.kampanyaId))),
+        storage.getAllEgitimTipleri(),
+      ]);
+      const aktifEgitimTipleri = new Set(
+        egitimTipleri.map((egitimTipi: any) => String(egitimTipi.egitimTipi || "").trim().toLocaleLowerCase("tr")),
+      );
       for (let index = 0; index < teklifler.length; index++) {
         const kampanya = kampanyalar[index] as any;
         const teklif = teklifler[index];
         if (!kampanya || Number(kampanya.subeId) !== subeId) {
           return res.status(400).json({ error: `Satır ${index + 1}: seçili şubeye ait kampanya bulunamadı.` });
+        }
+        const sonEgitim = teklif.sonEgitim.trim().toLocaleLowerCase("tr");
+        if (!aktifEgitimTipleri.has(sonEgitim)) {
+          return res.status(400).json({ error: `Satır ${index + 1}: Öğrencinin Son Eğitimi (Geçmiş) güncel eğitim tiplerinden biri olmalıdır.` });
+        }
+        const teklifEgitimi = teklif.teklifEgitimi.trim().toLocaleLowerCase("tr");
+        const kampanyaEgitimi = String(kampanya.egitimTipi || "").trim().toLocaleLowerCase("tr");
+        if (!aktifEgitimTipleri.has(teklifEgitimi)) {
+          return res.status(400).json({ error: `Satır ${index + 1}: Teklif Eğitimi güncel eğitim tiplerinden biri olmalıdır.` });
+        }
+        if (teklifEgitimi !== kampanyaEgitimi) {
+          return res.status(400).json({
+            error: `Satır ${index + 1}: Teklif Eğitimi ${teklif.teklifEgitimi} ancak seçilen ${kampanya.kampanyaAdi} ${kampanya.egitimTipi} içindir.`,
+          });
         }
         if (teklif.teklifKur > Number(kampanya.kurSayisi)) {
           return res.status(400).json({ error: `Satır ${index + 1}: kampanya kur limiti aşılıyor.` });
@@ -1122,6 +1143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             kampanya,
             teklif1,
             teklif2,
+            ogrenci: {
+              sonEgitim: teklif.sonEgitim,
+              sonKur: teklif.sonKur,
+              teklifEgitimi: kampanya.egitimTipi,
+            },
             tumHediyelerUcretsiz,
             danisman: { adi: user.adi || "", soyadi: user.soyadi || "", telefon: user.telefon || "" },
             sube: { subeAdi: sube.subeAdi, subeAdresi: sube.subeAdresi || "", subeTelefon: sube.subeTelefon || "" },

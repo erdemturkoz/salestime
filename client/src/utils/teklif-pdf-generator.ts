@@ -31,6 +31,9 @@ export interface TeklifData {
 
   ogrenciAdi: string;
   gecerlilikGunu: number;
+  sonEgitim?: string;
+  sonKur?: string;
+  teklifEgitimi?: string;
 
   danismanAdi: string;
   danismanSoyadi: string;
@@ -93,6 +96,41 @@ function teklifNumarasiUret(subeAdi: string): string {
   return `ET-${subeKod}-${next}`;
 }
 
+export function pdfHtmlMetniniKacir(value: string | undefined | null): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function pdfVerisiniGuvenliHaleGetir(data: TeklifData): TeklifData {
+  return {
+    ...data,
+    kampanyaAdi: pdfHtmlMetniniKacir(data.kampanyaAdi),
+    egitimTipi: pdfHtmlMetniniKacir(data.egitimTipi),
+    teklifEgitimi: pdfHtmlMetniniKacir(data.teklifEgitimi),
+    sonEgitim: pdfHtmlMetniniKacir(data.sonEgitim),
+    sonKur: pdfHtmlMetniniKacir(data.sonKur),
+    odemeTipi: pdfHtmlMetniniKacir(data.odemeTipi),
+    odemeTipiText: pdfHtmlMetniniKacir(data.odemeTipiText),
+    mudurIndirimTipi: pdfHtmlMetniniKacir(data.mudurIndirimTipi),
+    ogrenciAdi: pdfHtmlMetniniKacir(data.ogrenciAdi),
+    danismanAdi: pdfHtmlMetniniKacir(data.danismanAdi),
+    danismanSoyadi: pdfHtmlMetniniKacir(data.danismanSoyadi),
+    danismanTelefon: pdfHtmlMetniniKacir(data.danismanTelefon),
+    subeAdi: pdfHtmlMetniniKacir(data.subeAdi),
+    subeAdresi: pdfHtmlMetniniKacir(data.subeAdresi),
+    subeTelefon: pdfHtmlMetniniKacir(data.subeTelefon),
+    teklifNo: pdfHtmlMetniniKacir(data.teklifNo),
+    hediyeler: data.hediyeler.map((hediye) => ({ ...hediye, isim: pdfHtmlMetniniKacir(hediye.isim) })),
+    hediyeEdildi: Object.fromEntries(
+      Object.entries(data.hediyeEdildi).map(([isim, hediye]) => [pdfHtmlMetniniKacir(isim), hediye]),
+    ),
+  };
+}
+
 function hediyeToplami(data: TeklifData): number {
   let toplam = 0;
   if (data.kitapDahil && data.kitapHediyeEdildi && data.kitapUcreti > 0) {
@@ -107,6 +145,7 @@ function hediyeToplami(data: TeklifData): number {
 }
 
 export function generateTeklifPDF(data: TeklifData): void {
+  data = pdfVerisiniGuvenliHaleGetir(data);
   const bugun = data.teklifTarihi ? new Date(data.teklifTarihi) : new Date();
   const gecerlilikTarihi = data.sonGecerlilikTarihi
     ? new Date(data.sonGecerlilikTarihi)
@@ -795,11 +834,12 @@ export function generateTeklifPDF(data: TeklifData): void {
     <!-- Kampanya hero -->
     <div class="campaign-hero">
       <div class="campaign-title">${data.kampanyaAdi}</div>
-      <div class="campaign-subtitle">${data.egitimTipi}</div>
+      <div class="campaign-subtitle">Teklif Eğitimi: ${data.teklifEgitimi || data.egitimTipi}</div>
       <div class="campaign-tags">
         <span class="campaign-tag">&#128218; ${data.kurSayisi} Kur</span>
         <span class="campaign-tag">&#9200; ${data.dersSaati} Saat</span>
-        <span class="campaign-tag">&#127891; ${data.egitimTipi}</span>
+        <span class="campaign-tag">&#127891; ${data.teklifEgitimi || data.egitimTipi}</span>
+        ${data.sonEgitim ? `<span class="campaign-tag">Geçmiş Eğitim: ${data.sonEgitim}${data.sonKur ? ` · Son Kur: ${data.sonKur}` : ""}</span>` : ""}
       </div>
     </div>
 
@@ -941,6 +981,8 @@ export function generateTeklifPDF(data: TeklifData): void {
 // Çift Teklif PDF Üreticisi
 // ─────────────────────────────────────────────────────────────────
 export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): void {
+  data1 = pdfVerisiniGuvenliHaleGetir(data1);
+  data2 = pdfVerisiniGuvenliHaleGetir(data2);
   const bugun = data1.teklifTarihi ? new Date(data1.teklifTarihi) : new Date();
   const gecerlilikTarihi = data1.sonGecerlilikTarihi
     ? new Date(data1.sonGecerlilikTarihi)
@@ -992,7 +1034,7 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
         ${recommended}
         <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:2px;">${etiket}</div>
         <div style="font-size:11px;color:#6b7280;margin-bottom:14px;">${d.kampanyaAdi}</div>
-        <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">${d.egitimTipi} &mdash; ${d.kurSayisi} Kur / ${d.dersSaati} Saat</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">Teklif Eğitimi: ${d.teklifEgitimi || d.egitimTipi} &mdash; ${d.kurSayisi} Kur / ${d.dersSaati} Saat${d.sonEgitim ? `<br/>Geçmiş Eğitim: ${d.sonEgitim}${d.sonKur ? ` · Son Kur: ${d.sonKur}` : ""}` : ""}</div>
 
         <table style="width:100%;font-size:12px;border-collapse:collapse;">
           <tr><td style="color:#6b7280;padding:3px 0;">Liste Fiyat\u0131</td><td style="text-align:right;text-decoration:line-through;color:#9ca3af;">${formatTL(d.listeFiyati)}</td></tr>
