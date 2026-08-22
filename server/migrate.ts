@@ -15,11 +15,18 @@ neonConfig.webSocketConstructor = ws;
 
 const MIGRATIONS = [
   "migrations/0000_toplu_teklifler.sql",
-  "migrations/0001_whatsapp_gonderimleri_yetki.sql",
   "migrations/0002_kullanici_auth_version.sql",
   "migrations/0003_toplu_kuyruk_butunlugu.sql",
   "migrations/0004_sessions.sql",
 ];
+
+// 0001, eski WhatsApp istatistik kayıtlarını kullanıcı/şube kimliklerine
+// dönüştürür. Canlı veride aynı isimli veya artık rolü değişmiş danışmanlar
+// bulunabildiği için otomatik eşleştirme güvenli değildir. Yanlış kullanıcıya
+// veri bağlamak ya da uygulamanın açılmasını engellemek yerine bu veri
+// mutabakatı ayrı bir yönetim işlemi olarak çalıştırılacaktır. Yeni kayıtlar
+// API tarafından zaten sube_id ve danisman_id ile oluşturulur.
+const DEFERRED_MIGRATIONS = ["migrations/0001_whatsapp_gonderimleri_yetki.sql"];
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL) {
@@ -30,6 +37,10 @@ async function main(): Promise<void> {
   const client = await pool.connect();
 
   try {
+    console.warn(
+      `[migrate] manuel veri mutabakatına ertelendi: ${DEFERRED_MIGRATIONS.join(", ")}`,
+    );
+
     // Ledger tablosu yoksa oluştur
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
