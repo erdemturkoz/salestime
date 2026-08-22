@@ -86,6 +86,7 @@ const krediKartiEtiketleri = (kampanya: any) =>
   aralik(sayiyiSinirla(kampanya?.maxKrediKartiTaksit, 24)).map((taksit) => `Kredi Kartı - ${taksit} Taksit`);
 const senetEtiketleri = (kampanya: any) =>
   aralik(sayiyiSinirla(kampanya?.maxSenetTaksit, 24)).map((taksit) => `Senet - ${taksit} Taksit`);
+const egitimAnahtari = (deger: unknown) => metin(deger).toLocaleLowerCase("tr");
 
 function styleRow(
   sheet: Worksheet,
@@ -155,19 +156,6 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
       });
     }
   }
-  const kampanyaAdlari = guncelKampanyalar.map((kampanya) => String(kampanya.kampanyaAdi || "").trim()).filter(Boolean);
-  if (kampanyaAdlari.length > 0 && kampanyaAdlari.join(",").length <= 255) {
-    veriSayfasi.addDataValidation("I2:I1001", {
-      type: "list",
-      list: kampanyaAdlari,
-      showDropDown: true,
-      allowBlank: false,
-      showErrorAlert: true,
-      errorTitle: "Kampanya zorunludur",
-      error: "Aktif şubedeki kampanyalardan birini seçin.",
-    } as any);
-  }
-
   const sonEgitimKurali = egitimTipleri.length > 0
     ? `Listeden seçin: ${egitimTipleri.join(" · ")}`
     : "Eğitim tiplerini yönetim ekranından ekleyin.";
@@ -179,8 +167,8 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
     [],
     ["NASIL KULLANILIR?"],
     ["1", "Şube seçimini kontrol edin; ilk sayfadaki sütun adlarını değiştirmeyin."],
-    ["2", "Teklif Eğitimi'ni seçin; Kampanya yalnızca bu eğitim tipiyle eşleşirse kabul edilir."],
-    ["3", "Kampanyayı aktif şube listesinden seçin; fiyatı elle yazmayın."],
+    ["2", "Teklif Eğitimi'ni seçin; Kampanya hücresinde yalnızca bu eğitime ait seçenekler gösterilir."],
+    ["3", "Son sütundaki Kampanya listesinden seçim yapın; fiyatı elle yazmayın."],
     ["4", "Fiyat, ödeme sınırı ve hediyeler doğrulanmış kampanyadan gelir."],
     ["5", "Aynı telefon numarasını dosyada yalnızca bir kez kullanın."],
     [],
@@ -235,6 +223,55 @@ export function topluTeklifSablonuOlustur({ subeAdi, kampanyalar = [], egitimTip
   styleRow(rehber, 11, "#F26207", "#FFFFFF", true);
   styleRow(rehber, 22, "#F26207", "#FFFFFF", true);
   rehber.setRowHeight(1, 30).setRowHeight(2, 34);
+
+  // Kampanya listesini Teklif Eğitimi (E) hücresine bağlayan yardımcı alan.
+  // Yardımcı listeler aynı görünür rehber sayfasında tutulur; böylece yükleme
+  // güvenliği için gizli sayfa kullanmadan Excel'in bağımlı liste özelliğinden
+  // yararlanılır.
+  const egitimAdlari = benzersiz([
+    ...egitimTipleri.map(metin),
+    ...guncelKampanyalar.map((kampanya) => metin(kampanya?.egitimTipi)),
+  ]);
+  if (egitimAdlari.length > 0) {
+    const mappingColumn = 10; // J
+    const rangeNameColumn = 11; // K
+    const listColumn = 12; // L
+    let nextListRow = 2;
+    rehber.writeRow(1, mappingColumn, ["Teklif Eğitimi", "Kampanya liste adı"]);
+    rehber.writeRow(1, listColumn, ["Eğitime bağlı kampanya seçenekleri", "Teklif Eğitimi"]);
+    egitimAdlari.forEach((egitimAdi, index) => {
+      const row = index + 2;
+      const rangeName = `SalesTime_Kampanya_${index + 1}`;
+      const kampanyaAdlari = benzersiz(
+        guncelKampanyalar
+          .filter((kampanya) => egitimAnahtari(kampanya?.egitimTipi) === egitimAnahtari(egitimAdi))
+          .map((kampanya) => metin(kampanya?.kampanyaAdi)),
+      );
+      rehber.setValue(row, mappingColumn, safeSpreadsheetText(egitimAdi));
+      rehber.setValue(row, rangeNameColumn, rangeName);
+      const values = kampanyaAdlari.length ? kampanyaAdlari : [""];
+      const listStartRow = nextListRow;
+      values.forEach((kampanyaAdi) => {
+        rehber.setValue(nextListRow, listColumn, safeSpreadsheetText(kampanyaAdi));
+        rehber.setValue(nextListRow, listColumn + 1, safeSpreadsheetText(egitimAdi));
+        nextListRow += 1;
+      });
+      workbook.addNamedRange({
+        name: rangeName,
+        ref: `'Kullanım Kılavuzu'!$L$${listStartRow}:$L$${nextListRow - 1}`,
+      });
+    });
+    const mappingEndRow = egitimAdlari.length + 1;
+    veriSayfasi.addDataValidation("I2:I1001", {
+      type: "list",
+      formula1: `INDIRECT(VLOOKUP($E2,'Kullanım Kılavuzu'!$J$2:$K$${mappingEndRow},2,FALSE))`,
+      showDropDown: true,
+      allowBlank: false,
+      showErrorAlert: true,
+      errorTitle: "Kampanya eğitimle uyuşmuyor",
+      error: "Önce Teklif Eğitimi'ni seçin, ardından bu eğitime ait kampanyalardan birini seçin.",
+    } as any);
+  }
   return workbook;
 }
 

@@ -91,9 +91,14 @@ export function computeOffer(
     }
   }
 
-  const indirimT = listeF - kampanyaFiyat;
-  const indirimY = listeF > 0 ? Math.round((indirimT / listeF) * 100) : 0;
   const genelToplam = toplamFiyat;
+  // Kampanya fiyatları veritabanında hediyeler düşülmüş nihai fiyat olarak
+  // saklanır. Hediyeleri tekrar eklediğimiz `genelToplam`, hediyesiz son
+  // fiyattır; bu nedenle kampanya indirimi liste fiyatından bu tutar
+  // çıkarılarak hesaplanmalıdır. Böylece hediye indirimi ikinci kez kampanya
+  // indiriminin içinde gösterilmez.
+  const indirimT = Math.max(0, listeF - genelToplam);
+  const indirimY = listeF > 0 ? Math.round((indirimT / listeF) * 100) : 0;
 
   let mudurIndirimTutari = 0;
   let ozelFiyat = genelToplam;

@@ -123,6 +123,13 @@ test("Toplu Teklif toggle tam açık: hediyeEdildi + kitapHediyeEdildi → ozelF
   assert.equal(result.toplamHediyeIndirimi, 16_000, "toplamHediyeIndirimi = hediyelerToplam + kitapFiyati");
   assert.equal(result.hediyesizFiyat, 81_000, "hediyesizFiyat hediyesiz kampanya fiyatını göstermeli");
   assert.equal(result.kitapHediyeIndirimi, 1_000, "kitapHediyeIndirimi = kitapFiyati");
+  assert.equal(result.indirimTutari, 19_000, "kampanya indirimi hediyesiz son fiyat üzerinden hesaplanmalı");
+  assert.equal(result.indirimYuzdesi, 19);
+  assert.equal(
+    result.listeFiyati - result.indirimTutari,
+    result.hediyesizFiyat,
+    "liste fiyatı − kampanya indirimi = hediyesiz son fiyat olmalı",
+  );
 });
 
 // ─── Yeni alanlar: hediyesizFiyat, toplamHediyeIndirimi, toplamOdeme ─────────

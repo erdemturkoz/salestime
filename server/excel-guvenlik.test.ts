@@ -60,6 +60,33 @@ test("indirilen iki sayfalı toplu teklif şablonu tekrar yüklenebilir", async 
   assert.equal(satirlar[0].durum, "hazir");
 });
 
+test("Kampanya listesi aynı satırdaki Teklif Eğitimi seçimine bağlıdır", async () => {
+  const kampanyalar = [
+    { kampanyaAdi: "1+1 İNGİLİZCE", egitimTipi: "Genel İngilizce", kurSayisi: 2, hediyeler: [] },
+    { kampanyaAdi: "1+1 ALMANCA", egitimTipi: "Genel Almanca", kurSayisi: 2, hediyeler: [] },
+    { kampanyaAdi: "KIŞ OKULU", egitimTipi: "Junior İngilizce", kurSayisi: 1, hediyeler: [] },
+  ];
+  const workbook = topluTeklifSablonuOlustur({
+    kampanyalar,
+    egitimTipleri: ["Genel İngilizce", "Genel Almanca", "Junior İngilizce"],
+  });
+  const validation = workbook.getSheet("Teklif Listesi")!.getDataValidations().get("I2:I1001") as any;
+  assert.match(validation.formula1, /INDIRECT\(VLOOKUP\(\$E2/);
+  assert.match(validation.formula1, /'Kullanım Kılavuzu'!\$J\$2:\$K\$4/);
+
+  const guide = workbook.getSheet("Kullanım Kılavuzu")!;
+  assert.equal(guide.getCell(2, 12).value, "1+1 İNGİLİZCE");
+  assert.equal(guide.getCell(3, 12).value, "1+1 ALMANCA");
+  assert.equal(guide.getCell(4, 12).value, "KIŞ OKULU");
+  assert.equal(workbook.getNamedRanges().length, 3);
+
+  // Üretilen dosya gerçek .xlsx turundan sonra da aynı bağımlı doğrulamayı korumalıdır.
+  const bytes = await workbook.build();
+  const roundTrip = await Workbook.fromBytes(bytes);
+  const savedValidation = roundTrip.getSheet("Teklif Listesi")!.getDataValidations().get("I2:I1001") as any;
+  assert.match(savedValidation.formula1, /INDIRECT\(VLOOKUP\(\$E2/);
+});
+
 test("eski sekiz sütunlu toplu teklif şablonu güncel şablon uyarısıyla reddedilir", async () => {
   const workbook = new Workbook();
   const worksheet = workbook.addSheet("Teklif Listesi");
