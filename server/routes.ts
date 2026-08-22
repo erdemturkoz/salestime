@@ -107,46 +107,50 @@ function eklentiSonucVerisi(teklif: any) {
 // Sadece üç kuyruk endpoint'i kullanıcı oturumuna alternatif olarak bu
 // dar kapsamlı grant'i kabul eder. Grant başka hiçbir API'ye erişim vermez.
 async function kuyrukIcinEklentiVeyaOturum(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const match = authHeader?.match(/^Extension-Grant ([A-Za-z0-9_-]{43})$/);
+  if (match) {
+    try {
+      const [grant] = await db
+        .select()
+        .from(topluEklentiGrantleri)
+        .where(eq(topluEklentiGrantleri.tokenHash, eklentiGizliDegerHashle(match[1])))
+        .limit(1);
+      const now = new Date();
+      if (!grant || grant.revokedAt || grant.expiresAt <= now) {
+        return res.status(401).json({ error: "Eklenti izni geçersiz, iptal edilmiş veya süresi dolmuş." });
+      }
+      await db
+        .update(topluEklentiGrantleri)
+        .set({ lastUsedAt: now })
+        .where(eq(topluEklentiGrantleri.id, grant.id));
+      (req as any).ekLentiGrant = {
+        id: grant.id,
+        gonderimId: grant.gonderimId,
+        subeId: grant.subeId,
+        expiresAt: grant.expiresAt,
+      } satisfies EklentiGrantBaglami;
+      return next();
+    } catch (error) {
+      console.error("Eklenti grant doğrulama hatası:", error);
+      return res.status(401).json({ error: "Eklenti izni doğrulanamadı." });
+    }
+  }
+
+  if (authHeader?.startsWith("Extension-Grant ")) {
+    return res.status(401).json({ error: "Eklenti izni biçimi geçersiz." });
+  }
+
   if (getSessionUser(req)) {
     // Bearer token, tarayıcının otomatik eklediği bir credential değildir;
     // cookie kaynaklı CSRF riski taşımadan mevcut sağlayıcı sözleşmesini sürdürür.
-    if (/^Bearer\s+\S+$/.test(req.headers.authorization || "")) return next();
+    if (/^Bearer\s+\S+$/.test(authHeader || "")) return next();
     // Cookie tabanlı oturumlar SameSite=None kullandığı için kuyrukta durum
     // değiştiren her işlemde açık bir same-origin kontrolü zorunludur.
     return requireSameOrigin(req, res, next);
   }
 
-  const authHeader = req.headers.authorization;
-  const match = authHeader?.match(/^Extension-Grant ([A-Za-z0-9_-]{43})$/);
-  if (!match) {
-    return res.status(401).json({ error: "Kuyruk erişimi için geçerli oturum veya eklenti izni gerekli." });
-  }
-
-  try {
-    const [grant] = await db
-      .select()
-      .from(topluEklentiGrantleri)
-      .where(eq(topluEklentiGrantleri.tokenHash, eklentiGizliDegerHashle(match[1])))
-      .limit(1);
-    const now = new Date();
-    if (!grant || grant.revokedAt || grant.expiresAt <= now) {
-      return res.status(401).json({ error: "Eklenti izni geçersiz, iptal edilmiş veya süresi dolmuş." });
-    }
-    await db
-      .update(topluEklentiGrantleri)
-      .set({ lastUsedAt: now })
-      .where(eq(topluEklentiGrantleri.id, grant.id));
-    (req as any).ekLentiGrant = {
-      id: grant.id,
-      gonderimId: grant.gonderimId,
-      subeId: grant.subeId,
-      expiresAt: grant.expiresAt,
-    } satisfies EklentiGrantBaglami;
-    next();
-  } catch (error) {
-    console.error("Eklenti grant doğrulama hatası:", error);
-    res.status(401).json({ error: "Eklenti izni doğrulanamadı." });
-  }
+  return res.status(401).json({ error: "Kuyruk erişimi için geçerli oturum veya eklenti izni gerekli." });
 }
 
 function eklentiGrantBaglami(req: Request): EklentiGrantBaglami | null {

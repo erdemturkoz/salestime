@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SalesTime Gönderici</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header><span class="logo">S</span><div><h1>SalesTime</h1><p>WhatsApp Gönderici</p></div></header>
+    <section id="pairSection">
+      <label for="pairingCode">SalesTime eşleştirme kodu</label>
+      <input id="pairingCode" maxlength="43" autocomplete="off" placeholder="43 karakterlik kodu yapıştırın">
+      <button id="pairButton" class="primary">Eşleştir ve hazırla</button>
+      <p class="hint">Kodu SalesTime → Teklif Geçmişi → Chrome Eklentisini Bağla bölümünden alın.</p>
+    </section>
+    <section id="dashboard" hidden>
+      <div class="status"><span id="statusDot"></span><div><strong id="statusText"></strong><small id="expiryText"></small></div></div>
+      <div class="stats"><div><b id="sentCount">0</b><span>Gönderildi</span></div><div><b id="errorCount">0</b><span>Hata</span></div></div>
+      <p id="candidate" class="candidate" hidden></p>
+      <div id="errorBox" class="error" hidden></div>
+      <div id="manualBox" class="manual" hidden>
+        <strong>Manuel kontrol gerekli</strong>
+        <p>WhatsApp'ta mesajı kontrol edin; eklenti aynı mesajı otomatik tekrar göndermez.</p>
+        <button id="markSent">Gönderildi olarak bildir</button>
+        <button id="markFailed" class="danger">Gönderilmedi olarak bildir</button>
+      </div>
+      <button id="whatsappButton">WhatsApp Web'i aç</button>
+      <button id="pauseButton">Duraklat</button>
+      <button id="disconnectButton" class="link">Eşleştirmeyi kaldır</button>
+      <p class="hint">SalesTime'da gönderimi başlattığınızda mesajlar otomatik ilerler. Chrome ve WhatsApp Web açık kalmalıdır.</p>
+    </section>
+    <footer>Kimlik: <code>olilhnenhdhjcdbdgcejhimpndflbele</code></footer>
+  </main>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
