@@ -212,16 +212,22 @@ export default function TopluTekliflerPage() {
     queryKey: ["/api/toplu-gonderimler"],
     queryFn: () => apiRequest("/api/toplu-gonderimler"),
     enabled: sekme === "gecmis",
+    refetchInterval: sekme === "gecmis" ? 3_000 : false,
+    refetchIntervalInBackground: false,
   });
   const { data: gecmis = [] } = useQuery<KayitliTeklif[]>({
     queryKey: ["/api/toplu-teklifler"],
     queryFn: () => apiRequest("/api/toplu-teklifler"),
     enabled: sekme === "gecmis",
+    refetchInterval: sekme === "gecmis" ? 3_000 : false,
+    refetchIntervalInBackground: false,
   });
   const { data: eklentiDurumlari = {} } = useQuery<Record<string, { durum: string; expiresAt: string | null }>>({
     queryKey: ["/api/toplu-gonderimler/eklenti-durumlari"],
     queryFn: () => apiRequest("/api/toplu-gonderimler/eklenti-durumlari"),
     enabled: sekme === "gecmis",
+    refetchInterval: sekme === "gecmis" ? 3_000 : false,
+    refetchIntervalInBackground: false,
   });
 
   const gonderimOlustur = useMutation({

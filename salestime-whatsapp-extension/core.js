@@ -40,7 +40,7 @@ export function isExpired(expiresAt, now = Date.now()) {
   return new Date(expiresAt).getTime() <= now + 30_000;
 }
 
-export function randomDelay(min = 10_000, max = 18_000, random = Math.random) {
+export function randomDelay(min = 8_000, max = 12_000, random = Math.random) {
   return Math.floor(min + random() * (max - min + 1));
 }
 

@@ -14,4 +14,6 @@ assert.equal(requiresManualResolution({ status: "sending" }), true);
 assert.equal(shouldOnlyReport({ status: "sent_unreported" }), true);
 assert.equal(randomDelay(10, 18, () => 0), 10);
 assert.equal(randomDelay(10, 18, () => 0.999), 18);
+assert.equal(randomDelay(undefined, undefined, () => 0), 8_000);
+assert.equal(randomDelay(undefined, undefined, () => 4_000 / 4_001), 12_000);
 console.log("SalesTime extension tests: OK");
