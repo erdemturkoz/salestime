@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation, Redirect } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { getRoleNames, hasGlobalSystemAdminRole } from "@shared/role-policy";
 
 interface AuthenticationGuardProps {
   children: React.ReactNode;
@@ -27,9 +28,9 @@ export default function AuthenticationGuard({ children, adminOnly = false, fullA
     return <Redirect to="/giris" />;
   }
 
-  const userRoles = ("roller" in user ? user.roller : [])?.map((r: any) => r.rol) || [];
-  const isFullAdmin = userRoles.includes("Sistem Yöneticisi") || userRoles.includes("Kurucu");
-  const canManage = isFullAdmin || userRoles.includes("Müdür");
+  const userRoles = getRoleNames(user);
+  const isFullAdmin = hasGlobalSystemAdminRole(user);
+  const canManage = isFullAdmin || userRoles.includes("Kurucu") || userRoles.includes("Müdür");
 
   // Yalnızca tam admin gerektiren sayfalar (şubeler, eğitim tipleri)
   if (fullAdminOnly && !isFullAdmin) {

@@ -53,6 +53,7 @@ type Kullanici = {
   id: number;
   adi: string;
   soyadi: string;
+  globalRol?: string | null;
   roller: KullaniciSubeRol[];
 };
 
@@ -82,6 +83,7 @@ const KullanicilarPage = () => {
     selectedRol: "Satış Danışmanı" as Rol,
     selectedSubeId: 0,
     selectedSubeler: [] as {subeId: number, rol: Rol}[],
+    globalAdmin: false,
   });
 
   // Şubeleri API'den çek
@@ -105,6 +107,7 @@ const KullanicilarPage = () => {
         description: "Yeni kullanıcı başarıyla eklendi.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subeler'] });
       resetAndCloseAddDialog();
     },
     onError: (error: any) => {
@@ -124,6 +127,7 @@ const KullanicilarPage = () => {
         description: "Kullanıcı bilgileri başarıyla güncellendi.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subeler'] });
       setIsEditDialogOpen(false);
       setSelectedUser(null);
     },
@@ -144,6 +148,7 @@ const KullanicilarPage = () => {
         description: "Kullanıcı başarıyla silindi.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subeler'] });
       setIsDeleteDialogOpen(false);
       setSelectedUser(null);
     },
@@ -181,6 +186,7 @@ const KullanicilarPage = () => {
         selectedRol: "Satış Danışmanı",
         selectedSubeId: varsayilanSube,
         selectedSubeler: [],
+        globalAdmin: false,
       });
     }
     setIsAddDialogOpen(true);
@@ -195,6 +201,7 @@ const KullanicilarPage = () => {
       selectedRol: "Satış Danışmanı",
       selectedSubeId: Array.isArray(subeler) && subeler.length > 0 ? subeler[0].id : 0,
       selectedSubeler: [],
+      globalAdmin: false,
     });
     setIsAddDialogOpen(false);
   };
@@ -256,7 +263,7 @@ const KullanicilarPage = () => {
       return;
     }
 
-    if (newUser.selectedSubeler.length === 0) {
+    if (newUser.selectedSubeler.length === 0 && !newUser.globalAdmin) {
       toast({
         title: "Eksik bilgiler",
         description: "En az bir şube ve rol eklemelisiniz.",
@@ -274,7 +281,8 @@ const KullanicilarPage = () => {
       roller: newUser.selectedSubeler.map(sr => ({
         subeId: sr.subeId,
         rol: sr.rol
-      }))
+      })),
+      globalRol: newUser.globalAdmin ? "Sistem Yöneticisi" : null,
     };
 
     createKullanici(userData);
@@ -282,6 +290,7 @@ const KullanicilarPage = () => {
 
   // Kullanıcı düzenleme için state
   const [editingRoller, setEditingRoller] = useState<{subeId: number, rol: Rol}[]>([]);
+  const [editingGlobalAdmin, setEditingGlobalAdmin] = useState(false);
   const [editCurrentSubeRol, setEditCurrentSubeRol] = useState<{subeId: number, rol: Rol}>({
     subeId: 0,
     rol: "Satış Danışmanı"
@@ -298,6 +307,7 @@ const KullanicilarPage = () => {
     }));
     
     setEditingRoller(currentRoles);
+    setEditingGlobalAdmin(user.globalRol === "Sistem Yöneticisi");
     
     // İlk şubeyi varsayılan olarak seç
     if (Array.isArray(subeler) && subeler.length > 0) {
@@ -340,7 +350,7 @@ const KullanicilarPage = () => {
   const handleUpdateUser = () => {
     if (!selectedUser) return;
     
-    if (editingRoller.length === 0) {
+    if (editingRoller.length === 0 && !editingGlobalAdmin) {
       toast({
         title: "Eksik bilgiler",
         description: "En az bir şube ve rol eklemelisiniz.",
@@ -357,7 +367,10 @@ const KullanicilarPage = () => {
       roller: editingRoller.map(sr => ({
         subeId: sr.subeId,
         rol: sr.rol
-      }))
+      })),
+      ...(tamAdmin ? {
+        globalRol: editingGlobalAdmin ? "Sistem Yöneticisi" : null,
+      } : {}),
     };
     
     updateKullanici(userData);
@@ -383,6 +396,7 @@ const KullanicilarPage = () => {
         ) {
           return true;
         }
+        if (kullanici.globalRol?.toLowerCase().includes(searchTermLower)) return true;
         
         // Rol ve şube bilgisi içinde arama
         return kullanici.roller?.some(rol => {
@@ -425,7 +439,7 @@ const KullanicilarPage = () => {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Hata</AlertTitle>
               <AlertDescription>
-                Kullanıcılar yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.
+                {(kullanicilarError as Error).message || "Kullanıcılar yüklenirken bir hata oluştu."}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -492,6 +506,11 @@ const KullanicilarPage = () => {
                               </span>
                             </div>
                           ))}
+                          {kullanici.globalRol && (
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                              Tüm şubeler · {kullanici.globalRol}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -519,7 +538,11 @@ const KullanicilarPage = () => {
                   // Kullanıcı bulunamadı
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                      {searchTerm ? 'Arama kriterine uygun kullanıcı bulunamadı' : 'Henüz kullanıcı bulunmuyor'}
+                      {searchTerm
+                        ? 'Arama kriterine uygun kullanıcı bulunamadı'
+                        : tamAdmin
+                          ? 'Henüz kullanıcı bulunmuyor'
+                          : 'Yönetebileceğiniz satış danışmanı bulunmuyor'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -583,6 +606,17 @@ const KullanicilarPage = () => {
                 className="col-span-3"
               />
             </div>
+            {tamAdmin && (
+              <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={newUser.globalAdmin}
+                  onChange={(e) => setNewUser({ ...newUser, globalAdmin: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <span>Sistem Yöneticisi — tüm şubelerde genel yetki</span>
+              </label>
+            )}
             <div className="mb-4 border-t pt-4">
               <h3 className="text-md font-medium mb-2">Şube ve Roller</h3>
               
@@ -703,6 +737,17 @@ const KullanicilarPage = () => {
                     className="col-span-3"
                   />
                 </div>
+                {tamAdmin && (
+                  <label className="mb-4 flex items-center gap-2 rounded-md border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editingGlobalAdmin}
+                      onChange={(e) => setEditingGlobalAdmin(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <span>Sistem Yöneticisi — tüm şubelerde genel yetki</span>
+                  </label>
+                )}
                 <div className="mb-4 border-t pt-4">
                   <h3 className="text-md font-medium mb-2">Şube ve Roller</h3>
                   

@@ -14,6 +14,7 @@ import {
   type InsertSube,
   type KullaniciSubeRol,
   type InsertKullaniciSubeRol,
+  type SubeRolu,
   type KullaniciWithRollerVeSubeler,
   type SubeWithKullanicilar,
   type EgitimTipi,
@@ -22,7 +23,7 @@ import {
   type InsertWhatsappGonderim
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, desc, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, inArray, isNull } from "drizzle-orm";
 
 export type WhatsappGonderimFilters = {
   subeId?: number;
@@ -56,10 +57,12 @@ export interface IStorage {
   getKullaniciRoller(kullaniciId: number): Promise<Array<{subeId: number; subeAdi: string; rol: string}>>;
   createKullanici(kullanici: InsertKullanici): Promise<Kullanici>;
   updateKullanici(id: number, kullanici: Partial<InsertKullanici>): Promise<Kullanici | undefined>;
+  setKullaniciGlobalRole(id: number, globalRol: string | null): Promise<boolean>;
+  countActiveSystemAdmins(): Promise<number>;
   updateKullaniciPasswordAndInvalidate(id: number, hashedPassword: string): Promise<boolean>;
   invalidateKullaniciAuth(id: number): Promise<boolean>;
   deleteKullanici(id: number): Promise<boolean>;
-  addKullaniciToSube(kullaniciId: number, subeId: number, rol: string): Promise<KullaniciSubeRol>;
+  addKullaniciToSube(kullaniciId: number, subeId: number, rol: SubeRolu): Promise<KullaniciSubeRol>;
   removeKullaniciFromSube(kullaniciId: number, subeId: number): Promise<boolean>;
   
   // Şube operations
@@ -403,34 +406,27 @@ export class DatabaseStorage implements IStorage {
 
   // Kullanıcı operations
   async getAllKullanicilar(): Promise<KullaniciWithRollerVeSubeler[]> {
-    try {
-      const kullanicilarResult = await db.select().from(kullanicilar);
-      
-      const kullanicilarWithRoller: KullaniciWithRollerVeSubeler[] = [];
-      
-      for (const kullanici of kullanicilarResult) {
-        // Drizzle ORM ile ilişkili verileri çekme
-        const rollerResult = await db
-          .select({
-            subeId: kullaniciSubeRolleri.subeId,
-            subeAdi: subeler.subeAdi,
-            rol: kullaniciSubeRolleri.rol
-          })
-          .from(kullaniciSubeRolleri)
-          .innerJoin(subeler, eq(kullaniciSubeRolleri.subeId, subeler.id))
-          .where(eq(kullaniciSubeRolleri.kullaniciId, kullanici.id));
-        
-        kullanicilarWithRoller.push({
-          ...kullanici,
-          roller: rollerResult
-        });
-      }
-      
-      return kullanicilarWithRoller;
-    } catch (error) {
-      console.error("Kullanıcıları getirme hatası:", error);
-      return [];
+    const kullanicilarResult = await db.select().from(kullanicilar);
+    const kullanicilarWithRoller: KullaniciWithRollerVeSubeler[] = [];
+
+    for (const kullanici of kullanicilarResult) {
+      const rollerResult = await db
+        .select({
+          subeId: kullaniciSubeRolleri.subeId,
+          subeAdi: subeler.subeAdi,
+          rol: kullaniciSubeRolleri.rol
+        })
+        .from(kullaniciSubeRolleri)
+        .innerJoin(subeler, eq(kullaniciSubeRolleri.subeId, subeler.id))
+        .where(eq(kullaniciSubeRolleri.kullaniciId, kullanici.id));
+
+      kullanicilarWithRoller.push({
+        ...kullanici,
+        roller: rollerResult
+      });
     }
+
+    return kullanicilarWithRoller;
   }
 
   async getKullanici(id: number): Promise<KullaniciWithRollerVeSubeler | undefined> {
@@ -475,13 +471,82 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0 ? result[0] : undefined;
   }
 
+  async setKullaniciGlobalRole(id: number, globalRol: string | null): Promise<boolean> {
+    return db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(726593146)`);
+      const [target] = await tx
+        .select({ globalRol: kullanicilar.globalRol, aktif: kullanicilar.aktif })
+        .from(kullanicilar)
+        .where(eq(kullanicilar.id, id));
+      if (!target) return false;
+
+      if (
+        target.globalRol === Roller.SISTEM_YONETICISI &&
+        target.aktif &&
+        globalRol !== Roller.SISTEM_YONETICISI
+      ) {
+        const [admins] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(kullanicilar)
+          .where(and(
+            eq(kullanicilar.globalRol, Roller.SISTEM_YONETICISI),
+            eq(kullanicilar.aktif, true),
+          ));
+        if ((admins?.count ?? 0) <= 1) return false;
+      }
+
+      const result = await tx
+        .update(kullanicilar)
+        .set({
+          globalRol,
+          authVersion: sql`${kullanicilar.authVersion} + 1`,
+        })
+        .where(eq(kullanicilar.id, id))
+        .returning({ id: kullanicilar.id });
+
+      return result.length > 0;
+    });
+  }
+
+  async countActiveSystemAdmins(): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(kullanicilar)
+      .where(and(
+        eq(kullanicilar.globalRol, Roller.SISTEM_YONETICISI),
+        eq(kullanicilar.aktif, true),
+      ));
+
+    return result?.count ?? 0;
+  }
+
   async deleteKullanici(id: number): Promise<boolean> {
-    const result = await db
-      .delete(kullanicilar)
-      .where(eq(kullanicilar.id, id))
-      .returning();
-    
-    return result.length > 0;
+    return db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(726593146)`);
+      const [target] = await tx
+        .select({ globalRol: kullanicilar.globalRol, aktif: kullanicilar.aktif })
+        .from(kullanicilar)
+        .where(eq(kullanicilar.id, id));
+      if (!target) return false;
+
+      if (target.globalRol === Roller.SISTEM_YONETICISI && target.aktif) {
+        const [admins] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(kullanicilar)
+          .where(and(
+            eq(kullanicilar.globalRol, Roller.SISTEM_YONETICISI),
+            eq(kullanicilar.aktif, true),
+          ));
+        if ((admins?.count ?? 0) <= 1) return false;
+      }
+
+      const result = await tx
+        .delete(kullanicilar)
+        .where(eq(kullanicilar.id, id))
+        .returning();
+
+      return result.length > 0;
+    });
   }
   
   async getKullaniciByTelefon(telefon: string): Promise<Kullanici | undefined> {
@@ -551,7 +616,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async addKullaniciToSube(kullaniciId: number, subeId: number, rol: typeof Roller[keyof typeof Roller]): Promise<KullaniciSubeRol> {
+  async addKullaniciToSube(kullaniciId: number, subeId: number, rol: SubeRolu): Promise<KullaniciSubeRol> {
     // Önce var olan bir ilişki var mı kontrol et
     const existing = await db
       .select()
@@ -601,44 +666,10 @@ export class DatabaseStorage implements IStorage {
 
   // Şube operations
   async getAllSubeler(): Promise<SubeWithKullanicilar[]> {
-    try {
-      const subelerResult = await db.select().from(subeler);
-      
-      const subelerWithKullanicilar: SubeWithKullanicilar[] = [];
-      
-      for (const sube of subelerResult) {
-        // Drizzle ORM kullanarak daha güvenli sorgu
-        const kullanicilarResult = await db
-          .select({
-            kullaniciId: kullaniciSubeRolleri.kullaniciId,
-            kullaniciAdi: kullanicilar.adi,
-            kullaniciSoyadi: kullanicilar.soyadi,
-            rol: kullaniciSubeRolleri.rol
-          })
-          .from(kullaniciSubeRolleri)
-          .innerJoin(kullanicilar, eq(kullaniciSubeRolleri.kullaniciId, kullanicilar.id))
-          .where(eq(kullaniciSubeRolleri.subeId, sube.id));
-        
-        subelerWithKullanicilar.push({
-          ...sube,
-          kullanicilar: kullanicilarResult
-        });
-      }
-      
-      return subelerWithKullanicilar;
-    } catch (error) {
-      console.error("Şubeleri getirme hatası:", error);
-      return [];
-    }
-  }
+    const subelerResult = await db.select().from(subeler);
+    const subelerWithKullanicilar: SubeWithKullanicilar[] = [];
 
-  async getSube(id: number): Promise<SubeWithKullanicilar | undefined> {
-    try {
-      const [sube] = await db.select().from(subeler).where(eq(subeler.id, id));
-      
-      if (!sube) return undefined;
-      
-      // Drizzle ORM kullanarak daha güvenli sorgu
+    for (const sube of subelerResult) {
       const kullanicilarResult = await db
         .select({
           kullaniciId: kullaniciSubeRolleri.kullaniciId,
@@ -648,16 +679,42 @@ export class DatabaseStorage implements IStorage {
         })
         .from(kullaniciSubeRolleri)
         .innerJoin(kullanicilar, eq(kullaniciSubeRolleri.kullaniciId, kullanicilar.id))
-        .where(eq(kullaniciSubeRolleri.subeId, id));
-      
-      return {
+        .where(and(
+          eq(kullaniciSubeRolleri.subeId, sube.id),
+          isNull(kullanicilar.globalRol),
+        ));
+
+      subelerWithKullanicilar.push({
         ...sube,
         kullanicilar: kullanicilarResult
-      };
-    } catch (error) {
-      console.error("Şube getirme hatası:", error);
-      return undefined;
+      });
     }
+
+    return subelerWithKullanicilar;
+  }
+
+  async getSube(id: number): Promise<SubeWithKullanicilar | undefined> {
+    const [sube] = await db.select().from(subeler).where(eq(subeler.id, id));
+    if (!sube) return undefined;
+
+    const kullanicilarResult = await db
+      .select({
+        kullaniciId: kullaniciSubeRolleri.kullaniciId,
+        kullaniciAdi: kullanicilar.adi,
+        kullaniciSoyadi: kullanicilar.soyadi,
+        rol: kullaniciSubeRolleri.rol
+      })
+      .from(kullaniciSubeRolleri)
+      .innerJoin(kullanicilar, eq(kullaniciSubeRolleri.kullaniciId, kullanicilar.id))
+      .where(and(
+        eq(kullaniciSubeRolleri.subeId, id),
+        isNull(kullanicilar.globalRol),
+      ));
+
+    return {
+      ...sube,
+      kullanicilar: kullanicilarResult
+    };
   }
 
   // Varsayılan kampanyaları oluşturan yardımcı fonksiyon

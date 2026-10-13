@@ -24,7 +24,12 @@ export const queryClient = new QueryClient({
             },
           });
           if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(
+              typeof payload.error === "string"
+                ? payload.error
+                : "İstek tamamlanamadı. Lütfen tekrar deneyin.",
+            );
           }
           return response.json();
         }
@@ -48,7 +53,13 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'API Error');
+    throw new Error(
+      typeof error.error === "string"
+        ? error.error
+        : typeof error.message === "string"
+          ? error.message
+          : "İstek tamamlanamadı. Lütfen tekrar deneyin.",
+    );
   }
 
   if (response.status === 204) {

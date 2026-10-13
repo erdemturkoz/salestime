@@ -35,6 +35,7 @@ import { Users, Building, User, Edit, Trash, Plus, Phone, MapPin } from 'lucide-
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { type SubeWithKullanicilar } from '@shared/schema';
 
 // Form şeması
 const subeSchema = z.object({
@@ -67,16 +68,17 @@ const SubeKartlari = () => {
   });
 
   // Şubeleri getir
-  const { data: subeler = [], isLoading: subelerLoading, error: subelerError } = useQuery({
+  const { data: subeler = [], isLoading: subelerLoading, error: subelerError } = useQuery<SubeWithKullanicilar[]>({
     queryKey: ['/api/subeler'],
     retry: false,
   });
 
   // Şube ekleme
   const { mutate: createSube, isPending: isCreatingShube } = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/subeler', { method: 'POST', data }),
+    mutationFn: (data: any) => apiRequest('/api/subeler', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subeler'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
       toast({
         title: "Şube eklendi",
         description: "Şube başarıyla eklendi"
@@ -84,11 +86,11 @@ const SubeKartlari = () => {
       setIsSubeDialogOpen(false);
       subeForm.reset();
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       console.error("Şube eklenirken bir hata oluştu:", err);
       toast({
         title: "Hata",
-        description: "Şube eklenirken bir hata oluştu",
+        description: err.message || "Şube eklenirken bir hata oluştu",
         variant: "destructive"
       });
     }
@@ -97,9 +99,10 @@ const SubeKartlari = () => {
   // Şube güncelleme
   const { mutate: updateSube, isPending: isUpdatingSube } = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/subeler/${id}`, { method: 'PATCH', data }),
+      apiRequest(`/api/subeler/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subeler'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
       toast({
         title: "Şube güncellendi",
         description: "Şube bilgileri başarıyla güncellendi"
@@ -108,11 +111,11 @@ const SubeKartlari = () => {
       setEditSubeId(null);
       subeForm.reset();
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       console.error("Şube güncellenirken bir hata oluştu:", err);
       toast({
         title: "Hata",
-        description: "Şube güncellenirken bir hata oluştu",
+        description: err.message || "Şube güncellenirken bir hata oluştu",
         variant: "destructive"
       });
     }
@@ -123,16 +126,17 @@ const SubeKartlari = () => {
     mutationFn: (id: number) => apiRequest(`/api/subeler/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subeler'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/kullanicilar'] });
       toast({
         title: "Şube silindi",
         description: "Şube başarıyla silindi"
       });
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       console.error("Şube silinirken bir hata oluştu:", err);
       toast({
         title: "Hata",
-        description: "Şube silinirken bir hata oluştu. Bağlı kullanıcılar varsa önce onları silmelisiniz.",
+        description: err.message || "Şube silinirken bir hata oluştu",
         variant: "destructive"
       });
     }

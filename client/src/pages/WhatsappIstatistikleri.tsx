@@ -50,10 +50,12 @@ const WhatsappIstatistikleri = () => {
   const [bitisTarihi, setBitisTarihi] = useState(varsayilanTarihAraligi.end);
   const [silinecekId, setSilinecekId] = useState<number | null>(null);
 
-  const roles: string[] =
-    user && "roller" in user && Array.isArray((user as any).roller)
+  const roles: string[] = [
+    ...(user?.globalRol ? [user.globalRol] : []),
+    ...(user && "roller" in user && Array.isArray((user as any).roller)
       ? (user as any).roller.map((r: any) => r.rol)
-      : [];
+      : []),
+  ];
   const canDelete =
     roles.includes("Sistem Yöneticisi") ||
     roles.includes("Kurucu") ||

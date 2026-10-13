@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils";
 
 export default function EgitimTipleriPage() {
   const { user } = useAuth();
-  const isSistemYoneticisi = user && ('roller' in user) && user.roller.some(r => r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür");
+  const isSistemYoneticisi = user?.globalRol === "Sistem Yöneticisi";
   
   // Geçici olarak yetki kontrolünü devre dışı bırakıyoruz
   /*

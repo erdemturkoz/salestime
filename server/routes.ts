@@ -301,7 +301,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error("Şube silme hatası:", error);
-      res.status(500).json({ error: "Şube silinirken bir hata oluştu", details: String(error) });
+      if ((error as any)?.code === "23503") {
+        return res.status(409).json({
+          error: "Şube silinemiyor; bu şubeye bağlı geçmiş kayıtlar var. Önce arşivleme seçeneği değerlendirilmelidir.",
+        });
+      }
+      res.status(500).json({ error: "Şube silinirken bir hata oluştu" });
     }
   });
 
@@ -311,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getSessionUser(req);
       const kullanicilar = await storage.getAllKullanicilar();
 
-      // Müdür: yalnızca kendi şubesindeki danışmanları görebilir
+      // Kurucu/Müdür: yalnızca kendi şubelerindeki danışmanları görebilir
       // (tüm rolleri kendi şubesinde ve yalnızca "Satış Danışmanı" olan kullanıcılar)
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
@@ -358,6 +363,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getSessionUser(req);
       // Roller varsa ayrı tut (Şema dışı veriler)
       const roller = req.body.roller || [];
+      const globalRol = req.body.globalRol ?? null;
+
+      if (globalRol !== null && globalRol !== Roller.SISTEM_YONETICISI) {
+        return res.status(400).json({ error: "Geçersiz genel rol." });
+      }
+      if (globalRol && !isFullAdminUser(user)) {
+        return res.status(403).json({ error: "Genel yönetici rolünü yalnızca Sistem Yöneticisi atayabilir." });
+      }
+      if (!Array.isArray(roller) || roller.some((rol: any) =>
+        !rol || ![Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(rol.rol)
+      )) {
+        return res.status(400).json({ error: "Şube rolleri yalnızca Kurucu, Müdür veya Satış Danışmanı olabilir." });
+      }
+      if (roller.length === 0 && !globalRol) {
+        return res.status(400).json({ error: "Kullanıcıya en az bir şube rolü veya genel yönetici rolü atanmalıdır." });
+      }
 
       // Müdür: yalnızca kendi şubesine "Satış Danışmanı" ekleyebilir
       if (!isFullAdminUser(user)) {
@@ -368,7 +389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Kullanıcı veri şemasını doğrula
-      const kullaniciData = insertKullaniciSchema.parse(req.body);
+      const { roller: _rollerler, globalRol: _globalRol, ...rawKullaniciData } = req.body;
+      const kullaniciData = insertKullaniciSchema.parse(rawKullaniciData);
       
       // Şifreyi hashle (düz metin saklanmamalı; giriş bcrypt ile doğrulanıyor)
       const hashedData = {
@@ -388,6 +410,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rol.rol
           );
         }
+      }
+      if (globalRol && !(await storage.setKullaniciGlobalRole(newKullanici.id, globalRol))) {
+        throw new Error("Genel yönetici rolü kaydedilemedi.");
       }
       
       // Güncel roller dahil kullanıcı bilgisini al
@@ -411,13 +436,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Roller varsa ayrı tut (Şema dışı veriler)
       const roller = req.body.roller || [];
+      const globalRolSent = Object.prototype.hasOwnProperty.call(req.body, "globalRol");
+      const globalRol = req.body.globalRol ?? null;
+      if (globalRolSent && !isFullAdminUser(user)) {
+        return res.status(403).json({ error: "Genel yönetici rolünü değiştirme yetkiniz yok." });
+      }
+      if (globalRolSent && globalRol !== null && globalRol !== Roller.SISTEM_YONETICISI) {
+        return res.status(400).json({ error: "Geçersiz genel rol." });
+      }
+      if (!Array.isArray(roller) || roller.some((rol: any) =>
+        !rol || ![Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(rol.rol)
+      )) {
+        return res.status(400).json({ error: "Şube rolleri yalnızca Kurucu, Müdür veya Satış Danışmanı olabilir." });
+      }
+
+      const mevcut = await storage.getKullanici(parsedId);
+      if (!mevcut) {
+        return res.status(404).json({ error: "Güncellenecek kullanıcı bulunamadı" });
+      }
+      if (roller.length === 0 && !(globalRolSent ? globalRol : mevcut.globalRol)) {
+        return res.status(400).json({ error: "Kullanıcının en az bir şube rolü veya genel yönetici rolü olmalıdır." });
+      }
+      if (
+        globalRolSent &&
+        mevcut.globalRol === Roller.SISTEM_YONETICISI &&
+        globalRol !== Roller.SISTEM_YONETICISI &&
+        mevcut.aktif &&
+        await storage.countActiveSystemAdmins() <= 1
+      ) {
+        return res.status(409).json({ error: "Son etkin Sistem Yöneticisinin rolü kaldırılamaz." });
+      }
 
       // Müdür: yalnızca kendi şubesindeki danışmanı düzenleyebilir ve
       // yalnızca kendi şubesine "Satış Danışmanı" rolü atayabilir
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
-        const mevcut = await storage.getKullanici(parsedId);
-        if (!mevcut || !kullaniciMudureAitMi(mevcut, managed)) {
+        if (!kullaniciMudureAitMi(mevcut, managed)) {
           return res.status(403).json({ error: "Bu kullanıcıyı düzenleme yetkiniz yok." });
         }
         if (!mudurRollerGecerliMi(roller, managed)) {
@@ -426,15 +480,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Kullanıcı veri şemasını doğrula
-      const { roller: _rollerler, ...rawKullaniciData } = req.body;
+      const { roller: _rollerler, globalRol: _globalRol, ...rawKullaniciData } = req.body;
       const kullaniciData = updateKullaniciSchema.parse(rawKullaniciData);
       if (kullaniciData.sifre) kullaniciData.sifre = await hashPassword(kullaniciData.sifre);
       
       // Kullanıcıyı güncelle
       const updatedKullanici = await storage.updateKullanici(parsedId, kullaniciData);
       
-      if (!updatedKullanici) {
-        return res.status(404).json({ error: "Güncellenecek kullanıcı bulunamadı" });
+      if (!updatedKullanici) return res.status(404).json({ error: "Güncellenecek kullanıcı bulunamadı" });
+
+      if (globalRolSent && globalRol !== updatedKullanici.globalRol) {
+        if (!(await storage.setKullaniciGlobalRole(parsedId, globalRol))) {
+          return res.status(409).json({ error: "Son etkin Sistem Yöneticisinin rolü kaldırılamaz." });
+        }
       }
       
       // Önce mevcut kullanıcı-şube ilişkilerini sil
@@ -488,9 +546,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const hedef = await storage.getKullanici(parseInt(id));
+      if (
+        hedef?.aktif &&
+        hedef.globalRol === Roller.SISTEM_YONETICISI &&
+        await storage.countActiveSystemAdmins() <= 1
+      ) {
+        return res.status(409).json({ error: "Son etkin Sistem Yöneticisi silinemez." });
+      }
+
       const success = await storage.deleteKullanici(parseInt(id));
       
       if (!success) {
+        if (
+          hedef?.aktif &&
+          hedef.globalRol === Roller.SISTEM_YONETICISI &&
+          await storage.countActiveSystemAdmins() <= 1
+        ) {
+          return res.status(409).json({ error: "Son etkin Sistem Yöneticisi silinemez." });
+        }
         return res.status(404).json({ error: "Silinecek kullanıcı bulunamadı" });
       }
       
@@ -508,8 +582,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { rol } = req.body;
       const user = getSessionUser(req);
       
-      if (!Object.values(Roller).includes(rol)) {
-        return res.status(400).json({ error: "Geçersiz rol. Roller: Kurucu, Müdür, Satış Danışmanı" });
+      if (![Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(rol)) {
+        return res.status(400).json({ error: "Şube rolü yalnızca Kurucu, Müdür veya Satış Danışmanı olabilir." });
       }
 
       // Müdür: yalnızca kendi şubesine "Satış Danışmanı" ekleyebilir

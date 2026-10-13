@@ -7,6 +7,7 @@ import { pool } from "./db";
 import { z } from "zod";
 import { loginSchema, changePasswordSchema } from "@shared/schema";
 import { storage } from "./storage";
+import { getRoleNames, hasGlobalSystemAdminRole } from "../shared/role-policy";
 
 const SESSION_PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const SESSION_PRUNE_RETRY_DELAY_MS = 1_000;
@@ -272,9 +273,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   const user = getSessionUser(req);
   if (user) {
-    // Roller içinde Sistem Yöneticisi, KURUCU veya MÜDÜR var mı kontrol et
-    if (user.roller && user.roller.some((r: any) => 
-      r.rol === "Sistem Yöneticisi" || r.rol === "Kurucu" || r.rol === "Müdür")) {
+    if (isFullAdminUser(user) || isKurucuUser(user) || isMudurUser(user)) {
       return next();
     }
   }
@@ -298,14 +297,12 @@ export const serializeKullanici = <T extends Record<string, any>>(kullanici: T) 
 
 // Kullanıcının rol adlarını döndür
 export const getUserRoles = (user: any): string[] => {
-  if (!user || !user.roller) return [];
-  return user.roller.map((r: any) => r.rol);
+  return getRoleNames(user);
 };
 
 // Tam yetkili admin mi? (yalnızca Sistem Yöneticisi) — TÜM şubelere hakim
 export const isFullAdminUser = (user: any): boolean => {
-  const roles = getUserRoles(user);
-  return roles.includes("Sistem Yöneticisi");
+  return hasGlobalSystemAdminRole(user);
 };
 
 // Kurucu mu? (birden fazla şubeye atanmış, şube kapsamlı yönetici)

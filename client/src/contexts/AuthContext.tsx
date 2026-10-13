@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
 import { saveUser, getUser, clearUser, saveToken, getToken, clearToken } from "@/lib/authStorage";
+import { getRoleNames } from "@shared/role-policy";
 
 type User = KullaniciWithRollerVeSubeler | Kullanici;
 
@@ -18,6 +19,7 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isFullAdmin: () => boolean;
   canManageCampaigns: () => boolean;
+  isKurucu: () => boolean;
   isMudur: () => boolean;
   isDanisman: () => boolean;
   getManagedSubeIds: () => number[];
@@ -232,30 +234,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Kullanıcı rolleri
   const getRoles = (): string[] => {
-    if (!user || !("roller" in user) || !user.roller) return [];
-    return user.roller.map((r: any) => r.rol);
+    return getRoleNames(user);
   };
 
-  // Tam yetkili admin (Kurucu / Sistem Yöneticisi) — tüm şubelere hakim
+  // Genel yönetici rolü yalnızca şubeden bağımsız Sistem Yöneticisidir.
   const isFullAdmin = () => {
     const roles = getRoles();
-    return roles.includes("Sistem Yöneticisi") || roles.includes("Kurucu");
+    return roles.includes("Sistem Yöneticisi");
   };
+
+  const isKurucu = () => getRoles().includes("Kurucu");
 
   // Şube müdürü
   const isMudur = () => getRoles().includes("Müdür");
 
-  // Kampanya yönetebilir mi? (Tam admin veya müdür)
-  const canManageCampaigns = () => isFullAdmin() || isMudur();
+  // Kampanya yönetebilir mi? (Sistem Yöneticisi, Kurucu veya Müdür)
+  const canManageCampaigns = () => isFullAdmin() || isKurucu() || isMudur();
 
   // Yalnızca satış danışmanı mı? (yönetim yetkisi yok)
   const isDanisman = () => !canManageCampaigns();
 
-  // Müdür olarak yönetilen şube id'leri
+  // Kurucu veya müdür olarak yönetilen şube id'leri
   const getManagedSubeIds = (): number[] => {
     if (!user || !("roller" in user) || !user.roller) return [];
     const ids = user.roller
-      .filter((r: any) => r.rol === "Müdür")
+      .filter((r: any) => r.rol === "Müdür" || r.rol === "Kurucu")
       .map((r: any) => r.subeId)
       .filter((x: any) => x !== null && x !== undefined);
     return Array.from(new Set<number>(ids));
@@ -277,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isFullAdmin,
         canManageCampaigns,
+        isKurucu,
         isMudur,
         isDanisman,
         getManagedSubeIds,

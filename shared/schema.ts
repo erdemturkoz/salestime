@@ -34,6 +34,12 @@ export const Roller = {
   SATIS_DANISMANI: "Satış Danışmanı",
   SISTEM_YONETICISI: "Sistem Yöneticisi"
 } as const;
+export const SubeRolleri = [
+  Roller.KURUCU,
+  Roller.MUDUR,
+  Roller.SATIS_DANISMANI,
+] as const;
+export type SubeRolu = typeof SubeRolleri[number];
 
 // A provider may retry a failed delivery, but a stuck provider must not
 // consume the same candidate indefinitely.
@@ -47,6 +53,8 @@ export const kullanicilar = pgTable("kullanicilar", {
   telefon: text("telefon"),
   // Şifre için salt ile birlikte hashlenmiş bir şifre depolayacağız
   sifre: text("sifre").notNull(),
+  // Sistem yöneticisi genel kullanıcı yetkisidir; şube çalışanı ilişkisi değildir.
+  globalRol: text("global_rol"),
   aktif: boolean("aktif").default(true),
   // Parola, rol veya aktiflik değiştiğinde artırılır. Eski session ve
   // Bearer token'lar bu sürümle eşleşmediği için anında geçersiz kalır.
@@ -59,7 +67,7 @@ export const kullaniciSubeRolleri = pgTable("kullanici_sube_rolleri", {
   id: serial("id").primaryKey(),
   kullaniciId: integer("kullanici_id").notNull().references(() => kullanicilar.id, { onDelete: 'cascade' }),
   subeId: integer("sube_id").notNull().references(() => subeler.id, { onDelete: 'cascade' }),
-  rol: text("rol").notNull().$type<typeof Roller[keyof typeof Roller]>(),
+  rol: text("rol").notNull().$type<SubeRolu>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -136,6 +144,7 @@ export const insertKullaniciSchema = createInsertSchema(kullanicilar).omit({
   id: true,
   createdAt: true,
   authVersion: true,
+  globalRol: true,
 });
 
 export const updateKullaniciSchema = insertKullaniciSchema
@@ -164,6 +173,8 @@ export const changePasswordSchema = z.object({
 export const insertKullaniciSubeRolSchema = createInsertSchema(kullaniciSubeRolleri).omit({
   id: true,
   createdAt: true,
+}).extend({
+  rol: z.enum(SubeRolleri),
 });
 
 // Tipler
