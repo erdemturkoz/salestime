@@ -25,6 +25,7 @@ import { db } from "./db";
 import { z } from "zod";
 import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword, isChromeExtensionOriginConfigured, requireChromeExtensionOrigin, requireSameOrigin, requireMutationProtection, serializeKullanici } from "./auth";
 import { computeOffer } from "../client/src/hooks/useOfferCalculator";
+import { istanbulDateInputsToUtcRange } from "../shared/turkey-dates";
 import "./types"; // Session tiplerini yükle
 
 // Müdürün gönderdiği rollerin geçerliliği: yalnızca kendi şubesine "Satış Danışmanı"
@@ -1015,11 +1016,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isNaN(requestedDanismanId)) return res.status(400).json({ error: "Geçersiz danışman id" });
         filters.danismanId = requestedDanismanId;
       }
-      if (baslangic) filters.baslangicTarihi = new Date(baslangic as string);
-      if (bitis) {
-        const b = new Date(bitis as string);
-        b.setHours(23, 59, 59, 999);
-        filters.bitisTarihi = b;
+      try {
+        const dateRange = istanbulDateInputsToUtcRange(
+          baslangic ? String(baslangic) : undefined,
+          bitis ? String(bitis) : undefined,
+        );
+        filters.baslangicTarihi = dateRange.start;
+        filters.bitisTarihiExclusive = dateRange.endExclusive;
+      } catch (error) {
+        return res.status(400).json({ error: (error as Error).message });
       }
       const gonderimleri = await storage.getAllWhatsappGonderimleri(filters, yetki.yetkiliSubeIds);
       res.json(gonderimleri);

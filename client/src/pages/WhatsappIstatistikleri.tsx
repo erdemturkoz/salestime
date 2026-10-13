@@ -30,6 +30,11 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WhatsappGonderim } from "@shared/schema";
+import { formatDateInputTurkish, getDefaultIstanbulDateRange } from "@shared/turkey-dates";
+import {
+  filterWhatsappStatistics,
+  summarizeWhatsappStatistics,
+} from "@/lib/whatsapp-istatistik-utils";
 
 const WhatsappIstatistikleri = () => {
   const { user } = useAuth();
@@ -40,8 +45,9 @@ const WhatsappIstatistikleri = () => {
   const [subeFiltre, setSubeFiltre] = useState("hepsi");
   const [danismanFiltre, setDanismanFiltre] = useState("hepsi");
   const [odemeTipiFiltre, setOdemeTipiFiltre] = useState("hepsi");
-  const [baslangicTarihi, setBaslangicTarihi] = useState("");
-  const [bitisTarihi, setBitisTarihi] = useState("");
+  const [varsayilanTarihAraligi] = useState(getDefaultIstanbulDateRange);
+  const [baslangicTarihi, setBaslangicTarihi] = useState(varsayilanTarihAraligi.start);
+  const [bitisTarihi, setBitisTarihi] = useState(varsayilanTarihAraligi.end);
   const [silinecekId, setSilinecekId] = useState<number | null>(null);
 
   const roles: string[] =
@@ -87,47 +93,41 @@ const WhatsappIstatistikleri = () => {
     },
   });
 
-  const filtrelenmis = gonderimleri.filter((g) => {
-    const metin = aramaMetni.toLowerCase();
-    const metinEslesti =
-      !metin ||
-      g.ogrenciAdi.toLowerCase().includes(metin) ||
-      g.ogrenciTelefon.includes(metin) ||
-      g.kampanyaAdi.toLowerCase().includes(metin) ||
-      g.danismanAdi.toLowerCase().includes(metin) ||
-      g.danismanSoyadi.toLowerCase().includes(metin);
-
-    const subeEslesti = subeFiltre === "hepsi" || g.subeAdi === subeFiltre;
-    const odemeEslesti = odemeTipiFiltre === "hepsi" || g.odemeTipi === odemeTipiFiltre;
-    const danismanEslesti =
-      danismanFiltre === "hepsi" ||
-      `${g.danismanAdi} ${g.danismanSoyadi}` === danismanFiltre;
-
-    return metinEslesti && subeEslesti && odemeEslesti && danismanEslesti;
+  const filtrelenmis = filterWhatsappStatistics(gonderimleri, {
+    search: aramaMetni,
+    branch: subeFiltre,
+    advisor: danismanFiltre,
+    paymentType: odemeTipiFiltre,
   });
+  const {
+    count: toplamGonderim,
+    total: toplamTutar,
+    average: ortalamaTutar,
+    uniqueStudents: benzersizOgrenciSayisi,
+  } = summarizeWhatsappStatistics(filtrelenmis);
 
   const benzersizSubeler = [...new Set(gonderimleri.map((g) => g.subeAdi))].filter(Boolean);
   const benzersizOdemeTipleri = [...new Set(gonderimleri.map((g) => g.odemeTipi))].filter(Boolean);
   const benzersizDanismanlar = [...new Set(gonderimleri.map((g) => `${g.danismanAdi} ${g.danismanSoyadi}`))].filter(Boolean).sort();
-
-  const toplamTutar = filtrelenmis.reduce((acc, g) => acc + (g.genelToplam || 0), 0);
 
   const filtreSifirla = () => {
     setAramaMetni("");
     setSubeFiltre("hepsi");
     setDanismanFiltre("hepsi");
     setOdemeTipiFiltre("hepsi");
-    setBaslangicTarihi("");
-    setBitisTarihi("");
+    setBaslangicTarihi(varsayilanTarihAraligi.start);
+    setBitisTarihi(varsayilanTarihAraligi.end);
   };
 
+  const tarihAraligiDegisti =
+    baslangicTarihi !== varsayilanTarihAraligi.start ||
+    bitisTarihi !== varsayilanTarihAraligi.end;
   const aktifFiltreSayisi = [
     aramaMetni,
     subeFiltre !== "hepsi" ? subeFiltre : "",
     danismanFiltre !== "hepsi" ? danismanFiltre : "",
     odemeTipiFiltre !== "hepsi" ? odemeTipiFiltre : "",
-    baslangicTarihi,
-    bitisTarihi,
+    tarihAraligiDegisti ? "özel tarih aralığı" : "",
   ].filter(Boolean).length;
 
   if (isError) {
@@ -182,7 +182,7 @@ const WhatsappIstatistikleri = () => {
         <Card className="border-0 shadow-sm bg-green-50">
           <CardContent className="p-4">
             <p className="text-xs text-green-700 font-medium mb-1">Toplam Gönderim</p>
-            <p className="text-2xl font-bold text-green-800">{filtrelenmis.length}</p>
+            <p className="text-2xl font-bold text-green-800">{toplamGonderim}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-blue-50">
@@ -195,7 +195,7 @@ const WhatsappIstatistikleri = () => {
           <CardContent className="p-4">
             <p className="text-xs text-purple-700 font-medium mb-1">Benzersiz Öğrenci</p>
             <p className="text-2xl font-bold text-purple-800">
-              {new Set(filtrelenmis.map((g) => g.ogrenciTelefon)).size}
+              {benzersizOgrenciSayisi}
             </p>
           </CardContent>
         </Card>
@@ -203,9 +203,7 @@ const WhatsappIstatistikleri = () => {
           <CardContent className="p-4">
             <p className="text-xs text-orange-700 font-medium mb-1">Ort. Teklif Tutarı</p>
             <p className="text-lg font-bold text-orange-800">
-              {filtrelenmis.length > 0
-                ? formatCurrency(Math.round(toplamTutar / filtrelenmis.length))
-                : formatCurrency(0)}
+              {formatCurrency(ortalamaTutar)}
             </p>
           </CardContent>
         </Card>
@@ -295,17 +293,22 @@ const WhatsappIstatistikleri = () => {
               <div className="flex gap-1">
                 <Input
                   type="date"
+                  aria-label="Başlangıç tarihi"
                   value={baslangicTarihi}
                   onChange={(e) => setBaslangicTarihi(e.target.value)}
                   className="h-9 text-xs"
                 />
                 <Input
                   type="date"
+                  aria-label="Bitiş tarihi"
                   value={bitisTarihi}
                   onChange={(e) => setBitisTarihi(e.target.value)}
                   className="h-9 text-xs"
                 />
               </div>
+              <p className="mt-1 text-[11px] text-gray-500" aria-live="polite">
+                {formatDateInputTurkish(baslangicTarihi)} – {formatDateInputTurkish(bitisTarihi)}
+              </p>
             </div>
           </div>
         </CardContent>

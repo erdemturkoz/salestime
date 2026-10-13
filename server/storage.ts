@@ -28,7 +28,7 @@ export type WhatsappGonderimFilters = {
   subeId?: number;
   danismanId?: number;
   baslangicTarihi?: Date;
-  bitisTarihi?: Date;
+  bitisTarihiExclusive?: Date;
 };
 
 export interface IStorage {
@@ -888,8 +888,14 @@ export class DatabaseStorage implements IStorage {
     const conditions = [inArray(whatsappGonderimleri.subeId, [...yetkiliSubeIds])];
     if (filters?.subeId) conditions.push(eq(whatsappGonderimleri.subeId, filters.subeId));
     if (filters?.danismanId) conditions.push(eq(whatsappGonderimleri.danismanId, filters.danismanId));
-    if (filters?.baslangicTarihi) conditions.push(gte(whatsappGonderimleri.gonderilenAt, filters.baslangicTarihi));
-    if (filters?.bitisTarihi) conditions.push(lte(whatsappGonderimleri.gonderilenAt, filters.bitisTarihi));
+    if (filters?.baslangicTarihi) {
+      const utcTimestamp = filters.baslangicTarihi.toISOString().replace(/Z$/, "");
+      conditions.push(sql`${whatsappGonderimleri.gonderilenAt} >= ${utcTimestamp}::timestamp`);
+    }
+    if (filters?.bitisTarihiExclusive) {
+      const utcTimestamp = filters.bitisTarihiExclusive.toISOString().replace(/Z$/, "");
+      conditions.push(sql`${whatsappGonderimleri.gonderilenAt} < ${utcTimestamp}::timestamp`);
+    }
 
     const query = db.select().from(whatsappGonderimleri).orderBy(desc(whatsappGonderimleri.gonderilenAt));
     if (conditions.length > 0) {
