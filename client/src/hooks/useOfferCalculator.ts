@@ -98,9 +98,10 @@ export function computeOffer(
   }
 
   const genelToplam = toplamFiyat;
-  // Campaign discount is determined from the list price and campaign cash
-  // price only. Gifts and payment-method financing are separate line items.
-  const indirimT = Math.max(0, Math.round(listeF - nakitF));
+  // Show the net campaign discount for this payment plan. The plan price
+  // includes its financing and card commission, but excludes books, gifts,
+  // down payment, and manager discounts.
+  const indirimT = Math.max(0, Math.round(listeF - kampanyaFiyat));
   const indirimY = listeF > 0 ? Math.round((indirimT / listeF) * 100) : 0;
 
   let mudurIndirimTutari = 0;

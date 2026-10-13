@@ -249,7 +249,7 @@ const HesaplamaPage = () => {
         o.krediKartiKomisyonTutari > 0
           ? `Kart komisyonu (%${o.krediKartiKomisyonOrani}): ${formatCurrency(o.krediKartiKomisyonTutari)}`
           : null,
-        o.taksitFaizTutari > 0 ? `Taksit faiz farkı: ${formatCurrency(o.taksitFaizTutari)}` : null,
+        o.taksitFaizTutari > 0 ? `Taksit vadesi farkı: ${formatCurrency(o.taksitFaizTutari)}` : null,
       ].join("\n");
     };
 
@@ -315,7 +315,7 @@ const HesaplamaPage = () => {
         o.krediKartiKomisyonTutari > 0
           ? `Kart komisyonu (%${o.krediKartiKomisyonOrani}): ${formatCurrency(o.krediKartiKomisyonTutari)}`
           : null,
-        o.taksitFaizTutari > 0 ? `Taksit faiz farkı: ${formatCurrency(o.taksitFaizTutari)}` : null,
+        o.taksitFaizTutari > 0 ? `Taksit vadesi farkı: ${formatCurrency(o.taksitFaizTutari)}` : null,
         ``,
         kazanimlar || o.indirimTutari > 0
           ? `*Kazanımlarınız:* ${kazanimlar}${kazanimlar && o.indirimTutari > 0 ? " ve " : ""}${o.indirimTutari > 0 ? formatCurrency(o.indirimTutari) + " indirim" : ""}.`

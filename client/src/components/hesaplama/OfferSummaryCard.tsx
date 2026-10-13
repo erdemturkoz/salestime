@@ -159,7 +159,7 @@ export default function OfferSummaryCard({
           )}
           {offer.taksitFaizTutari > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">Taksit Faiz Farkı</span>
+              <span className="text-gray-600">Taksit Vadesi Farkı</span>
               <span className="text-gray-700">{formatCurrency(offer.taksitFaizTutari)}</span>
             </div>
           )}

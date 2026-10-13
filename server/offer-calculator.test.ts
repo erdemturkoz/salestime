@@ -154,7 +154,7 @@ test("kredi kartı taksit: toplamOdeme peşinat ve gerçek taksit tutarlarının
   assert.equal(result.toplamOdeme, result.ozelFiyat, "taksit yuvarlaması toplamı değiştirmemeli");
 });
 
-test("ekrandaki kampanya: hediye değerleri %25 eğitim indirimini değiştirmez", () => {
+test("nakit kampanya indirimi liste fiyatı ile nakit kampanya fiyatı farkıdır", () => {
   const campaign = {
     ...KAMPANYA,
     listeFiyati: 65_000,
@@ -206,6 +206,7 @@ test("senet peşinatı sonrası son taksit yuvarlama farkını tam kapatır", ()
 test("kredi kartı komisyonu kampanyaya göre değişir ve senet komisyonsuz kalır", () => {
   const campaign = {
     ...KAMPANYA,
+    listeFiyati: 65_000,
     nakitFiyati: 48_750,
     faizOrani: 60,
     krediKartiKomisyonOrani: 10,
@@ -226,9 +227,15 @@ test("kredi kartı komisyonu kampanyaya göre değişir ve senet komisyonsuz kal
   assert.equal(withCommission.kampanyaliFiyat, 64_350);
   assert.equal(withCommission.krediKartiKomisyonTutari, 4_875);
   assert.equal(withCommission.taksitFaizTutari, 10_725);
+  assert.equal(withCommission.indirimTutari, 650);
+  assert.equal(withCommission.indirimYuzdesi, 1);
   assert.equal(withoutCommission.kampanyaliFiyat, 58_500);
   assert.equal(withoutCommission.krediKartiKomisyonTutari, 0);
+  assert.equal(withoutCommission.indirimTutari, 6_500);
+  assert.equal(withoutCommission.indirimYuzdesi, 10);
   assert.equal(senet.krediKartiKomisyonTutari, 0);
+  assert.equal(senet.indirimTutari, 6_500);
+  assert.equal(senet.indirimYuzdesi, 10);
 });
 
 test("Ücret Hesaplama ↔ Toplu Teklif parite: toggle ON için aynı fiyatı üretir", () => {

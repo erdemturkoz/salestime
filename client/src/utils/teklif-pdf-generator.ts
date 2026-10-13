@@ -894,7 +894,7 @@ export function generateTeklifPDF(data: TeklifData): void {
           }
           ${
             (data.taksitFaizTutari ?? 0) > 0
-              ? `<div class="price-row"><span class="price-label">Taksit Faiz Farkı</span><span class="price-value">${formatTL(data.taksitFaizTutari!)}</span></div>`
+              ? `<div class="price-row"><span class="price-label">Taksit Vadesi Farkı</span><span class="price-value">${formatTL(data.taksitFaizTutari!)}</span></div>`
               : ""
           }
           ${
@@ -1064,7 +1064,7 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
           <tr><td style="color:#6b7280;padding:3px 0;">Kampanya \u0130ndirimi</td><td style="text-align:right;color:#16a34a;font-weight:600;">-${formatTL(d.indirimTutari)} (%${d.indirimYuzdesi})</td></tr>
           <tr><td style="color:#6b7280;padding:3px 0;">Kampanyal\u0131 Fiyat</td><td style="text-align:right;font-weight:600;">${formatTL(d.kampanyaliFiyat)}</td></tr>
           ${(d.krediKartiKomisyonTutari ?? 0) > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">Kart Komisyonu (%${d.krediKartiKomisyonOrani ?? 10})</td><td style="text-align:right;">${formatTL(d.krediKartiKomisyonTutari!)}</td></tr>` : ""}
-          ${(d.taksitFaizTutari ?? 0) > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">Taksit Faiz Farkı</td><td style="text-align:right;">${formatTL(d.taksitFaizTutari!)}</td></tr>` : ""}
+          ${(d.taksitFaizTutari ?? 0) > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">Taksit Vadesi Farkı</td><td style="text-align:right;">${formatTL(d.taksitFaizTutari!)}</td></tr>` : ""}
           ${d.kitapUcreti > 0 && d.kitapDahil ? `<tr><td style="color:#6b7280;padding:3px 0;">Kitap Seti</td><td style="text-align:right;">${d.kitapHediyeEdildi ? "<span style='color:#16a34a;font-weight:600;'>Hediye</span>" : formatTL(d.kitapUcreti)}</td></tr>` : ""}
           ${d.mudurIndirimTutari > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">M\u00fcд\u00fcr \u0130ndirimi</td><td style="text-align:right;color:#f97316;font-weight:600;">-${formatTL(d.mudurIndirimTutari)}</td></tr>` : ""}
         </table>
