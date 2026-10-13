@@ -6,21 +6,29 @@ import { TaksitOption } from "@/types";
  * @param nakitFiyat - Tek seferde nakit ödeme fiyatı
  * @param faizOrani - Yıllık faiz oranı (örn. 12 = %12)
  * @param taksitAdedleri - Hesaplanacak taksit adetleri (örn. [3, 6, 12])
- * @param bankaKomisyonu - Banka komisyonu oranı (varsayılan: 0.10 = %10)
+ * @param bankaKomisyonuOrani - Kredi kartı banka komisyonu yüzdesi (varsayılan: %10)
  * @returns Hesaplanan taksit seçenekleri
  */
 export const calculateInstallments = (
   nakitFiyat: number,
   faizOrani: number,
   taksitAdedleri: number[],
-  bankaKomisyonu: number = 0.10
+  bankaKomisyonuOrani: number = 10
 ): TaksitOption[] => {
-  if (nakitFiyat <= 0 || faizOrani < 0) {
+  if (
+    !Number.isFinite(nakitFiyat) ||
+    !Number.isFinite(faizOrani) ||
+    !Number.isFinite(bankaKomisyonuOrani) ||
+    nakitFiyat <= 0 ||
+    faizOrani < 0 ||
+    bankaKomisyonuOrani < 0
+  ) {
     return [];
   }
   
   // Nakit fiyata banka komisyonu ekle
-  const komisyonluFiyat = nakitFiyat * (1 + bankaKomisyonu);
+  const komisyonTutari = nakitFiyat * (bankaKomisyonuOrani / 100);
+  const komisyonluFiyat = nakitFiyat + komisyonTutari;
 
   return taksitAdedleri.map(taksit => {
     // Basit faiz formülü: ana_para * (1 + oran * ay/12)
@@ -32,7 +40,9 @@ export const calculateInstallments = (
       taksitSayisi: taksit,
       aylikTutar: parseFloat(aylik.toFixed(2)),
       toplamTutar: parseFloat(toplam.toFixed(2)),
-      toplam: parseFloat(toplam.toFixed(2)) // Geriye uyumluluk için ekledik
+      toplam: parseFloat(toplam.toFixed(2)), // Geriye uyumluluk için ekledik
+      komisyonTutari: parseFloat(komisyonTutari.toFixed(2)),
+      faizTutari: parseFloat(faizTutari.toFixed(2)),
     };
   });
 };

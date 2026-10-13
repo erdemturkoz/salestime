@@ -1,4 +1,5 @@
 import { calculateInstallments } from "@/utils/calculator";
+import { buildInstallmentSchedule } from "@/utils/installment-schedule";
 import { OfferFormState, OfferResult } from "@/types/offer-types";
 
 interface KampanyaData {
@@ -10,6 +11,7 @@ interface KampanyaData {
   listeFiyati: number;
   nakitFiyati: number;
   faizOrani: number;
+  krediKartiKomisyonOrani?: number;
   kitapFiyati: number;
   kitapSetSayisi?: number;
   maxKrediKartiTaksit: number;
@@ -43,6 +45,7 @@ export function computeOffer(
   const kurOrani = selectedKur / kampanya.kurSayisi;
   const listeF = kampanya.listeFiyati * kurOrani;
   const nakitF = kampanya.nakitFiyati * kurOrani;
+  const krediKartiKomisyonOrani = kampanya.krediKartiKomisyonOrani ?? 10;
   const kitapF = kitapDahil
     ? kampanya.kitapFiyati * (kampanya.kitapSetSayisi || 1)
     : 0;
@@ -52,52 +55,52 @@ export function computeOffer(
   );
 
   let kampanyaFiyat = nakitF;
+  let krediKartiKomisyonTutari = 0;
+  let taksitFaizTutari = 0;
   let toplamFiyat = 0;
-  let aylikOdeme = 0;
+  const installmentCount = Math.max(1, Math.floor(taksitSayisi || 1));
   let odemeTipiText = "";
 
   if (odemeTipi === "nakit") {
     odemeTipiText = "Nakit";
     kampanyaFiyat = Math.round(nakitF);
     toplamFiyat = Math.round(nakitF + kitapF + hediyelerToplam);
-    aylikOdeme = toplamFiyat;
   } else if (odemeTipi === "kredi-karti") {
     odemeTipiText = "Kredi Kartı";
     const hesap = calculateInstallments(
       nakitF,
       kampanya.faizOrani,
-      [taksitSayisi]
+      [installmentCount],
+      krediKartiKomisyonOrani
     );
     if (hesap.length > 0) {
       kampanyaFiyat = Math.round(hesap[0].toplamTutar);
       toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
-      aylikOdeme =
-        taksitSayisi === 1
-          ? toplamFiyat
-          : Math.round(toplamFiyat / taksitSayisi);
+      krediKartiKomisyonTutari = Math.round(hesap[0].komisyonTutari ?? 0);
+      taksitFaizTutari = Math.max(
+        0,
+        kampanyaFiyat - Math.round(nakitF) - krediKartiKomisyonTutari,
+      );
     }
   } else if (odemeTipi === "senet") {
     odemeTipiText = "Senet";
     const hesap = calculateInstallments(
       nakitF,
       kampanya.faizOrani,
-      [taksitSayisi],
+      [installmentCount],
       0
     );
     if (hesap.length > 0) {
       kampanyaFiyat = Math.round(hesap[0].toplamTutar);
       toplamFiyat = Math.round(kampanyaFiyat + kitapF + hediyelerToplam);
-      aylikOdeme = Math.round(toplamFiyat / taksitSayisi);
+      taksitFaizTutari = Math.max(0, kampanyaFiyat - Math.round(nakitF));
     }
   }
 
   const genelToplam = toplamFiyat;
-  // Kampanya fiyatları veritabanında hediyeler düşülmüş nihai fiyat olarak
-  // saklanır. Hediyeleri tekrar eklediğimiz `genelToplam`, hediyesiz son
-  // fiyattır; bu nedenle kampanya indirimi liste fiyatından bu tutar
-  // çıkarılarak hesaplanmalıdır. Böylece hediye indirimi ikinci kez kampanya
-  // indiriminin içinde gösterilmez.
-  const indirimT = Math.max(0, listeF - genelToplam);
+  // Campaign discount is determined from the list price and campaign cash
+  // price only. Gifts and payment-method financing are separate line items.
+  const indirimT = Math.max(0, Math.round(listeF - nakitF));
   const indirimY = listeF > 0 ? Math.round((indirimT / listeF) * 100) : 0;
 
   let mudurIndirimTutari = 0;
@@ -109,22 +112,8 @@ export function computeOffer(
       const yuzde = Math.min(mudurIndirimDegeri, 100);
       mudurIndirimTutari = Math.round((genelToplam * yuzde) / 100);
     }
-    ozelFiyat = genelToplam - mudurIndirimTutari;
-    if (taksitSayisi > 1) {
-      aylikOdeme = Math.round(ozelFiyat / taksitSayisi);
-    }
+    ozelFiyat = Math.max(0, genelToplam - mudurIndirimTutari);
   }
-
-  // Peşinat hesabı — genel toplamı değiştirmez, taksit tutarını etkiler
-  const effectiveFiyat = ozelFiyat;
-  const safePesinat = Math.min(pesinat, effectiveFiyat);
-  const kalanTutar = effectiveFiyat - safePesinat;
-  const finalAylikOdeme =
-    odemeTipi === "nakit"
-      ? effectiveFiyat
-      : taksitSayisi > 1
-      ? Math.round(kalanTutar / taksitSayisi)
-      : kalanTutar;
 
   // Hediye durumları yeniden hesaplama desteği
   const kitapHediyeEdildi = extra.kitapHediyeEdildi ?? false;
@@ -143,25 +132,33 @@ export function computeOffer(
     duzeltilmisGenelToplam -= kitapF;
   }
   duzeltilmisGenelToplam -= hediyeIndirimi;
-  let duzeltilmisOzelFiyat =
-    mudurIndirimTutari > 0
-      ? duzeltilmisGenelToplam - mudurIndirimTutari
-      : duzeltilmisGenelToplam;
-  if (duzeltilmisOzelFiyat < 0) duzeltilmisOzelFiyat = 0;
-
-  const duzeltilmisKalan = duzeltilmisOzelFiyat - safePesinat;
-  // Taksit hesabında yukarı yuvarlama: taksitSayisi × aylikOdeme ≥ ozelFiyat
-  const duzeltilmisAylik =
+  const duzeltilmisOzelFiyat = Math.max(
+    0,
+    Math.round(duzeltilmisGenelToplam - mudurIndirimTutari),
+  );
+  // Down payment is clamped after gift and manager discounts, then the exact
+  // remaining balance is divided so the displayed schedule sums to the total.
+  const safePesinat =
     odemeTipi === "nakit"
-      ? duzeltilmisOzelFiyat
-      : taksitSayisi > 1
-      ? Math.ceil(duzeltilmisKalan / taksitSayisi)
-      : duzeltilmisKalan;
-  // Müşterinin fiilen ödeyeceği toplam tutar (nakit'te ozelFiyat ile aynı)
+      ? 0
+      : Math.min(Math.max(0, Math.round(pesinat)), duzeltilmisOzelFiyat);
+  const kalanTutar =
+    odemeTipi === "nakit"
+      ? 0
+      : Math.max(0, duzeltilmisOzelFiyat - safePesinat);
+  const taksitTutarlari =
+    odemeTipi === "nakit"
+      ? []
+      : buildInstallmentSchedule(kalanTutar, installmentCount);
+  const aylikOdeme = taksitTutarlari[0] ?? duzeltilmisOzelFiyat;
   const toplamOdeme =
     odemeTipi === "nakit"
       ? duzeltilmisOzelFiyat
-      : safePesinat + taksitSayisi * duzeltilmisAylik;
+      : safePesinat + taksitTutarlari.reduce((sum, amount) => sum + amount, 0);
+  const finansmanFarki = Math.max(
+    0,
+    Math.round(kampanyaFiyat - Math.round(nakitF)),
+  );
 
   return {
     id: extra.id,
@@ -172,6 +169,12 @@ export function computeOffer(
     indirimTutari: Math.round(indirimT),
     indirimYuzdesi: indirimY,
     kampanyaliFiyat: kampanyaFiyat,
+    nakitKampanyaFiyati: Math.round(nakitF),
+    krediKartiKomisyonOrani:
+      odemeTipi === "kredi-karti" ? krediKartiKomisyonOrani : 0,
+    krediKartiKomisyonTutari,
+    taksitFaizTutari,
+    finansmanFarki,
     kitapUcreti: kitapF,
     hediyeler: kampanya.hediyeler,
     hediyelerToplam: Math.round(hediyelerToplam),
@@ -184,8 +187,9 @@ export function computeOffer(
     ozelFiyat: duzeltilmisOzelFiyat,
     toplamOdeme: Math.round(toplamOdeme),
     pesinat: safePesinat,
-    kalanTutar: Math.max(0, duzeltilmisKalan),
-    aylikOdeme: duzeltilmisAylik,
+    kalanTutar,
+    aylikOdeme,
+    taksitTutarlari,
     odemeTipiText,
     kampanyaAdi: kampanya.kampanyaAdi,
     egitimTipi: kampanya.egitimTipi,

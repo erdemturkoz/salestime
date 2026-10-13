@@ -25,6 +25,7 @@ import EmptyOfferState from "@/components/hesaplama/EmptyOfferState";
 import OfferComparison from "@/components/hesaplama/OfferComparison";
 import OfferActionBar from "@/components/hesaplama/OfferActionBar";
 import { generateTeklifPDF, generateDualTeklifPDF } from "@/utils/teklif-pdf-generator";
+import { formatInstallmentSchedule } from "@/utils/installment-schedule";
 
 const HesaplamaPage = () => {
   const { kampanyalar, getKampanyalarBySubeId, selectedSubeId } = useAppContext();
@@ -236,17 +237,19 @@ const HesaplamaPage = () => {
       const odemeSatiri =
         o.form.odemeTipi === "nakit"
           ? "Nakit"
-          : o.pesinat > 0
-          ? `${formatCurrency(o.pesinat)} peşinat + ${o.form.taksitSayisi} × ${formatCurrency(o.aylikOdeme)}`
-          : `${o.form.taksitSayisi} eşit taksit × ${formatCurrency(o.aylikOdeme)}`;
+          : `${o.pesinat > 0 ? `${formatCurrency(o.pesinat)} peşinat + ` : ""}${formatInstallmentSchedule(o.taksitTutarlari)}`;
 
       const recommended = o.isRecommended ? " — ÖNERİLEN" : "";
       return [
         `*${sira}${recommended}*`,
         `Eğitim: ${o.egitimTipi}`,
         `Kur: ${o.kurSayisi} / ${o.dersSaati} Ders Saati`,
-        `Toplam: ${formatCurrency(o.ozelFiyat)}`,
+        `Toplam ödenecek: ${formatCurrency(o.toplamOdeme)}`,
         `Ödeme: ${odemeSatiri}`,
+        o.krediKartiKomisyonTutari > 0
+          ? `Kart komisyonu (%${o.krediKartiKomisyonOrani}): ${formatCurrency(o.krediKartiKomisyonTutari)}`
+          : null,
+        o.taksitFaizTutari > 0 ? `Taksit faiz farkı: ${formatCurrency(o.taksitFaizTutari)}` : null,
       ].join("\n");
     };
 
@@ -279,7 +282,7 @@ const HesaplamaPage = () => {
       const odemeSatiri =
         o.form.odemeTipi === "nakit"
           ? "Nakit"
-          : `${o.form.taksitSayisi} eşit taksit × ${formatCurrency(o.aylikOdeme)}`;
+          : `${o.pesinat > 0 ? `${formatCurrency(o.pesinat)} peşinat + ` : ""}${formatInstallmentSchedule(o.taksitTutarlari)}`;
 
       const kurMatch = o.kampanyaAdi?.match(/^(\d+)\+(\d+)\s*kur/i);
       const satinAlinanKur = kurMatch ? parseInt(kurMatch[1]) : o.kurSayisi;
@@ -306,9 +309,13 @@ const HesaplamaPage = () => {
         `Toplam: ${o.kurSayisi} Kur / ${o.dersSaati} Ders Saati`,
         ``,
         `Liste Fiyatı: ${formatCurrency(o.listeFiyati)}`,
-        `*Size Özel Fiyat: ${formatCurrency(o.ozelFiyat)}*`,
+        `*Toplam ödenecek: ${formatCurrency(o.toplamOdeme)}*`,
         ``,
         `Ödeme: ${odemeSatiri}`,
+        o.krediKartiKomisyonTutari > 0
+          ? `Kart komisyonu (%${o.krediKartiKomisyonOrani}): ${formatCurrency(o.krediKartiKomisyonTutari)}`
+          : null,
+        o.taksitFaizTutari > 0 ? `Taksit faiz farkı: ${formatCurrency(o.taksitFaizTutari)}` : null,
         ``,
         kazanimlar || o.indirimTutari > 0
           ? `*Kazanımlarınız:* ${kazanimlar}${kazanimlar && o.indirimTutari > 0 ? " ve " : ""}${o.indirimTutari > 0 ? formatCurrency(o.indirimTutari) + " indirim" : ""}.`
@@ -341,7 +348,7 @@ const HesaplamaPage = () => {
         ogrenciTelefon: temizTelefon,
         kampanyaAdi: kayitOffer.kampanyaAdi,
         egitimTipi: kayitOffer.egitimTipi,
-        genelToplam: kayitOffer.ozelFiyat,
+        genelToplam: kayitOffer.toplamOdeme,
         odemeTipi: odemeTipiLabel,
         taksitSayisi: kayitOffer.form.taksitSayisi,
         subeId: aktifRol?.subeId,
@@ -369,16 +376,20 @@ const HesaplamaPage = () => {
         indirimTutari: o.indirimTutari,
         indirimYuzdesi: o.indirimYuzdesi,
         kampanyaliFiyat: o.kampanyaliFiyat,
+        nakitKampanyaFiyati: o.nakitKampanyaFiyati,
+        krediKartiKomisyonOrani: o.krediKartiKomisyonOrani,
+        krediKartiKomisyonTutari: o.krediKartiKomisyonTutari,
+        taksitFaizTutari: o.taksitFaizTutari,
+        finansmanFarki: o.finansmanFarki,
         genelToplam: o.genelToplam,
         ozelFiyat: o.ozelFiyat,
-        nakitFiyati: (() => {
-          const kmp = kampanyalar.find((k) => String(k.id) === String(o.form.kampanyaId));
-          return kmp ? kmp.nakitFiyati : 0;
-        })(),
+        toplamOdeme: o.toplamOdeme,
+        nakitFiyati: o.nakitKampanyaFiyati,
         odemeTipi: o.form.odemeTipi,
         odemeTipiText: o.odemeTipiText,
         taksitSayisi: o.form.taksitSayisi,
         aylikOdeme: o.aylikOdeme,
+        taksitTutarlari: o.taksitTutarlari,
         kitapUcreti: o.kitapUcreti,
         kitapDahil: o.form.kitapDahil,
         kitapHediyeEdildi: o.kitapHediyeEdildi,
@@ -567,7 +578,7 @@ const HesaplamaPage = () => {
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
                 <strong>
                   {offers.length === 1
-                    ? `${offers[0].kampanyaAdi} — ${formatCurrency(offers[0].ozelFiyat)}`
+                    ? `${offers[0].kampanyaAdi} — ${formatCurrency(offers[0].toplamOdeme)}`
                     : `${offers.length} alternatif teklif gönderilecek`}
                 </strong>
               </div>

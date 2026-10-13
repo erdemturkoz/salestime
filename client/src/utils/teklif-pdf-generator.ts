@@ -1,4 +1,5 @@
 // Kişiye Özel Eğitim Teklifi - HTML/CSS tabanlı profesyonel PDF üretici
+import { formatInstallmentSchedule } from "@/utils/installment-schedule";
 
 export interface TeklifData {
   kampanyaAdi: string;
@@ -13,6 +14,11 @@ export interface TeklifData {
   genelToplam: number;
   ozelFiyat: number;
   nakitFiyati: number;
+  toplamOdeme?: number;
+  krediKartiKomisyonOrani?: number;
+  krediKartiKomisyonTutari?: number;
+  taksitFaizTutari?: number;
+  finansmanFarki?: number;
 
   odemeTipi: string;
   odemeTipiText: string;
@@ -46,6 +52,7 @@ export interface TeklifData {
   isRecommended?: boolean;
   pesinat?: number;
   kalanTutar?: number;
+  taksitTutarlari?: number[];
   // Snapshot PDF desteği: geçmiş belgeyi ilk oluşturulduğu haliyle yeniden üretir.
   teklifNo?: string;
   teklifTarihi?: string;
@@ -157,7 +164,8 @@ export function generateTeklifPDF(data: TeklifData): void {
   const sonGecerlilikTarihi = formatTarih(gecerlilikTarihi);
 
   const aktifFiyat =
-    data.mudurIndirimTutari > 0 ? data.ozelFiyat : data.genelToplam;
+    data.toplamOdeme ??
+    (data.mudurIndirimTutari > 0 ? data.ozelFiyat : data.genelToplam);
   const toplamHediye = hediyeToplami(data);
 
   const ogrenciHitap = data.ogrenciAdi
@@ -185,18 +193,18 @@ export function generateTeklifPDF(data: TeklifData): void {
       </div>
     `;
   } else {
+    const schedule = data.taksitTutarlari?.length
+      ? formatInstallmentSchedule(data.taksitTutarlari)
+      : `${data.taksitSayisi} × ${formatTL(data.aylikOdeme)}`;
     odemeDetayHTML = `
       <div class="payment-row">
         <span class="payment-label">\u00d6deme \u015eekli</span>
         <span class="payment-value">${data.odemeTipiText}</span>
       </div>
-      <div class="payment-row">
-        <span class="payment-label">Taksit Say\u0131s\u0131</span>
-        <span class="payment-value">${data.taksitSayisi} Taksit</span>
-      </div>
+      ${(data.pesinat ?? 0) > 0 ? `<div class="payment-row"><span class="payment-label">Peşinat</span><span class="payment-value">${formatTL(data.pesinat!)}</span></div>` : ""}
       <div class="payment-row highlight-row">
-        <span class="payment-label">Ayl\u0131k Taksit</span>
-        <span class="payment-value big">${formatTL(data.aylikOdeme)} \u00d7 ${data.taksitSayisi}</span>
+        <span class="payment-label">Taksit Planı (${data.taksitSayisi} taksit)</span>
+        <span class="payment-value big">${schedule}</span>
       </div>
       <div class="payment-row">
         <span class="payment-label">Toplam \u00d6denecek</span>
@@ -208,14 +216,14 @@ export function generateTeklifPDF(data: TeklifData): void {
   // Nakit avantajı
   let nakitAvantajHTML = "";
   if (data.odemeTipi !== "nakit" && data.nakitFiyati > 0) {
-    const nakitFark = aktifFiyat - data.nakitFiyati;
+    const nakitFark = data.finansmanFarki ?? (aktifFiyat - data.nakitFiyati);
     if (nakitFark > 0) {
       nakitAvantajHTML = `
         <div class="cash-advantage">
           <span class="cash-icon">&#128161;</span>
           <div>
-            <div class="cash-title">NAK\u0130T \u00d6DEME TAVS\u0130YE ED\u0130L\u0130R</div>
-            <div class="cash-body">Nakit \u00f6demede yaln\u0131zca <strong>${formatTL(data.nakitFiyati)}</strong> \u00f6dersiniz &mdash; <strong>${formatTL(nakitFark)}</strong> tasarruf edersiniz.</div>
+            <div class="cash-title">TAKSİT / KOMİSYON FARKI</div>
+            <div class="cash-body">Nakit kampanya bedeline göre ödeme planı farkı <strong>${formatTL(nakitFark)}</strong>.</div>
           </div>
         </div>
       `;
@@ -295,7 +303,7 @@ export function generateTeklifPDF(data: TeklifData): void {
       ? `
     <div class="special-price-card">
       <div class="special-price-label">K\u0130\u015e\u0130YE \u00d6ZEL F\u0130YAT</div>
-      <div class="special-price-value">${formatTL(data.ozelFiyat)}</div>
+      <div class="special-price-value">${formatTL(data.toplamOdeme ?? data.ozelFiyat)}</div>
       <div class="special-price-note">Genel toplam ${formatTL(data.genelToplam)}&rsquo;dan ekstra ${formatYuzde(data.mudurIndirimDegeri)} indirim uyguland\u0131</div>
     </div>
   `
@@ -854,7 +862,7 @@ export function generateTeklifPDF(data: TeklifData): void {
         <div class="total-box-label">Genel Toplam</div>
         <div class="total-box-sub">T\u00fcm vergiler dahil</div>
       </div>
-      <div class="total-box-value">${formatTL(data.genelToplam)}</div>
+      <div class="total-box-value">${formatTL(data.toplamOdeme ?? data.genelToplam)}</div>
     </div>
     `
         : ""
@@ -876,9 +884,19 @@ export function generateTeklifPDF(data: TeklifData): void {
             <span class="price-value discount">&minus;${formatTL(data.indirimTutari)} (${formatYuzde(data.indirimYuzdesi)})</span>
           </div>
           <div class="price-row">
-            <span class="price-label">Kampanyal\u0131 Fiyat</span>
+            <span class="price-label">Ödeme Planı Fiyatı</span>
             <span class="price-value main">${formatTL(data.kampanyaliFiyat)}</span>
           </div>
+          ${
+            (data.krediKartiKomisyonTutari ?? 0) > 0
+              ? `<div class="price-row"><span class="price-label">Kart Komisyonu (%${data.krediKartiKomisyonOrani ?? 10})</span><span class="price-value">${formatTL(data.krediKartiKomisyonTutari!)}</span></div>`
+              : ""
+          }
+          ${
+            (data.taksitFaizTutari ?? 0) > 0
+              ? `<div class="price-row"><span class="price-label">Taksit Faiz Farkı</span><span class="price-value">${formatTL(data.taksitFaizTutari!)}</span></div>`
+              : ""
+          }
           ${
             data.nakitFiyati > 0 && data.odemeTipi !== "nakit"
               ? `
@@ -1013,7 +1031,9 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
 
   function teklifKarti(d: TeklifData, no: string): string {
     const etiket = odemeTipiEtiketi(d);
-    const aktifFiyat = d.mudurIndirimTutari > 0 ? d.ozelFiyat : d.genelToplam;
+    const aktifFiyat =
+      d.toplamOdeme ??
+      (d.mudurIndirimTutari > 0 ? d.ozelFiyat : d.genelToplam);
     const recommended = d.isRecommended
       ? `<div style="text-align:center;margin-bottom:8px;"><span style="background:#2563EB;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;">&#9733; \u00d6NER\u0130LEN</span></div>`
       : "";
@@ -1026,7 +1046,10 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
       const pesinatStr = (d.pesinat ?? 0) > 0
         ? `${formatTL(d.pesinat!)} pe\u015finat + `
         : "";
-      odemeStr = `${pesinatStr}${d.taksitSayisi} &times; ${formatTL(d.aylikOdeme)}`;
+      const schedule = d.taksitTutarlari?.length
+        ? formatInstallmentSchedule(d.taksitTutarlari)
+        : `${d.taksitSayisi} × ${formatTL(d.aylikOdeme)}`;
+      odemeStr = `${pesinatStr}${schedule}`;
     }
 
     return `
@@ -1040,6 +1063,8 @@ export function generateDualTeklifPDF(data1: TeklifData, data2: TeklifData): voi
           <tr><td style="color:#6b7280;padding:3px 0;">Liste Fiyat\u0131</td><td style="text-align:right;text-decoration:line-through;color:#9ca3af;">${formatTL(d.listeFiyati)}</td></tr>
           <tr><td style="color:#6b7280;padding:3px 0;">Kampanya \u0130ndirimi</td><td style="text-align:right;color:#16a34a;font-weight:600;">-${formatTL(d.indirimTutari)} (%${d.indirimYuzdesi})</td></tr>
           <tr><td style="color:#6b7280;padding:3px 0;">Kampanyal\u0131 Fiyat</td><td style="text-align:right;font-weight:600;">${formatTL(d.kampanyaliFiyat)}</td></tr>
+          ${(d.krediKartiKomisyonTutari ?? 0) > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">Kart Komisyonu (%${d.krediKartiKomisyonOrani ?? 10})</td><td style="text-align:right;">${formatTL(d.krediKartiKomisyonTutari!)}</td></tr>` : ""}
+          ${(d.taksitFaizTutari ?? 0) > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">Taksit Faiz Farkı</td><td style="text-align:right;">${formatTL(d.taksitFaizTutari!)}</td></tr>` : ""}
           ${d.kitapUcreti > 0 && d.kitapDahil ? `<tr><td style="color:#6b7280;padding:3px 0;">Kitap Seti</td><td style="text-align:right;">${d.kitapHediyeEdildi ? "<span style='color:#16a34a;font-weight:600;'>Hediye</span>" : formatTL(d.kitapUcreti)}</td></tr>` : ""}
           ${d.mudurIndirimTutari > 0 ? `<tr><td style="color:#6b7280;padding:3px 0;">M\u00fcд\u00fcr \u0130ndirimi</td><td style="text-align:right;color:#f97316;font-weight:600;">-${formatTL(d.mudurIndirimTutari)}</td></tr>` : ""}
         </table>

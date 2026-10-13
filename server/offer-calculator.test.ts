@@ -1,5 +1,5 @@
 /**
- * computeOffer — hediye fiyatı ve hediyeIndirimi testleri (Task #15)
+ * computeOffer — campaign discount, gifts, commission, and exact payment plan.
  *
  * Toggle kapalı → hediyeler fiyata eklenir ama indirilmez (müşteriye maliyeti var).
  * Toggle açık  → hediyeler önce eklenir, ardından hediyeEdildi ile düşülür → net 0 etki.
@@ -31,7 +31,7 @@ const KAMPANYA = {
 };
 
 // nakitFiyati=65_000, kitap=1_000, hediyeler toplam=15_000
-// → genelToplam (ham) = 65_000 + 1_000 + 15_000 = 81_000
+// → general total before free-gift toggles = 65_000 + 1_000 + 15_000 = 81_000
 
 const FORM = {
   egitimTipi: "Genel İngilizce",
@@ -123,12 +123,12 @@ test("Toplu Teklif toggle tam açık: hediyeEdildi + kitapHediyeEdildi → ozelF
   assert.equal(result.toplamHediyeIndirimi, 16_000, "toplamHediyeIndirimi = hediyelerToplam + kitapFiyati");
   assert.equal(result.hediyesizFiyat, 81_000, "hediyesizFiyat hediyesiz kampanya fiyatını göstermeli");
   assert.equal(result.kitapHediyeIndirimi, 1_000, "kitapHediyeIndirimi = kitapFiyati");
-  assert.equal(result.indirimTutari, 19_000, "kampanya indirimi hediyesiz son fiyat üzerinden hesaplanmalı");
-  assert.equal(result.indirimYuzdesi, 19);
+  assert.equal(result.indirimTutari, 35_000, "kampanya indirimi yalnızca liste ve nakit eğitim fiyatı farkı olmalı");
+  assert.equal(result.indirimYuzdesi, 35);
   assert.equal(
     result.listeFiyati - result.indirimTutari,
-    result.hediyesizFiyat,
-    "liste fiyatı − kampanya indirimi = hediyesiz son fiyat olmalı",
+    KAMPANYA.nakitFiyati,
+    "liste fiyatı − kampanya indirimi = nakit kampanya fiyatı olmalı",
   );
 });
 
@@ -143,16 +143,92 @@ test("hediye toggle kapalıyken: hediyesizFiyat = ozelFiyat ve toplamHediyeIndir
   assert.equal(result.toplamOdeme, result.ozelFiyat);
 });
 
-test("kredi kartı taksit: toplamOdeme = pesinat + taksitSayisi × aylikOdeme", () => {
+test("kredi kartı taksit: toplamOdeme peşinat ve gerçek taksit tutarlarının toplamıdır", () => {
   const krediForm = { ...FORM, odemeTipi: "kredi-karti" as const, taksitSayisi: 4 };
   const result = computeOffer(krediForm, KAMPANYA, { id: "t1", title: "T1" });
   assert.equal(
     result.toplamOdeme,
-    result.pesinat + result.form.taksitSayisi * result.aylikOdeme,
-    "toplamOdeme taksit × aylikOdeme + pesinat olmalı",
+    result.pesinat + result.taksitTutarlari.reduce((sum, amount) => sum + amount, 0),
+    "toplamOdeme peşinat + taksit planı olmalı",
   );
-  // toplamOdeme ≥ ozelFiyat (yuvarlama nedeniyle 1 TL artış olabilir)
-  assert.ok(result.toplamOdeme >= result.ozelFiyat, "toplamOdeme ozelFiyat'tan küçük olamaz");
+  assert.equal(result.toplamOdeme, result.ozelFiyat, "taksit yuvarlaması toplamı değiştirmemeli");
+});
+
+test("ekrandaki kampanya: hediye değerleri %25 eğitim indirimini değiştirmez", () => {
+  const campaign = {
+    ...KAMPANYA,
+    listeFiyati: 65_000,
+    nakitFiyati: 48_750,
+    kitapFiyati: 5_000,
+    hediyeler: [{ isim: "Online eğitim", fiyat: 10_000 }],
+  };
+  const result = computeOffer(
+    { ...FORM, kitapDahil: true },
+    campaign,
+    {
+      id: "kampanya-25",
+      title: "Nakit",
+      kitapHediyeEdildi: true,
+      hediyeEdildi: { "Online eğitim": true },
+    },
+  );
+
+  assert.equal(result.indirimTutari, 16_250);
+  assert.equal(result.indirimYuzdesi, 25);
+  assert.equal(result.toplamOdeme, 48_750);
+});
+
+test("senet peşinatı sonrası son taksit yuvarlama farkını tam kapatır", () => {
+  const campaign = { ...KAMPANYA, nakitFiyati: 48_750, faizOrani: 60 };
+  const result = computeOffer(
+    {
+      ...FORM,
+      odemeTipi: "senet",
+      taksitSayisi: 6,
+      pesinat: 5_000,
+      kitapDahil: false,
+    },
+    campaign,
+    {
+      id: "senet-6",
+      title: "Senet",
+      kitapHediyeEdildi: true,
+      hediyeEdildi: { "Türkçe Seti": true, "Online Paket": true },
+    },
+  );
+
+  assert.equal(result.kampanyaliFiyat, 63_375);
+  assert.equal(result.pesinat, 5_000);
+  assert.deepEqual(result.taksitTutarlari, [9_729, 9_729, 9_729, 9_729, 9_729, 9_730]);
+  assert.equal(result.toplamOdeme, 63_375);
+});
+
+test("kredi kartı komisyonu kampanyaya göre değişir ve senet komisyonsuz kalır", () => {
+  const campaign = {
+    ...KAMPANYA,
+    nakitFiyati: 48_750,
+    faizOrani: 60,
+    krediKartiKomisyonOrani: 10,
+  };
+  const form = { ...FORM, odemeTipi: "kredi-karti" as const, taksitSayisi: 4, kitapDahil: false };
+  const withCommission = computeOffer(form, campaign, { id: "fee-on", title: "Komisyonlu" });
+  const withoutCommission = computeOffer(
+    form,
+    { ...campaign, krediKartiKomisyonOrani: 0 },
+    { id: "fee-off", title: "Komisyonsuz" },
+  );
+  const senet = computeOffer(
+    { ...form, odemeTipi: "senet" },
+    campaign,
+    { id: "senet", title: "Senet" },
+  );
+
+  assert.equal(withCommission.kampanyaliFiyat, 64_350);
+  assert.equal(withCommission.krediKartiKomisyonTutari, 4_875);
+  assert.equal(withCommission.taksitFaizTutari, 10_725);
+  assert.equal(withoutCommission.kampanyaliFiyat, 58_500);
+  assert.equal(withoutCommission.krediKartiKomisyonTutari, 0);
+  assert.equal(senet.krediKartiKomisyonTutari, 0);
 });
 
 test("Ücret Hesaplama ↔ Toplu Teklif parite: toggle ON için aynı fiyatı üretir", () => {

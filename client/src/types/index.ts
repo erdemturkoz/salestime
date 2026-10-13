@@ -13,6 +13,7 @@ export interface Kampanya {
   nakitFiyati: number;
   indirimOrani: number;
   faizOrani: number;
+  krediKartiKomisyonOrani: number;
   kitapFiyati: number;
   kitapSetSayisi: number;
   maxKrediKartiTaksit: number;

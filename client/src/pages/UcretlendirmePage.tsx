@@ -55,6 +55,7 @@ const UcretlendirmePage = () => {
     nakitFiyati: 0,
     indirimOrani: 0,
     faizOrani: 0,
+    krediKartiKomisyonOrani: 10,
     kitapFiyati: 0,
     kitapSetSayisi: 1,
     maxKrediKartiTaksit: 8,
@@ -171,7 +172,8 @@ const UcretlendirmePage = () => {
       const krediKartiOpts = calculateInstallments(
         formData.nakitFiyati,
         formData.faizOrani,
-        krediKartiAdedleri
+        krediKartiAdedleri,
+        formData.krediKartiKomisyonOrani
       );
       setKrediKartiTaksitler(krediKartiOpts);
 
@@ -190,7 +192,7 @@ const UcretlendirmePage = () => {
       setKrediKartiTaksitler([]);
       setSenetTaksitler([]);
     }
-  }, [formData.nakitFiyati, formData.faizOrani, formData.maxKrediKartiTaksit, formData.maxSenetTaksit]);
+  }, [formData.nakitFiyati, formData.faizOrani, formData.krediKartiKomisyonOrani, formData.maxKrediKartiTaksit, formData.maxSenetTaksit]);
 
   const resetForm = () => {
     setFormData({
@@ -202,6 +204,7 @@ const UcretlendirmePage = () => {
       nakitFiyati: 0,
       indirimOrani: 0,
       faizOrani: 0,
+      krediKartiKomisyonOrani: 10,
       kitapFiyati: 0,
       kitapSetSayisi: 1,
       maxKrediKartiTaksit: 8,
@@ -281,7 +284,7 @@ const UcretlendirmePage = () => {
     
     // Sayısal değerler için dönüşüm yap
     if (
-      ["listeFiyati", "nakitFiyati", "kurSayisi", "toplamDersSaati", "indirimOrani", "faizOrani", "kitapFiyati", "kitapSetSayisi"].includes(name)
+      ["listeFiyati", "nakitFiyati", "kurSayisi", "toplamDersSaati", "indirimOrani", "faizOrani", "krediKartiKomisyonOrani", "kitapFiyati", "kitapSetSayisi"].includes(name)
     ) {
       parsedValue = value === "" ? 0 : parseFloat(value);
     }
@@ -303,6 +306,7 @@ const UcretlendirmePage = () => {
       nakitFiyati: kampanya.nakitFiyati || 0,
       indirimOrani: kampanya.indirimOrani || 0,
       faizOrani: kampanya.faizOrani || 0,
+      krediKartiKomisyonOrani: Number(kampanya.krediKartiKomisyonOrani ?? 10),
       kitapFiyati: kampanya.kitapFiyati || 0,
       kitapSetSayisi: kampanya.kitapSetSayisi || 1,
       maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
@@ -424,6 +428,7 @@ const UcretlendirmePage = () => {
             nakitFiyati: kampanya.nakitFiyati || 0,
             indirimOrani: kampanya.indirimOrani || 0,
             faizOrani: kampanya.faizOrani || 0,
+            krediKartiKomisyonOrani: Number(kampanya.krediKartiKomisyonOrani ?? 10),
             kitapFiyati: kampanya.kitapFiyati || 0,
             kitapSetSayisi: kampanya.kitapSetSayisi || 1,
             maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit ? parseInt(kampanya.maxKrediKartiTaksit.toString()) : 8,
@@ -611,6 +616,10 @@ const UcretlendirmePage = () => {
                             <div className="flex justify-between">
                               <span>Faiz Oranı:</span>
                               <span>{formatPercentage(kampanya.faizOrani)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Kredi Kartı Komisyonu:</span>
+                              <span>{formatPercentage(kampanya.krediKartiKomisyonOrani ?? 10)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Maks. KK Taksit:</span>
@@ -830,6 +839,22 @@ const UcretlendirmePage = () => {
                   max={100}
                   step={0.01}
                 />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="krediKartiKomisyonOrani" className="text-xs">Kredi Kartı Komisyonu (%)</Label>
+                <Input
+                  id="krediKartiKomisyonOrani"
+                  name="krediKartiKomisyonOrani"
+                  type="number"
+                  value={formData.krediKartiKomisyonOrani}
+                  onChange={handleInputChange}
+                  className="h-8"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                />
+                <p className="text-[11px] text-muted-foreground">Varsayılan %10; yalnızca kredi kartı hesaplamasına uygulanır.</p>
               </div>
               
               {/* Üçüncü satır - kitap ve taksit bilgileri */}
@@ -1129,6 +1154,7 @@ const UcretlendirmePage = () => {
               <li>nakitFiyati (zorunlu)</li>
               <li>indirimOrani</li>
               <li>faizOrani</li>
+              <li>krediKartiKomisyonOrani (isteğe bağlı; varsayılan 10)</li>
               <li>kitapFiyati</li>
               <li>kitapSetSayisi</li>
               <li>maxKrediKartiTaksit</li>

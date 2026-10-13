@@ -10,6 +10,8 @@ export interface TaksitOption {
   aylikTutar: number;
   toplamTutar: number;  // Bu, API kodu için korunacak
   toplam?: number;      // Geriye uyumluluk için eklenen alan
+  komisyonTutari?: number;
+  faizTutari?: number;
 }
 
 // Kullanıcı rolleri
@@ -26,6 +28,7 @@ export interface Kampanya {
   nakitFiyati: number;
   indirimOrani: number;
   faizOrani: number;
+  krediKartiKomisyonOrani: number;
   kitapFiyati: number;
   kitapSetSayisi: number;
   maxKrediKartiTaksit: number;

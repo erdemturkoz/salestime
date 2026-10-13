@@ -41,6 +41,7 @@ const formatKampanyalar = (data: any[]): Kampanya[] =>
   data.map((kampanya: any) => ({
     ...kampanya,
     id: kampanya.id.toString(),
+    krediKartiKomisyonOrani: Number(kampanya.krediKartiKomisyonOrani ?? 10),
     hediyeler: kampanya.hediyeler || []
   }));
 
@@ -83,6 +84,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         nakitFiyati: kampanya.nakitFiyati || 0,
         indirimOrani: Math.round(kampanya.indirimOrani || 0),
         faizOrani: Math.round(kampanya.faizOrani || 12),
+        krediKartiKomisyonOrani: kampanya.krediKartiKomisyonOrani ?? 10,
         kitapFiyati: kampanya.kitapFiyati || 0,
         kitapSetSayisi: kampanya.kitapSetSayisi || 1,
         maxKrediKartiTaksit: kampanya.maxKrediKartiTaksit || 8,
@@ -138,6 +140,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         nakitFiyati: updatedKampanya.nakitFiyati || 0,
         indirimOrani: Math.round(updatedKampanya.indirimOrani || 0),
         faizOrani: Math.round(updatedKampanya.faizOrani || 12),
+        krediKartiKomisyonOrani: updatedKampanya.krediKartiKomisyonOrani ?? 10,
         kitapFiyati: updatedKampanya.kitapFiyati || 0,
         kitapSetSayisi: updatedKampanya.kitapSetSayisi || 1,
         maxKrediKartiTaksit: updatedKampanya.maxKrediKartiTaksit || 8,

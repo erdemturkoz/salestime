@@ -69,6 +69,12 @@ function odemeDetayi(odeme: OfferResult): string {
   return `${odeme.odemeTipiText} · ${pesinat}${odeme.form.taksitSayisi} × ${formatCurrency(odeme.aylikOdeme)} = ${formatCurrency(odeme.toplamOdeme)}`;
 }
 
+function teklifBasligi(sira: number, teklif: OfferResult): string {
+  const pesinOdemeAvantaji =
+    teklif.form.odemeTipi === "nakit" ? " (PEŞİN ÖDEME AVANTAJI)" : "";
+  return `${sira}. TEKLİF${pesinOdemeAvantaji}`;
+}
+
 function mesajOlustur(satir: TopluTeklifSatiri, teklif1: OfferResult, teklif2: OfferResult, subeAdi: string, user: any): string {
   const tarih = new Date();
   tarih.setDate(tarih.getDate() + teklif1.form.gecerlilikGunu);
@@ -107,9 +113,9 @@ function mesajOlustur(satir: TopluTeklifSatiri, teklif1: OfferResult, teklif2: O
     "",
     `English Time ${subeAdi} — ${hitap}`,
     "",
-    teklifBlok("1. TEKLİF", teklif1),
+    teklifBlok(teklifBasligi(1, teklif1), teklif1),
     "",
-    teklifBlok("2. TEKLİF", teklif2),
+    teklifBlok(teklifBasligi(2, teklif2), teklif2),
     "",
     `⏳ Teklif geçerlilik süresi: ${gecerlilik}`,
     "",
@@ -543,7 +549,17 @@ export default function TopluTekliflerPage() {
                         <div className="mb-5 grid gap-4 md:grid-cols-2">{[secilenTeklif.teklif1, secilenTeklif.teklif2].map((offer, i) => (
                           <div key={offer.id} className={`rounded-xl border p-4 ${i === 0 ? "border-[#F26207]/30 bg-orange-50/40" : "border-blue-200 bg-blue-50/40"}`}>
                             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">{i + 1}. alternatif</p>
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-semibold text-gray-900">{offer.odemeTipiText}</p>
+                            {offer.form.odemeTipi === "nakit" && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                              >
+                                Peşin Ödeme Avantajı
+                              </Badge>
+                            )}
+                          </div>
                             <div className="mt-2 space-y-1 text-xs text-gray-600">
                               <div className="flex justify-between"><span>Liste fiyatı</span><span>{formatCurrency(offer.listeFiyati)}</span></div>
                               <div className="flex justify-between text-emerald-700"><span>Kampanya indirimi</span><span>-{formatCurrency(offer.indirimTutari)} (%{offer.indirimYuzdesi})</span></div>

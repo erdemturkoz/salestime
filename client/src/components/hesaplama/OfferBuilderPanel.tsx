@@ -24,6 +24,7 @@ interface KampanyaData {
   listeFiyati: number;
   nakitFiyati: number;
   faizOrani: number;
+  krediKartiKomisyonOrani?: number;
   kitapFiyati: number;
   kitapSetSayisi?: number;
   maxKrediKartiTaksit: number;

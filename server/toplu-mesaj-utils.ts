@@ -14,6 +14,12 @@ export function topluOdemeDetayi(teklif: any): string {
   return `${teklif.odemeTipiText} · ${pesinat}${teklif.form.taksitSayisi} × ${topluPara(teklif.aylikOdeme)} = ${topluPara(teklif.toplamOdeme)}`;
 }
 
+export function topluTeklifBasligi(sira: number, teklif: any): string {
+  const pesinOdemeAvantaji =
+    teklif?.form?.odemeTipi === "nakit" ? " (PEŞİN ÖDEME AVANTAJI)" : "";
+  return `${sira}. TEKLİF${pesinOdemeAvantaji}`;
+}
+
 export function topluMesajOlustur(
   satir: { ogrenciAdi: string; sonEgitim?: string | null; sonKur?: string | null },
   teklif1: any,
@@ -58,9 +64,9 @@ export function topluMesajOlustur(
     "",
     `English Time ${subeAdi} — ${hitap}`,
     "",
-    teklifBlok("1. TEKLİF", teklif1),
+    teklifBlok(topluTeklifBasligi(1, teklif1), teklif1),
     "",
-    teklifBlok("2. TEKLİF", teklif2),
+    teklifBlok(topluTeklifBasligi(2, teklif2), teklif2),
     "",
     `⏳ Teklif geçerlilik süresi: ${tarih}`,
     "",

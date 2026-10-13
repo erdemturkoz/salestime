@@ -11,7 +11,11 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { topluMesajOlustur, topluOdemeDetayi } from "./toplu-mesaj-utils";
+import {
+  topluMesajOlustur,
+  topluOdemeDetayi,
+  topluTeklifBasligi,
+} from "./toplu-mesaj-utils";
 
 // ─── Sabit mock teklif ───────────────────────────────────────────────────────
 
@@ -199,4 +203,35 @@ test("danışman telefonu null olduğunda mesaj telefon satırı içermez", () =
   );
 
   assert.doesNotMatch(mesaj, /05\d{9}/);
+});
+
+test("topluTeklifBasligi: yalnız nakit teklife peşin ödeme avantajı ekler", () => {
+  assert.equal(
+    topluTeklifBasligi(1, mockTeklif()),
+    "1. TEKLİF (PEŞİN ÖDEME AVANTAJI)",
+  );
+
+  const senet = mockTeklif({
+    odemeTipiText: "Senet",
+    form: { odemeTipi: "senet", taksitSayisi: 4, gecerlilikGunu: 2 },
+  });
+  assert.equal(topluTeklifBasligi(2, senet), "2. TEKLİF");
+});
+
+test("WhatsApp mesajında peşin ödeme avantajı yalnız nakit teklif başlığında görünür", () => {
+  const senet = mockTeklif({
+    odemeTipiText: "Senet",
+    form: { odemeTipi: "senet", taksitSayisi: 4, gecerlilikGunu: 2 },
+  });
+  const mesaj = topluMesajOlustur(
+    { ogrenciAdi: "Test", sonKur: "A2" },
+    senet,
+    mockTeklif(),
+    "Şube",
+    DANISMAN,
+  );
+
+  assert.match(mesaj, /\*1\. TEKLİF\*/);
+  assert.match(mesaj, /\*2\. TEKLİF \(PEŞİN ÖDEME AVANTAJI\)\*/);
+  assert.equal((mesaj.match(/PEŞİN ÖDEME AVANTAJI/g) || []).length, 1);
 });

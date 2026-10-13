@@ -2,6 +2,7 @@ import { formatCurrency } from "@/lib/utils";
 import { OfferResult } from "@/types/offer-types";
 import OfferSummaryCard from "./OfferSummaryCard";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { formatInstallmentSchedule } from "@/utils/installment-schedule";
 
 interface OfferComparisonProps {
   offers: OfferResult[];
@@ -39,11 +40,11 @@ export default function OfferComparison({
 
   const dinamikAvantajCumlesi = () => {
     if (!o1 || !o2) return "";
-    const fiyatFark = o2.ozelFiyat - o1.ozelFiyat;
+    const fiyatFark = o2.toplamOdeme - o1.toplamOdeme;
     const kurFark = o2.kurSayisi - o1.kurSayisi;
     const saatFark = o2.dersSaati - o1.dersSaati;
-    const kurBasinaO1 = o1.kurSayisi > 0 ? o1.ozelFiyat / o1.kurSayisi : 0;
-    const kurBasinaO2 = o2.kurSayisi > 0 ? o2.ozelFiyat / o2.kurSayisi : 0;
+    const kurBasinaO1 = o1.kurSayisi > 0 ? o1.toplamOdeme / o1.kurSayisi : 0;
+    const kurBasinaO2 = o2.kurSayisi > 0 ? o2.toplamOdeme / o2.kurSayisi : 0;
 
     const parts: string[] = [];
 
@@ -141,9 +142,9 @@ export default function OfferComparison({
             },
             {
               label: "Toplam Tutar",
-              v1: formatCurrency(o1.ozelFiyat),
-              v2: formatCurrency(o2.ozelFiyat),
-              diff: o2.ozelFiyat - o1.ozelFiyat,
+              v1: formatCurrency(o1.toplamOdeme),
+              v2: formatCurrency(o2.toplamOdeme),
+              diff: o2.toplamOdeme - o1.toplamOdeme,
               diffIsMoney: true,
             },
             {
@@ -153,9 +154,9 @@ export default function OfferComparison({
               diff: null,
             },
             {
-              label: "Aylık Ödeme",
-              v1: o1.form.odemeTipi === "nakit" ? "Tek ödeme" : formatCurrency(o1.aylikOdeme),
-              v2: o2.form.odemeTipi === "nakit" ? "Tek ödeme" : formatCurrency(o2.aylikOdeme),
+              label: "Taksit Planı",
+              v1: o1.form.odemeTipi === "nakit" ? "Tek ödeme" : formatInstallmentSchedule(o1.taksitTutarlari),
+              v2: o2.form.odemeTipi === "nakit" ? "Tek ödeme" : formatInstallmentSchedule(o2.taksitTutarlari),
               diff:
                 o1.form.odemeTipi !== "nakit" && o2.form.odemeTipi !== "nakit"
                   ? o2.aylikOdeme - o1.aylikOdeme
@@ -176,11 +177,11 @@ export default function OfferComparison({
             },
             {
               label: "Kur Başı Maliyet",
-              v1: o1.kurSayisi > 0 ? formatCurrency(Math.round(o1.ozelFiyat / o1.kurSayisi)) : "—",
-              v2: o2.kurSayisi > 0 ? formatCurrency(Math.round(o2.ozelFiyat / o2.kurSayisi)) : "—",
+              v1: o1.kurSayisi > 0 ? formatCurrency(Math.round(o1.toplamOdeme / o1.kurSayisi)) : "—",
+              v2: o2.kurSayisi > 0 ? formatCurrency(Math.round(o2.toplamOdeme / o2.kurSayisi)) : "—",
               diff:
                 o1.kurSayisi > 0 && o2.kurSayisi > 0
-                  ? Math.round(o2.ozelFiyat / o2.kurSayisi) - Math.round(o1.ozelFiyat / o1.kurSayisi)
+                  ? Math.round(o2.toplamOdeme / o2.kurSayisi) - Math.round(o1.toplamOdeme / o1.kurSayisi)
                   : null,
               diffIsMoney: true,
             },

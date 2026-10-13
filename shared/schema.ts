@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, json, timestamp, varchar, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, json, timestamp, varchar, boolean, index, uniqueIndex, numeric } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -101,6 +101,7 @@ export const kampanyalar = pgTable("kampanyalar", {
   nakitFiyati: integer("nakit_fiyati").notNull(),
   indirimOrani: integer("indirim_orani").notNull(), // Veritabanında integer olarak oluşturulmuş
   faizOrani: integer("faiz_orani").notNull(), // Veritabanında integer olarak oluşturulmuş
+  krediKartiKomisyonOrani: numeric("kredi_karti_komisyon_orani", { precision: 5, scale: 2, mode: "number" }).notNull().default(10),
   kitapFiyati: integer("kitap_fiyati").notNull(),
   kitapSetSayisi: integer("kitap_set_sayisi").default(1),
   maxKrediKartiTaksit: integer("max_kredi_karti_taksit").default(10),
@@ -122,6 +123,8 @@ export const kampanyalarRelations = relations(kampanyalar, ({ one }) => {
 // Insert şemaları
 export const insertKampanyaSchema = createInsertSchema(kampanyalar).omit({
   id: true,
+}).extend({
+  krediKartiKomisyonOrani: z.number().min(0).max(100).default(10),
 });
 
 export const insertSubeSchema = createInsertSchema(subeler).omit({
@@ -174,6 +177,7 @@ export type Kampanya = {
   nakitFiyati: number;
   indirimOrani: number;
   faizOrani: number;
+  krediKartiKomisyonOrani: number;
   kitapFiyati: number;
   kitapSetSayisi: number;
   maxKrediKartiTaksit: number;

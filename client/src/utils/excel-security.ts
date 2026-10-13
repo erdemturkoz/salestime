@@ -53,6 +53,7 @@ function inspectWorksheet(
   expectedHeaders: readonly string[],
   validateHeaders: boolean,
   headerMismatchMessage?: string,
+  headerVariants: readonly (readonly string[])[] = [],
 ): void {
   if ((worksheet.options as any)?.state && (worksheet.options as any).state !== "visible") invalid("gizli sayfa içeren çalışma kitapları kabul edilmez.");
   const cells = worksheet.readAllCells();
@@ -60,8 +61,12 @@ function inspectWorksheet(
   const maxColumn = cells.reduce((max, entry) => Math.max(max, entry.col), 0);
   if (maxRow > MAX_ROWS || maxColumn > MAX_COLUMNS || cells.length > MAX_CELLS) invalid("çalışma kitabı satır, sütun veya hücre sınırını aşıyor.");
   if (validateHeaders) {
-    const headers = expectedHeaders.map((_, index) => cellText(worksheet.getCell(1, index + 1).value));
-    if (maxColumn !== expectedHeaders.length || headers.some((header, index) => header !== expectedHeaders[index])) {
+    const allowedHeaderSets = [expectedHeaders, ...headerVariants];
+    const headersMatch = allowedHeaderSets.some((allowedHeaders) =>
+      maxColumn === allowedHeaders.length &&
+      allowedHeaders.every((header, index) => cellText(worksheet.getCell(1, index + 1).value) === header)
+    );
+    if (!headersMatch) {
       invalid(headerMismatchMessage || "sütun başlıkları beklenen şablonla birebir eşleşmiyor.");
     }
   }
@@ -79,7 +84,7 @@ function inspectWorksheet(
 export async function loadSafeXlsx(
   file: Upload,
   expectedHeaders: readonly string[],
-  options: { headerMismatchMessage?: string } = {},
+  options: { headerMismatchMessage?: string; headerVariants?: readonly (readonly string[])[] } = {},
 ): Promise<Workbook> {
   if (!file.name.toLocaleLowerCase("tr").endsWith(".xlsx")) invalid("yalnızca .xlsx dosyaları kabul edilir; eski .xls biçimi desteklenmez.");
   if (!Number.isFinite(file.size) || file.size < 4 || file.size > MAX_FILE_BYTES) invalid("dosya boş veya en fazla 5 MiB sınırını aşıyor.");
@@ -101,7 +106,13 @@ export async function loadSafeXlsx(
   if ((workbook!.properties as any)?.workbookProtection || (workbook!.properties as any)?.fileSharing) invalid("korumalı çalışma kitabı kabul edilmez.");
   if (sheetNames.length === 2 && sheetNames[1] !== "Kullanım Kılavuzu") invalid("beklenmeyen ek çalışma sayfası içeremez.");
   sheetNames.forEach((name, index) =>
-    inspectWorksheet(workbook!.getSheet(name)!, expectedHeaders, index === 0, options.headerMismatchMessage),
+    inspectWorksheet(
+      workbook!.getSheet(name)!,
+      expectedHeaders,
+      index === 0,
+      options.headerMismatchMessage,
+      options.headerVariants,
+    ),
   );
   return workbook!;
 }

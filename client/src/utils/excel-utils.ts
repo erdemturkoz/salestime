@@ -11,6 +11,7 @@ const KAMPANYA_KOLONLARI = [
   "Nakit Fiyatı",
   "İndirim Oranı (%)",
   "Faiz Oranı (%)",
+  "Kredi Kartı Komisyon Oranı (%)",
   "Kitap Fiyatı",
   "Kitap Set Sayısı",
   "Maks. Kredi Kartı Taksiti",
@@ -43,7 +44,7 @@ function numberInRange(value: string, field: string, min: number, max: number): 
 export const exportToExcel = async (kampanyalar: Kampanya[]): Promise<void> => {
   const workbook = new Workbook();
   const worksheet = workbook.addSheet("Kampanyalar");
-  [24, 20, 12, 20, 15, 15, 20, 18, 15, 20, 28, 24, 36].forEach((width, index) => worksheet.setColumnWidth(index + 1, width));
+  [24, 20, 12, 20, 15, 15, 20, 18, 24, 15, 20, 28, 24, 36].forEach((width, index) => worksheet.setColumnWidth(index + 1, width));
   worksheet.writeRow(1, 1, [...KAMPANYA_KOLONLARI]);
   KAMPANYA_KOLONLARI.forEach((_, index) => worksheet.setStyle(1, index + 1, {
     font: { bold: true, color: "#FFFFFF" }, fill: { type: "pattern", pattern: "solid", fgColor: "#1F4E78" },
@@ -53,6 +54,7 @@ export const exportToExcel = async (kampanyalar: Kampanya[]): Promise<void> => {
     worksheet.writeRow(index + 2, 1, [
       safeSpreadsheetText(kampanya.kampanyaAdi), safeSpreadsheetText(kampanya.egitimTipi), kampanya.kurSayisi,
       kampanya.toplamDersSaati, kampanya.listeFiyati, kampanya.nakitFiyati, kampanya.indirimOrani, kampanya.faizOrani,
+      kampanya.krediKartiKomisyonOrani ?? 10,
       kampanya.kitapFiyati, kampanya.kitapSetSayisi, kampanya.maxKrediKartiTaksit, kampanya.maxSenetTaksit,
       safeSpreadsheetText(kampanya.hediyeler.map((hediye) => `${hediye.isim} (${hediye.fiyat} TL)`).join(", ")),
     ]);
@@ -61,8 +63,16 @@ export const exportToExcel = async (kampanyalar: Kampanya[]): Promise<void> => {
 };
 
 export const importFromExcel = async (file: File): Promise<Partial<Kampanya>[]> => {
-  const workbook = await loadSafeXlsx(file, KAMPANYA_KOLONLARI);
-  const rows = worksheetRowsAsRecords(workbook.getSheetByIndex(0)!, KAMPANYA_KOLONLARI);
+  const legacyHeaders = KAMPANYA_KOLONLARI.filter(
+    (header) => header !== "Kredi Kartı Komisyon Oranı (%)",
+  );
+  const workbook = await loadSafeXlsx(file, KAMPANYA_KOLONLARI, {
+    headerVariants: [legacyHeaders],
+  });
+  const worksheet = workbook.getSheetByIndex(0)!;
+  const columnCount = worksheet.readAllCells().reduce((max, cell) => Math.max(max, cell.col), 0);
+  const headers = columnCount === legacyHeaders.length ? legacyHeaders : KAMPANYA_KOLONLARI;
+  const rows = worksheetRowsAsRecords(worksheet, headers);
   return rows.map((row) => {
     const gifts = row.Hediyeler
       ? row.Hediyeler.split(",").map((gift) => {
@@ -75,6 +85,7 @@ export const importFromExcel = async (file: File): Promise<Partial<Kampanya>[]> 
 
     const kampanyaAdi = row["Kampanya Adı"].trim();
     const egitimTipi = row["Eğitim Tipi"].trim();
+    const komisyonOrani = row["Kredi Kartı Komisyon Oranı (%)"]?.trim();
     if (!kampanyaAdi || kampanyaAdi.length > 150 || !egitimTipi || egitimTipi.length > 120) {
       throw new Error("Kampanya adı ve eğitim tipi zorunludur ve izin verilen uzunluğu aşamaz.");
     }
@@ -87,6 +98,9 @@ export const importFromExcel = async (file: File): Promise<Partial<Kampanya>[]> 
       nakitFiyati: numberInRange(row["Nakit Fiyatı"], "Nakit fiyatı", 0, 10_000_000),
       indirimOrani: numberInRange(row["İndirim Oranı (%)"], "İndirim oranı", 0, 100),
       faizOrani: numberInRange(row["Faiz Oranı (%)"], "Faiz oranı", 0, 100),
+      krediKartiKomisyonOrani: komisyonOrani
+        ? numberInRange(komisyonOrani, "Kredi kartı komisyon oranı", 0, 100)
+        : 10,
       kitapFiyati: numberInRange(row["Kitap Fiyatı"], "Kitap fiyatı", 0, 10_000_000),
       kitapSetSayisi: numberInRange(row["Kitap Set Sayısı"], "Kitap set sayısı", 1, 99),
       maxKrediKartiTaksit: numberInRange(row["Maks. Kredi Kartı Taksiti"], "Kart taksiti", 1, 24),

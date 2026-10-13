@@ -196,6 +196,7 @@ export class DatabaseStorage implements IStorage {
           nakit_fiyati as "nakitFiyati",
           indirim_orani as "indirimOrani",
           faiz_orani as "faizOrani",
+          kredi_karti_komisyon_orani as "krediKartiKomisyonOrani",
           kitap_fiyati as "kitapFiyati",
           kitap_set_sayisi as "kitapSetSayisi",
           max_kredi_karti_taksit as "maxKrediKartiTaksit",
@@ -225,6 +226,7 @@ export class DatabaseStorage implements IStorage {
           nakit_fiyati as "nakitFiyati",
           indirim_orani as "indirimOrani",
           faiz_orani as "faizOrani",
+          kredi_karti_komisyon_orani as "krediKartiKomisyonOrani",
           kitap_fiyati as "kitapFiyati",
           kitap_set_sayisi as "kitapSetSayisi",
           max_kredi_karti_taksit as "maxKrediKartiTaksit",
@@ -255,6 +257,7 @@ export class DatabaseStorage implements IStorage {
           nakit_fiyati as "nakitFiyati",
           indirim_orani as "indirimOrani",
           faiz_orani as "faizOrani",
+          kredi_karti_komisyon_orani as "krediKartiKomisyonOrani",
           kitap_fiyati as "kitapFiyati",
           kitap_set_sayisi as "kitapSetSayisi",
           max_kredi_karti_taksit as "maxKrediKartiTaksit",
@@ -293,6 +296,7 @@ export class DatabaseStorage implements IStorage {
           nakit_fiyati,
           indirim_orani,
           faiz_orani,
+          kredi_karti_komisyon_orani,
           kitap_fiyati,
           kitap_set_sayisi,
           max_kredi_karti_taksit,
@@ -302,7 +306,7 @@ export class DatabaseStorage implements IStorage {
         ) VALUES (
           ${kampanya.kampanyaAdi}, ${kampanya.egitimTipi}, ${kampanya.kurSayisi},
           ${kampanya.toplamDersSaati}, ${kampanya.listeFiyati}, ${kampanya.nakitFiyati},
-          ${kampanya.indirimOrani}, ${kampanya.faizOrani}, ${kampanya.kitapFiyati},
+          ${kampanya.indirimOrani}, ${kampanya.faizOrani}, ${kampanya.krediKartiKomisyonOrani}, ${kampanya.kitapFiyati},
           ${kampanya.kitapSetSayisi}, ${kampanya.maxKrediKartiTaksit}, ${kampanya.maxSenetTaksit},
           ${JSON.stringify(kampanya.hediyeler)}, ${subeId}
         )
@@ -316,6 +320,7 @@ export class DatabaseStorage implements IStorage {
           nakit_fiyati as "nakitFiyati",
           indirim_orani as "indirimOrani",
           faiz_orani as "faizOrani",
+          kredi_karti_komisyon_orani as "krediKartiKomisyonOrani",
           kitap_fiyati as "kitapFiyati",
           kitap_set_sayisi as "kitapSetSayisi",
           max_kredi_karti_taksit as "maxKrediKartiTaksit",

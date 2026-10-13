@@ -47,6 +47,7 @@ export const ExcelImportInfoDialog: React.FC<ExcelImportInfoDialogProps> = ({
               <li>nakitFiyati</li>
               <li>indirimOrani</li>
               <li>faizOrani</li>
+              <li>krediKartiKomisyonOrani (isteğe bağlı, varsayılan 10)</li>
               <li>kitapFiyati</li>
               <li>kitapSetSayisi</li>
               <li>maxKrediKartiTaksit</li>

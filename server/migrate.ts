@@ -18,6 +18,7 @@ const MIGRATIONS = [
   "migrations/0002_kullanici_auth_version.sql",
   "migrations/0003_toplu_kuyruk_butunlugu.sql",
   "migrations/0004_sessions.sql",
+  "migrations/0005_kampanya_kredi_karti_komisyon.sql",
 ];
 
 // 0001, eski WhatsApp istatistik kayıtlarını kullanıcı/şube kimliklerine

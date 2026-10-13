@@ -37,6 +37,11 @@ export interface OfferResult {
   indirimTutari: number;
   indirimYuzdesi: number;
   kampanyaliFiyat: number;
+  nakitKampanyaFiyati: number;
+  krediKartiKomisyonOrani: number;
+  krediKartiKomisyonTutari: number;
+  taksitFaizTutari: number;
+  finansmanFarki: number;
   kitapUcreti: number;
   hediyeler: Array<{ isim: string; fiyat: number }>;
   hediyelerToplam: number;
@@ -51,6 +56,7 @@ export interface OfferResult {
   pesinat: number;
   kalanTutar: number;
   aylikOdeme: number;
+  taksitTutarlari: number[];
   odemeTipiText: string;
   kampanyaAdi: string;
   egitimTipi: string;

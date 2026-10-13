@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { OfferResult } from "@/types/offer-types";
 import { Star, Pencil, Trash2, Gift, BookOpen } from "lucide-react";
+import { formatInstallmentSchedule } from "@/utils/installment-schedule";
 
 function odemeTipiBasligi(offer: OfferResult): string {
   const tip = offer.form.odemeTipi;
@@ -41,7 +42,7 @@ export default function OfferSummaryCard({
   showDelete = true,
 }: OfferSummaryCardProps) {
   const hasMudurIndirim = offer.mudurIndirimTutari > 0;
-  const displayFiyat = hasMudurIndirim ? offer.ozelFiyat : offer.genelToplam;
+  const displayFiyat = offer.toplamOdeme;
   const hasPesinat = offer.pesinat > 0;
   const isTaksitli = offer.form.odemeTipi !== "nakit" && offer.form.taksitSayisi > 1;
 
@@ -143,11 +144,25 @@ export default function OfferSummaryCard({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Kampanyalı Fiyat</span>
+            <span className="text-gray-600">Ödeme Planı Fiyatı</span>
             <span className="font-semibold text-gray-800">
               {formatCurrency(offer.kampanyaliFiyat)}
             </span>
           </div>
+          {offer.krediKartiKomisyonTutari > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">
+                Kart Komisyonu (%{offer.krediKartiKomisyonOrani})
+              </span>
+              <span className="text-gray-700">{formatCurrency(offer.krediKartiKomisyonTutari)}</span>
+            </div>
+          )}
+          {offer.taksitFaizTutari > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Taksit Faiz Farkı</span>
+              <span className="text-gray-700">{formatCurrency(offer.taksitFaizTutari)}</span>
+            </div>
+          )}
 
           {offer.kitapUcreti > 0 && offer.form.kitapDahil && (
             <div className="flex justify-between items-center">
@@ -255,14 +270,14 @@ export default function OfferSummaryCard({
           <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-3">
             <div>
               <p className="text-xs text-green-700 font-medium">
-                {hasPesinat
-                  ? `${formatCurrency(offer.pesinat)} peşinat + ${offer.form.taksitSayisi} taksit`
-                  : `${offer.form.taksitSayisi} Eşit Taksit`}
+                {hasPesinat ? `${formatCurrency(offer.pesinat)} peşinat sonrası` : "Taksit planı"}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-green-800">{formatCurrency(offer.aylikOdeme)}</p>
-              <p className="text-xs text-green-600">/ ay</p>
+            <div className="text-right max-w-[68%]">
+              <p className="text-sm font-bold text-green-800">
+                {formatInstallmentSchedule(offer.taksitTutarlari)}
+              </p>
+              <p className="text-xs text-green-600">{offer.form.taksitSayisi} taksit</p>
             </div>
           </div>
         )}
