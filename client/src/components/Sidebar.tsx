@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRoleNames, canAccessBranchManagement, hasGlobalSystemAdminRole } from '@shared/role-policy';
+import { getRoleNames, canAccessBranchManagement, hasGlobalSystemAdminRole, canManageEducationTypes } from '@shared/role-policy';
 
 const NAV_ITEMS = [
   {
@@ -37,7 +37,7 @@ const NAV_ITEMS = [
     label: 'Eğitim Tipleri',
     href: '/egitim-tipleri',
     icon: BookOpen,
-    adminOnly: true,
+    educationAdminOnly: true,
   },
   {
     label: 'Kullanıcılar',
@@ -59,6 +59,7 @@ type NavItemDef = {
   icon: React.ElementType;
   adminOnly?: boolean;
   fullAdminOnly?: boolean;
+  educationAdminOnly?: boolean;
   branchAdminOnly?: boolean;
 };
 
@@ -81,6 +82,7 @@ const NavItem = ({
   const canManage = isFullAdmin || isKurucu || roles.includes("Müdür");
 
   if (item.fullAdminOnly && !isFullAdmin) return null;
+  if (item.educationAdminOnly && !canManageEducationTypes(user)) return null;
   if (item.branchAdminOnly && !canAccessBranches) return null;
   if (item.adminOnly && !canManage) return null;
 

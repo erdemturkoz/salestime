@@ -68,7 +68,9 @@ const KullanicilarPage = () => {
   const isKurucu = getRoleNames(user).includes("Kurucu");
   const canManageBranchRoles = tamAdmin || isKurucu;
   const canAssignGlobalRole = hasGlobalSystemAdminRole(user);
-  const yonetilenSubeIds = getManagedSubeIds();
+  const yonetilenSubeIds = isKurucu
+    ? ((user as any)?.roller || []).filter((r: any) => r.rol === "Kurucu").map((r: any) => Number(r.subeId))
+    : getManagedSubeIds();
   const kullanilabilirRoller: Rol[] = canManageBranchRoles
     ? ["Satış Danışmanı", "Müdür", "Kurucu"]
     : ["Satış Danışmanı"];

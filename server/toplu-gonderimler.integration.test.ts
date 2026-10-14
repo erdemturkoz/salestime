@@ -186,7 +186,10 @@ test("toplu teklif oluşturma endpoint'i teklif eğitimini kampanyayla yeniden d
   const marker = randomUUID();
   const teklifEgitimi = `Program ${marker}`;
   const farkliEgitim = `Farklı Program ${marker}`;
-  await db.insert(egitimTipleri).values([{ egitimTipi: teklifEgitimi }, { egitimTipi: farkliEgitim }]);
+  await db.insert(egitimTipleri).values([
+    { egitimTipi: teklifEgitimi, subeId: fixture.gonderim.subeId },
+    { egitimTipi: farkliEgitim, subeId: fixture.gonderim.subeId },
+  ]);
   t.after(async () => {
     await db.delete(egitimTipleri).where(eq(egitimTipleri.egitimTipi, teklifEgitimi));
     await db.delete(egitimTipleri).where(eq(egitimTipleri.egitimTipi, farkliEgitim));

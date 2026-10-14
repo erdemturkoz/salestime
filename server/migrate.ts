@@ -20,6 +20,7 @@ const MIGRATIONS = [
   "migrations/0004_sessions.sql",
   "migrations/0005_kampanya_kredi_karti_komisyon.sql",
   "migrations/0006_global_system_admin_role.sql",
+  "migrations/0007_branch_education_types.sql",
 ];
 
 // 0001, eski WhatsApp istatistik kayıtlarını kullanıcı/şube kimliklerine

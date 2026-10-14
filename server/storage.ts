@@ -23,7 +23,7 @@ import {
   type InsertWhatsappGonderim
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, desc, gte, lte, inArray, isNull } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, inArray, isNull, isNotNull } from "drizzle-orm";
 
 export type WhatsappGonderimFilters = {
   subeId?: number;
@@ -34,7 +34,7 @@ export type WhatsappGonderimFilters = {
 
 export interface IStorage {
   // Eğitim Tipleri operations
-  getAllEgitimTipleri(): Promise<EgitimTipi[]>;
+  getAllEgitimTipleri(subeIds?: readonly number[]): Promise<EgitimTipi[]>;
   getEgitimTipi(id: number): Promise<EgitimTipi | undefined>;
   createEgitimTipi(egitimTipi: InsertEgitimTipi): Promise<EgitimTipi>;
   updateEgitimTipi(id: number, egitimTipi: InsertEgitimTipi): Promise<EgitimTipi | undefined>;
@@ -84,14 +84,11 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Eğitim Tipleri operations
-  async getAllEgitimTipleri(): Promise<EgitimTipi[]> {
-    try {
-      const result = await db.select().from(egitimTipleri);
-      return result;
-    } catch (error) {
-      console.error("Eğitim tiplerini getirme hatası:", error);
-      return [];
-    }
+  async getAllEgitimTipleri(subeIds?: readonly number[]): Promise<EgitimTipi[]> {
+    if (subeIds && subeIds.length === 0) return [];
+    return db.select().from(egitimTipleri).where(
+      subeIds ? inArray(egitimTipleri.subeId, [...subeIds]) : isNotNull(egitimTipleri.subeId),
+    );
   }
 
   async getEgitimTipi(id: number): Promise<EgitimTipi | undefined> {
@@ -130,16 +127,16 @@ export class DatabaseStorage implements IStorage {
       return result;
     } catch (error) {
       console.error(`Eğitim tipi ID ${id} güncellenirken hata:`, error);
-      return undefined;
+      throw error;
     }
   }
 
-  async isEgitimTipiUsedInKampanyalar(egitimTipiAdi: string): Promise<boolean> {
+  async isEgitimTipiUsedInKampanyalar(egitimTipiAdi: string, subeId: number): Promise<boolean> {
     try {
       // Drizzle ORM sorgusu kullanarak kampanyalardan kontrol yapalım
       const kampanyaList = await db.select({ count: sql`count(*)` })
         .from(kampanyalar)
-        .where(eq(kampanyalar.egitimTipi, egitimTipiAdi));
+        .where(and(eq(kampanyalar.egitimTipi, egitimTipiAdi), eq(kampanyalar.subeId, subeId)));
       
       const count = Number(kampanyaList[0].count);
       console.log(`Eğitim tipi '${egitimTipiAdi}' için kampanya kullanımı kontrolü: ${count} adet kampanya bulundu`);
@@ -160,13 +157,13 @@ export class DatabaseStorage implements IStorage {
         .from(egitimTipleri)
         .where(eq(egitimTipleri.id, id));
       
-      if (!egitimTipi) {
+      if (!egitimTipi || !egitimTipi.subeId) {
         console.warn(`Silinecek eğitim tipi bulunamadı: ID ${id}`);
         return false;
       }
       
       // Eğitim tipinin herhangi bir kampanyada kullanılıp kullanılmadığını kontrol et
-      const isUsed = await this.isEgitimTipiUsedInKampanyalar(egitimTipi.egitimTipi);
+      const isUsed = await this.isEgitimTipiUsedInKampanyalar(egitimTipi.egitimTipi, egitimTipi.subeId);
       
       if (isUsed) {
         console.warn(`Eğitim tipi '${egitimTipi.egitimTipi}' kampanyalarda kullanımda olduğu için silinemez.`);
@@ -182,7 +179,7 @@ export class DatabaseStorage implements IStorage {
       return result.length > 0;
     } catch (error) {
       console.error(`Eğitim tipi ID ${id} silinirken hata:`, error);
-      return false;
+      throw error;
     }
   }
   // Kampanya operations

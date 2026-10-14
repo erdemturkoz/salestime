@@ -24,7 +24,7 @@ import {
 import { db } from "./db";
 import { z } from "zod";
 import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword, isChromeExtensionOriginConfigured, requireChromeExtensionOrigin, requireSameOrigin, requireMutationProtection, serializeKullanici } from "./auth";
-import { hasGlobalSystemAdminRole } from "../shared/role-policy";
+import { hasGlobalSystemAdminRole, canManageEducationTypes } from "../shared/role-policy";
 import { computeOffer } from "../client/src/hooks/useOfferCalculator";
 import { istanbulDateInputsToUtcRange } from "../shared/turkey-dates";
 import "./types"; // Session tiplerini yükle
@@ -56,6 +56,35 @@ function kullaniciKurucuyaAitMi(kullanici: any, managed: number[]): boolean {
     [Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(r.rol)
     && managed.includes(Number(r.subeId))
   );
+}
+
+function educationManagedBranchIds(user: any): number[] {
+  return (user?.roller || []).filter((r: any) => r.rol === Roller.KURUCU)
+    .map((r: any) => Number(r.subeId));
+}
+
+function userManagementBranchIds(user: any): number[] {
+  return isKurucuUser(user) ? educationManagedBranchIds(user) : getManagedSubeIds(user);
+}
+
+function requireEducationManager(req: Request, res: Response, next: NextFunction) {
+  if (!canManageEducationTypes(getSessionUser(req))) {
+    return res.status(403).json({ error: "Eğitim tiplerini yalnızca sistem yöneticisi veya kendi şubesinin kurucusu yönetebilir." });
+  }
+  next();
+}
+
+function educationError(res: Response, error: any) {
+  const code = error?.code || error?.cause?.code;
+  if (code === "23505") return res.status(409).json({ error: "Bu şubede aynı adlı bir eğitim tipi zaten var." });
+  if (code === "23503") return res.status(409).json({ error: "Bu eğitim tipi kampanyada kullanıldığı için silinemez veya seçilen şube geçersiz." });
+  if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+  console.error("Eğitim tipi işlemi başarısız:", error);
+  return res.status(500).json({ error: "Eğitim tipi işlemi tamamlanamadı." });
+}
+
+async function campaignEducationExists(subeId: number, name: string): Promise<boolean> {
+  return (await storage.getAllEgitimTipleri([subeId])).some((row) => row.egitimTipi === name);
 }
 
 function topluTeklifSubeErisimiVarMi(user: any, subeId: number): boolean {
@@ -338,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(kullanicilar.map(serializeKullanici));
       }
 
-      const managed = getManagedSubeIds(user);
+      const managed = userManagementBranchIds(user);
       const filtrelenmis = (kullanicilar as any[]).filter((k) =>
         isKurucuUser(user)
           ? kullaniciKurucuyaAitMi(k, managed)
@@ -366,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Sistem Yöneticisi hesabına erişim yetkiniz yok." });
       }
       if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
+        const managed = userManagementBranchIds(user);
         const hedefYonetilebilir = isKurucuUser(user)
           ? kullaniciKurucuyaAitMi(kullanici, managed)
           : kullaniciMudureAitMi(kullanici, managed);
@@ -408,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
+        const managed = userManagementBranchIds(user);
         const rollerGecerli = isKurucuUser(user)
           ? kurucuRollerGecerliMi(roller, managed)
           : mudurRollerGecerliMi(roller, managed);
@@ -507,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
+        const managed = userManagementBranchIds(user);
         const hedefYonetilebilir = isKurucuUser(user)
           ? kullaniciKurucuyaAitMi(mevcut, managed)
           : kullaniciMudureAitMi(mevcut, managed);
@@ -590,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
+        const managed = userManagementBranchIds(user);
         const hedefYonetilebilir = isKurucuUser(user)
           ? kullaniciKurucuyaAitMi(hedef, managed)
           : kullaniciMudureAitMi(hedef, managed);
@@ -643,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ error: "Sistem Yöneticisi hesabına şube rolü eklenemez." });
       }
       if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
+        const managed = userManagementBranchIds(user);
         if (!managed.includes(parseInt(subeId))) {
           return res.status(403).json({ error: "Bu işlem yalnızca yönettiğiniz şubelerde yapılabilir." });
         }
@@ -679,7 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Sistem Yöneticisi hesabını yalnızca Sistem Yöneticisi düzenleyebilir." });
       }
       if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
+        const managed = userManagementBranchIds(user);
         if (!managed.includes(parseInt(subeId))) {
           return res.status(403).json({ error: "Bu işlem yalnızca yönettiğiniz şubelerde yapılabilir." });
         }
@@ -708,7 +737,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Eğitim Tipleri API routes
   app.get("/api/egitim-tipleri", isAuthenticated, async (req, res) => {
     try {
-      const egitimTipleri = await storage.getAllEgitimTipleri();
+      const user = getSessionUser(req);
+      const requested = req.query.subeId === undefined ? undefined : Number(req.query.subeId);
+      if (requested !== undefined && (!Number.isInteger(requested) || requested <= 0)) {
+        return res.status(400).json({ error: "Geçerli bir şube seçilmelidir." });
+      }
+      const allowed = getUserSubeIds(user);
+      if (requested !== undefined && !isFullAdminUser(user) && !allowed.includes(requested)) {
+        return res.status(403).json({ error: "Bu şubenin eğitim tiplerine erişim yetkiniz yok." });
+      }
+      const egitimTipleri = await storage.getAllEgitimTipleri(
+        requested !== undefined ? [requested] : isFullAdminUser(user) ? undefined : allowed,
+      );
       res.json(egitimTipleri);
     } catch (error) {
       console.error("Eğitim tipleri API hatası:", error);
@@ -721,8 +761,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const egitimTipi = await storage.getEgitimTipi(parseInt(id));
       
-      if (!egitimTipi) {
+      if (!egitimTipi || !egitimTipi.subeId) {
         return res.status(404).json({ error: "Eğitim tipi bulunamadı" });
+      }
+      const user = getSessionUser(req);
+      if (!isFullAdminUser(user) && !getUserSubeIds(user).includes(egitimTipi.subeId)) {
+        return res.status(403).json({ error: "Bu eğitim tipine erişim yetkiniz yok." });
       }
       
       res.json(egitimTipi);
@@ -732,24 +776,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/egitim-tipleri", canManageCampaigns, async (req, res) => {
+  app.post("/api/egitim-tipleri", requireEducationManager, async (req, res) => {
     try {
       const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
+      const user = getSessionUser(req);
+      const managed = educationManagedBranchIds(user);
+      const subeId = egitimTipiData.subeId ?? (!isFullAdminUser(user) && managed.length === 1 ? managed[0] : undefined);
+      if (!subeId) return res.status(400).json({ error: "Eğitim tipi için bir şube seçilmelidir." });
+      if (!isFullAdminUser(user) && !managed.includes(subeId)) {
+        return res.status(403).json({ error: "Yalnızca kurucusu olduğunuz şubenin eğitim tiplerini yönetebilirsiniz." });
+      }
+      if (!await storage.getSube(subeId)) return res.status(404).json({ error: "Şube bulunamadı." });
+      egitimTipiData.subeId = subeId;
       const newEgitimTipi = await storage.createEgitimTipi(egitimTipiData);
       res.status(201).json(newEgitimTipi);
     } catch (error) {
-      console.error("Eğitim tipi oluşturma hatası:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      res.status(500).json({ error: "Eğitim tipi oluşturulurken bir hata oluştu", details: String(error) });
+      return educationError(res, error);
     }
   });
 
-  app.put("/api/egitim-tipleri/:id", canManageCampaigns, async (req, res) => {
+  app.put("/api/egitim-tipleri/:id", requireEducationManager, async (req, res) => {
     try {
       const { id } = req.params;
       const egitimTipiData = insertEgitimTipiSchema.parse(req.body);
+      const existing = await storage.getEgitimTipi(Number(id));
+      if (!existing || !existing.subeId) return res.status(404).json({ error: "Eğitim tipi bulunamadı." });
+      const user = getSessionUser(req);
+      if (!isFullAdminUser(user) && !educationManagedBranchIds(user).includes(existing.subeId)) {
+        return res.status(403).json({ error: "Bu eğitim tipini düzenleme yetkiniz yok." });
+      }
+      if (egitimTipiData.subeId !== undefined && egitimTipiData.subeId !== existing.subeId) {
+        return res.status(400).json({ error: "Eğitim tipinin şubesi değiştirilemez." });
+      }
+      egitimTipiData.subeId = existing.subeId;
       const updatedEgitimTipi = await storage.updateEgitimTipi(parseInt(id), egitimTipiData);
       
       if (!updatedEgitimTipi) {
@@ -758,27 +817,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedEgitimTipi);
     } catch (error) {
-      console.error("Eğitim tipi güncelleme hatası:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      res.status(500).json({ error: "Eğitim tipi güncellenirken bir hata oluştu", details: String(error) });
+      return educationError(res, error);
     }
   });
 
-  app.delete("/api/egitim-tipleri/:id", canManageCampaigns, async (req, res) => {
+  app.delete("/api/egitim-tipleri/:id", requireEducationManager, async (req, res) => {
     try {
       const { id } = req.params;
       
       // Önce ilgili eğitim tipini al
       const egitimTipi = await storage.getEgitimTipi(parseInt(id));
       
-      if (!egitimTipi) {
+      if (!egitimTipi || !egitimTipi.subeId) {
         return res.status(404).json({ error: "Silinecek eğitim tipi bulunamadı" });
+      }
+      const user = getSessionUser(req);
+      if (!isFullAdminUser(user) && !educationManagedBranchIds(user).includes(egitimTipi.subeId)) {
+        return res.status(403).json({ error: "Bu eğitim tipini silme yetkiniz yok." });
       }
       
       // Eğitim tipinin kullanımda olup olmadığını kontrol et
-      const isUsed = await storage.isEgitimTipiUsedInKampanyalar(egitimTipi.egitimTipi);
+      const isUsed = await storage.isEgitimTipiUsedInKampanyalar(egitimTipi.egitimTipi, egitimTipi.subeId);
       
       if (isUsed) {
         return res.status(409).json({ 
@@ -796,8 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(204).send();
     } catch (error) {
-      console.error("Eğitim tipi silme hatası:", error);
-      res.status(500).json({ error: "Eğitim tipi silinirken bir hata oluştu", details: String(error) });
+      return educationError(res, error);
     }
   });
 
@@ -886,12 +944,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ error: "Kampanya eklemek için bir şubenin müdürü olmalısınız." });
         }
         const requested = kampanyaData.subeId;
-        kampanyaData.subeId = (requested && managed.includes(requested)) ? requested : managed[0];
+        if (requested && !managed.includes(requested)) {
+          return res.status(403).json({ error: "Bu şubeye kampanya ekleme yetkiniz yok." });
+        }
+        if (!requested && managed.length > 1) {
+          return res.status(400).json({ error: "Kampanya için bir şube seçilmelidir." });
+        }
+        kampanyaData.subeId = requested ?? managed[0];
       }
 
       // Şube zorunlu — global (şubesiz) kampanya oluşturulmaz
       if (!kampanyaData.subeId) {
         return res.status(400).json({ error: "Kampanya için bir şube seçilmelidir." });
+      }
+      if (!await campaignEducationExists(kampanyaData.subeId, kampanyaData.egitimTipi)) {
+        return res.status(400).json({ error: "Seçilen eğitim tipi kampanyanın şubesinde tanımlı değil." });
       }
 
       const newKampanya = await storage.createKampanya(kampanyaData);
@@ -923,10 +990,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!existing.subeId || !managed.includes(existing.subeId)) {
           return res.status(403).json({ error: "Bu kampanyayı düzenleme yetkiniz yok." });
         }
+        if (kampanyaData.subeId != null && kampanyaData.subeId !== existing.subeId) {
+          return res.status(400).json({ error: "Kampanyanın şubesi değiştirilemez; kopyalama işlemini kullanın." });
+        }
         kampanyaData.subeId = existing.subeId;
       } else if (kampanyaData.subeId == null) {
         // Admin şube göndermezse mevcut şubeyi koru (yetim kalmasın)
         kampanyaData.subeId = existing.subeId;
+      }
+      if (!kampanyaData.subeId || !await campaignEducationExists(kampanyaData.subeId, kampanyaData.egitimTipi)) {
+        return res.status(400).json({ error: "Seçilen eğitim tipi kampanyanın şubesinde tanımlı değil." });
       }
 
       const updatedKampanya = await storage.updateKampanya(parseInt(id), kampanyaData);
@@ -1002,6 +1075,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      const source = await storage.getKampanya(Number(id));
+      if (!source) return res.status(404).json({ error: "Kopyalanacak kampanya bulunamadı." });
+      if (!await campaignEducationExists(Number(subeId), source.egitimTipi)) {
+        return res.status(400).json({ error: "Kopyalamadan önce eğitim tipini hedef şubede tanımlayın." });
+      }
       const newKampanya = await storage.copyKampanyaToSube(parseInt(id), parseInt(subeId));
       
       if (!newKampanya) {
@@ -1056,6 +1134,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!kaynak || !kaynak.subeId || !managed.includes(kaynak.subeId)) {
             return res.status(403).json({ error: "Yalnızca kendi şubenizin kampanyalarını kopyalayabilirsiniz." });
           }
+        }
+      }
+      for (const kid of validIds) {
+        const source = await storage.getKampanya(kid);
+        if (!source) return res.status(404).json({ error: "Kopyalanacak kampanya bulunamadı." });
+        if (!await campaignEducationExists(parsedSubeId, source.egitimTipi)) {
+          return res.status(400).json({ error: "Kopyalamadan önce eğitim tiplerini hedef şubede tanımlayın." });
         }
       }
       const newKampanyalar = await storage.copyManyKampanyalarToSube(validIds, parsedSubeId);
@@ -1205,7 +1290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // mesaj ve snapshot burada, mevcut computeOffer motoru ile üretilir.
       const [kampanyalar, egitimTipleri] = await Promise.all([
         Promise.all(teklifler.map((teklif) => storage.getKampanya(teklif.kampanyaId))),
-        storage.getAllEgitimTipleri(),
+        storage.getAllEgitimTipleri([subeId]),
       ]);
       const aktifEgitimTipleri = new Set(
         egitimTipleri.map((egitimTipi: any) => String(egitimTipi.egitimTipi || "").trim().toLocaleLowerCase("tr")),

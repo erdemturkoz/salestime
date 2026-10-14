@@ -2,16 +2,17 @@ import React from "react";
 import { useLocation, Redirect } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { getRoleNames, canAccessBranchManagement, hasGlobalSystemAdminRole } from "@shared/role-policy";
+import { getRoleNames, canAccessBranchManagement, hasGlobalSystemAdminRole, canManageEducationTypes } from "@shared/role-policy";
 
 interface AuthenticationGuardProps {
   children: React.ReactNode;
   adminOnly?: boolean;       // Tam admin VEYA müdür (kampanya/kullanıcı yönetimi)
   fullAdminOnly?: boolean;   // Yalnızca Sistem Yöneticisi (eğitim tipi yönetimi)
+  educationAdminOnly?: boolean;
   branchAdminOnly?: boolean; // Sistem Yöneticisi veya kendi şubesinin Kurucusu
 }
 
-export default function AuthenticationGuard({ children, adminOnly = false, fullAdminOnly = false, branchAdminOnly = false }: AuthenticationGuardProps) {
+export default function AuthenticationGuard({ children, adminOnly = false, fullAdminOnly = false, educationAdminOnly = false, branchAdminOnly = false }: AuthenticationGuardProps) {
   const { user, isLoading } = useAuth();
   const [, navigate] = useLocation();
 
@@ -36,6 +37,9 @@ export default function AuthenticationGuard({ children, adminOnly = false, fullA
 
   // Yalnızca tam admin gerektiren sayfalar (şubeler, eğitim tipleri)
   if (fullAdminOnly && !isFullAdmin) {
+    return <Redirect to="/" />;
+  }
+  if (educationAdminOnly && !canManageEducationTypes(user)) {
     return <Redirect to="/" />;
   }
   if (branchAdminOnly && !canAccessBranches) {

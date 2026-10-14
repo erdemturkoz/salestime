@@ -27,16 +27,24 @@ const UcretlendirmePage = () => {
   const { toast } = useToast();
   const { kampanyalar, addKampanya, deleteKampanya, updateKampanya, refreshKampanyalar, 
     selectedSubeId, setSelectedSubeId } = useAppContext();
-  const { user, isAdmin, isFullAdmin, getManagedSubeIds } = useAuth();
+  const { user, isFullAdmin, getManagedSubeIds } = useAuth();
+  const roles = ((user as any)?.roller || []) as Array<{ rol?: string; subeId?: number }>;
+  const isKurucu = roles.some((role) => role.rol === "Kurucu");
+  const isMudur = roles.some((role) => role.rol === "Müdür") && !isKurucu && !isFullAdmin();
+  const managedSubeIds = getManagedSubeIds().map(Number);
 
-  // Müdür ise yönetdiği (kendi) şube id'si; tam admin ise null
-  const mudurSubeId = !isFullAdmin() ? (getManagedSubeIds()[0] ?? null) : null;
+  // Müdür tek şubeye sabitlenir; Kurucu kendi atandığı şubeler arasında seçim yapabilir.
+  const mudurSubeId = isMudur ? (managedSubeIds[0] ?? null) : null;
   
+  const [formSubeId, setFormSubeId] = useState<number | null>(null);
   // Eğitim tiplerini API'den çekelim
-  const { egitimTipleri, isLoading: egitimTipleriLoading } = useEgitimTipleri();
+  const { egitimTipleri, isLoading: egitimTipleriLoading, isError: egitimTipleriError, error: egitimTipleriFetchError } = useEgitimTipleri(formSubeId);
   
   // Kullanıcının şubeleri
   const [subeler, setSubeler] = useState<Array<{id: number, subeAdi: string}>>([]);
+  const availableSubeler = isFullAdmin()
+    ? subeler
+    : subeler.filter((sube) => managedSubeIds.includes(Number(sube.id)));
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -66,37 +74,20 @@ const UcretlendirmePage = () => {
   const [krediKartiTaksitler, setKrediKartiTaksitler] = useState<TaksitOption[]>([]);
   const [senetTaksitler, setSenetTaksitler] = useState<TaksitOption[]>([]);
 
-  // Yeni kampanya için hedef şube (tam admin seçer; müdür kendi şubesine sabit)
-  const [formSubeId, setFormSubeId] = useState<number | null>(null);
+  // Yeni kampanya için hedef şube.
 
   // Müdür ise; form şubesini ve liste filtresini kendi şubesine sabitle
   useEffect(() => {
     if (mudurSubeId != null) {
       setFormSubeId(mudurSubeId);
       setSelectedSubeId(mudurSubeId);
+    } else if (!isFullAdmin() && managedSubeIds.length === 1) {
+      setFormSubeId(managedSubeIds[0]);
+      setSelectedSubeId(managedSubeIds[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mudurSubeId]);
+  }, [mudurSubeId, managedSubeIds.length]);
 
-  // Şubeleri getirme
-  useEffect(() => {
-    const fetchSubeler = async () => {
-      try {
-        const data = await apiRequest('/api/subeler');
-        setSubeler(data);
-      } catch (error) {
-        console.error('Şubeler getirme hatası:', error);
-        toast({
-          title: 'Hata',
-          description: 'Şubeler yüklenirken bir hata oluştu.',
-          variant: 'destructive',
-        });
-      }
-    };
-    
-    fetchSubeler();
-  }, [toast]);
-  
   // Şube seçimi değiştiğinde kampanyaları filtreleme
   useEffect(() => {
     const fetchKampanyalar = async () => {
@@ -213,7 +204,7 @@ const UcretlendirmePage = () => {
     });
     setIsEditing(false);
     setCurrentId(null);
-    setFormSubeId(mudurSubeId ?? null);
+    setFormSubeId(mudurSubeId ?? (managedSubeIds.length === 1 ? managedSubeIds[0] : null));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -297,6 +288,7 @@ const UcretlendirmePage = () => {
 
   const handleEditKampanya = (kampanya: any) => {
     setCurrentId(kampanya.id);
+    setFormSubeId(Number(kampanya.subeId) || selectedSubeId || null);
     setFormData({
       kampanyaAdi: kampanya.kampanyaAdi,
       egitimTipi: kampanya.egitimTipi || "",
@@ -698,20 +690,24 @@ const UcretlendirmePage = () => {
                 />
               </div>
 
-              {/* Şube seçimi: tam admin için seçilebilir, müdür için kilitli */}
+              {/* Şube seçimi: global admin ve Kurucu için seçilebilir; Müdür kendi şubesinde sabit */}
               {!isEditing && (
                 <div className="space-y-1">
                   <Label htmlFor="formSube" className="text-xs">Şube</Label>
-                  {isFullAdmin() ? (
+                  {(isFullAdmin() || isKurucu) ? (
                     <Select
                       value={formSubeId?.toString() || ""}
-                      onValueChange={(value) => setFormSubeId(value ? parseInt(value) : null)}
+                      onValueChange={(value) => {
+                        const nextSubeId = value ? parseInt(value) : null;
+                        setFormSubeId(nextSubeId);
+                        setFormData((prev) => ({ ...prev, kampanyaAdi: "", egitimTipi: "" }));
+                      }}
                     >
                       <SelectTrigger id="formSube" className="h-8">
                         <SelectValue placeholder="Şube seçin" />
                       </SelectTrigger>
                       <SelectContent>
-                        {subeler.map((sube) => (
+                        {availableSubeler.map((sube) => (
                           <SelectItem key={sube.id} value={sube.id.toString()}>
                             {sube.subeAdi}
                           </SelectItem>
@@ -736,6 +732,7 @@ const UcretlendirmePage = () => {
                 <Select
                   value={formData.egitimTipi}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, egitimTipi: value }))}
+                  disabled={!formSubeId || egitimTipleriLoading}
                 >
                   <SelectTrigger id="egitimTipi" className="h-8">
                     <SelectValue placeholder="Eğitim tipi seçin" />
@@ -743,6 +740,10 @@ const UcretlendirmePage = () => {
                   <SelectContent>
                     {egitimTipleriLoading ? (
                       <SelectItem value="loading" disabled>Yükleniyor...</SelectItem>
+                    ) : egitimTipleriError ? (
+                      <SelectItem value="error" disabled>{egitimTipleriFetchError?.message || "Eğitim tipleri yüklenemedi"}</SelectItem>
+                    ) : !formSubeId ? (
+                      <SelectItem value="no-branch" disabled>Önce şube seçin</SelectItem>
                     ) : egitimTipleri.length === 0 ? (
                       <SelectItem value="no-data" disabled>Eğitim tipi bulunamadı</SelectItem>
                     ) : (
@@ -1051,7 +1052,7 @@ const UcretlendirmePage = () => {
                 </CardDescription>
               </div>
               <div className="flex flex-col md:flex-row gap-2">
-                {isFullAdmin() ? (
+                {(isFullAdmin() || isKurucu) ? (
                   <Select
                     value={selectedSubeId?.toString() || "all"}
                     onValueChange={(value) => setSelectedSubeId(value === "all" ? null : parseInt(value))}
@@ -1061,7 +1062,7 @@ const UcretlendirmePage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tüm şubeler</SelectItem>
-                      {subeler.map((sube) => (
+                      {(isFullAdmin() ? subeler : availableSubeler).map((sube) => (
                         <SelectItem key={sube.id} value={sube.id.toString()}>
                           {sube.subeAdi}
                         </SelectItem>

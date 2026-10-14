@@ -53,7 +53,7 @@ function Router() {
             </AuthenticationGuard>
           </Route>
           <Route path="/egitim-tipleri">
-            <AuthenticationGuard fullAdminOnly>
+            <AuthenticationGuard educationAdminOnly>
               <EgitimTipleriPage />
             </AuthenticationGuard>
           </Route>

@@ -380,13 +380,18 @@ export type WhatsappGonderimRequest = z.infer<typeof whatsappGonderimRequestSche
 // Eğitim Tipleri tablosu
 export const egitimTipleri = pgTable("egitim_tipleri", {
   id: serial("id").primaryKey(),
-  egitimTipi: text("egitim_tipi").notNull().unique(),
+  egitimTipi: text("egitim_tipi").notNull(),
+  // Null rows preserve the pre-branch catalog; only branch-owned rows are served.
+  subeId: integer("sube_id").references(() => subeler.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  subeAdiUnique: uniqueIndex("egitim_tipleri_sube_adi_unique").on(table.subeId, table.egitimTipi),
+}));
 
 // Eğitim tipi insert şeması
 export const insertEgitimTipiSchema = createInsertSchema(egitimTipleri, {
-  egitimTipi: z.string().min(2, "Eğitim tipi en az 2 karakter olmalıdır"),
+  egitimTipi: z.string().trim().min(2, "Eğitim tipi en az 2 karakter olmalıdır"),
+  subeId: z.number().int().positive().optional(),
 }).omit({ id: true, createdAt: true });
 
 export type InsertEgitimTipi = z.infer<typeof insertEgitimTipiSchema>;

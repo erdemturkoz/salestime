@@ -156,10 +156,10 @@ export default function TopluTekliflerPage() {
   const { user } = useAuth();
   const { kampanyalar, getKampanyalarBySubeId } = useAppContext();
   const { toast } = useToast();
-  const { egitimTipleri: egitimTipleriKayitlari } = useEgitimTipleri();
-  const egitimTipleriAdlari = egitimTipleriKayitlari.map((t: any) => t.egitimTipi as string);
   const roller = ((user as any)?.roller || []) as any[];
   const [aktifSubeId, setAktifSubeId] = useState<number | null>(roller[0]?.subeId || null);
+  const { egitimTipleri: egitimTipleriKayitlari } = useEgitimTipleri(aktifSubeId);
+  const egitimTipleriAdlari = egitimTipleriKayitlari.map((t: any) => t.egitimTipi as string);
   const [sekme, setSekme] = useState<Sekme>("yeni");
   const [satirlar, setSatirlar] = useState<TopluTeklifSatiri[]>([]);
   const [arama, setArama] = useState("");

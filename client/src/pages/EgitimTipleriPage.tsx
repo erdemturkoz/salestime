@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PencilIcon, PlusIcon, TrashIcon, XIcon } from "lucide-react";
@@ -37,25 +37,42 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { hasGlobalSystemAdminRole } from "@shared/role-policy";
 
 export default function EgitimTipleriPage() {
   const { user } = useAuth();
-  const isSistemYoneticisi = user?.globalRol === "Sistem Yöneticisi";
-  
-  // Geçici olarak yetki kontrolünü devre dışı bırakıyoruz
-  /*
-  if (!isSistemYoneticisi) {
-    return (
-      <div className="container mx-auto py-8">
-        <h1 className="text-2xl font-bold mb-4">Yetkisiz Erişim</h1>
-        <p>Bu sayfaya erişmek için yeterli yetkiniz bulunmamaktadır.</p>
-      </div>
-    );
-  }
-  */
-
   const { toast } = useToast();
-  
+  const roller = ((user as any)?.roller || []) as Array<{ rol?: string; subeId?: number; subeAdi?: string }>;
+  const kurucuSubeIds = useMemo(
+    () => Array.from(new Set(roller.filter((rol) => rol.rol === "Kurucu" && rol.subeId != null).map((rol) => Number(rol.subeId)))),
+    [roller],
+  );
+  const [subeler, setSubeler] = useState<Array<{ id: number; subeAdi: string }>>([]);
+  const [subelerLoading, setSubelerLoading] = useState(true);
+  const [subelerError, setSubelerError] = useState<string | null>(null);
+  const [selectedSubeId, setSelectedSubeId] = useState<number | null>(null);
+  const isGlobalAdmin = !!user && hasGlobalSystemAdminRole(user);
+  const managedSubeler = useMemo(
+    () => isGlobalAdmin ? subeler : subeler.filter((sube) => kurucuSubeIds.includes(Number(sube.id))),
+    [isGlobalAdmin, subeler, kurucuSubeIds],
+  );
+  useEffect(() => {
+    let active = true;
+    setSubelerLoading(true);
+    apiRequest("/api/subeler")
+      .then((data) => { if (active) { setSubeler(Array.isArray(data) ? data : []); setSubelerError(null); } })
+      .catch((err) => { if (active) setSubelerError(err instanceof Error ? err.message : "Şubeler yüklenemedi."); })
+      .finally(() => { if (active) setSubelerLoading(false); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    if (managedSubeler.length === 1) setSelectedSubeId(Number(managedSubeler[0].id));
+    else if (selectedSubeId != null && !managedSubeler.some((sube) => Number(sube.id) === selectedSubeId)) setSelectedSubeId(null);
+    // Branch changes must never retain a record action from a different scope.
+    resetBranchState();
+  }, [selectedSubeId, managedSubeler]);
   const {
     egitimTipleri,
     isLoading,
@@ -64,11 +81,17 @@ export default function EgitimTipleriPage() {
     deleteEgitimTipi,
     isError,
     error
-  } = useEgitimTipleri();
+  } = useEgitimTipleri(selectedSubeId);
 
   const [editId, setEditId] = useState<number | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+  const resetBranchState = () => {
+    setEditId(null);
+    setDeleteItemId(null);
+    setDeleteConfirmOpen(false);
+    form.reset({ egitimTipi: "" });
+  };
   
   const form = useForm<InsertEgitimTipi>({
     resolver: zodResolver(insertEgitimTipiSchema),
@@ -97,10 +120,14 @@ export default function EgitimTipleriPage() {
   
   // Form gönderildi
   const onSubmit = (data: InsertEgitimTipi) => {
+    if (selectedSubeId == null) {
+      toast({ title: "Şube seçilmedi", description: "İşlem için önce bir şube seçin.", variant: "destructive" });
+      return;
+    }
     if (editId) {
       // Güncelleme
       updateEgitimTipi.mutate(
-        { id: editId, data },
+        { id: editId, data: { egitimTipi: data.egitimTipi } },
         {
           onSuccess: () => {
             toast({
@@ -120,7 +147,7 @@ export default function EgitimTipleriPage() {
       );
     } else {
       // Yeni kayıt
-      createEgitimTipi.mutate(data, {
+      createEgitimTipi.mutate({ ...data, subeId: selectedSubeId }, {
         onSuccess: () => {
           toast({
             title: "Eğitim tipi eklendi",
@@ -178,7 +205,7 @@ export default function EgitimTipleriPage() {
             // Genel hata
             toast({
               title: "Hata",
-              description: "Eğitim tipi silinirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
+              description: errorMsg || "Eğitim tipi silinirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
               variant: "destructive",
             });
             console.error("Silme hatası:", errorMsg);
@@ -202,10 +229,23 @@ export default function EgitimTipleriPage() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Eğitim Tipleri Yönetimi</h1>
+      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+        <label className="block text-sm font-medium mb-2" htmlFor="education-branch">Şube</label>
+        {subelerLoading ? <div className="h-10 rounded-md bg-muted animate-pulse" /> : managedSubeler.length > 1 ? (
+          <Select value={selectedSubeId?.toString() || ""} onValueChange={(value) => setSelectedSubeId(Number(value))}>
+            <SelectTrigger id="education-branch"><SelectValue placeholder="Şube seçin" /></SelectTrigger>
+            <SelectContent>{managedSubeler.map((sube) => <SelectItem key={sube.id} value={String(sube.id)}>{sube.subeAdi}</SelectItem>)}</SelectContent>
+          </Select>
+        ) : managedSubeler.length === 1 ? (
+          <Input id="education-branch" value={managedSubeler[0].subeAdi} disabled readOnly />
+        ) : <p className="text-sm text-muted-foreground">Yönetebileceğiniz bir şube bulunamadı.</p>}
+        {subelerError && <p role="alert" className="mt-2 text-sm text-destructive">{subelerError}</p>}
+        {!subelerError && !subelerLoading && managedSubeler.length > 1 && !selectedSubeId && <p className="mt-2 text-sm text-muted-foreground">Kayıtları görüntülemek ve yönetmek için şube seçin.</p>}
+      </div>
       
       {/* Form bölümü */}
       <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
-        <h2 className="text-lg font-semibold mb-4">Yeni Eğitim Tipi Ekle</h2>
+        <h2 className="text-lg font-semibold mb-4">{editId ? "Eğitim Tipini Düzenle" : "Yeni Eğitim Tipi Ekle"}</h2>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -220,12 +260,12 @@ export default function EgitimTipleriPage() {
                       <Input 
                         placeholder="Eğitim tipini giriniz" 
                         {...field} 
-                        disabled={createEgitimTipi.isPending || updateEgitimTipi.isPending}
+                        disabled={!selectedSubeId || createEgitimTipi.isPending || updateEgitimTipi.isPending}
                       />
                     </FormControl>
                     <Button 
                       type="submit" 
-                      disabled={createEgitimTipi.isPending || updateEgitimTipi.isPending}
+                      disabled={!selectedSubeId || createEgitimTipi.isPending || updateEgitimTipi.isPending}
                     >
                       {(createEgitimTipi.isPending || updateEgitimTipi.isPending) ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -256,6 +296,7 @@ export default function EgitimTipleriPage() {
       {/* Tablo bölümü */}
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Mevcut Eğitim Tipleri</h2>
+        {isError && <div role="alert" className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error?.message || "Eğitim tipleri yüklenirken hata oluştu."}</div>}
         
         <Table>
           <TableHeader>
@@ -266,7 +307,9 @@ export default function EgitimTipleriPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {!selectedSubeId ? (
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Kayıtları görmek için şube seçin.</TableCell></TableRow>
+            ) : isLoading ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />

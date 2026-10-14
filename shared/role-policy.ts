@@ -21,3 +21,7 @@ export function hasGlobalSystemAdminRole(user: RoleBearingUser): boolean {
 export function canAccessBranchManagement(user: RoleBearingUser): boolean {
   return hasGlobalSystemAdminRole(user) || getRoleNames(user).includes("Kurucu");
 }
+
+export function canManageEducationTypes(user: RoleBearingUser): boolean {
+  return hasGlobalSystemAdminRole(user) || getRoleNames(user).includes("Kurucu");
+}

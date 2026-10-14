@@ -12,6 +12,8 @@ import {
   kullaniciSubeRolleri,
   subeler,
   whatsappGonderimleri,
+  egitimTipleri,
+  kampanyalar,
 } from "@shared/schema";
 
 let baseUrl = "";
@@ -183,6 +185,104 @@ const yeniKayit = (subeId: number) => ({
   odemeTipi: "Kredi Kartı",
   taksitSayisi: 3,
   subeId,
+});
+
+test("Kurucu eğitim tiplerini yalnızca kendi şubesinde yönetir; ad değişikliği diğer şubeyi etkilemez", async (t) => {
+  const f = await seedIkiSube(t);
+  const name = `Şube eğitimi ${randomUUID()}`;
+  const create = (token: string, subeId: number, egitimTipi = name) =>
+    api(token, "/api/egitim-tipleri", { method: "POST", body: JSON.stringify({ egitimTipi, subeId }) });
+  const a = await create(f.kurucuAToken, f.subeA.id);
+  assert.equal(a.response.status, 201);
+  assert.equal(a.body.subeId, f.subeA.id);
+  const b = await create(f.sistemYoneticisiToken, f.subeB.id);
+  assert.equal(b.response.status, 201, "same education name is allowed independently in another branch");
+  assert.equal((await create(f.kurucuAToken, f.subeA.id)).response.status, 409);
+  assert.equal((await create(f.kurucuAToken, f.subeB.id, "İzinsiz")).response.status, 403);
+  assert.equal((await create(f.mudurAToken, f.subeA.id, "İzinsiz")).response.status, 403);
+  assert.equal((await create(f.danismanAToken, f.subeA.id, "İzinsiz")).response.status, 403);
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri?subeId=${f.subeB.id}`)).response.status, 403);
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri/${b.body.id}`)).response.status, 403);
+  const ownList = await api(f.kurucuAToken, "/api/egitim-tipleri");
+  assert.ok(ownList.body.some((row: any) => row.id === a.body.id));
+  assert.ok(ownList.body.every((row: any) => row.subeId === f.subeA.id));
+  assert.equal((await api(f.danismanAToken, `/api/egitim-tipleri?subeId=${f.subeA.id}`)).response.status, 200);
+  for (const method of ["PUT", "DELETE"]) {
+    const result = await api(f.kurucuAToken, `/api/egitim-tipleri/${b.body.id}`, {
+      method, ...(method === "PUT" ? { body: JSON.stringify({ egitimTipi: "İzinsiz" }) } : {}),
+    });
+    assert.equal(result.response.status, 403);
+  }
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri/${a.body.id}`, {
+    method: "PUT", body: JSON.stringify({ egitimTipi: name, subeId: f.subeB.id }),
+  })).response.status, 400);
+
+  const campaignData = {
+    kampanyaAdi: "Şubeye özel kampanya", egitimTipi: name, kurSayisi: 1, toplamDersSaati: 120,
+    listeFiyati: 65000, nakitFiyati: 48750, indirimOrani: 25, faizOrani: 60,
+    kitapFiyati: 5000, maxKrediKartiTaksit: 4, maxSenetTaksit: 6, subeId: f.subeA.id,
+  };
+  const campaignA = await api(f.kurucuAToken, "/api/kampanyalar", { method: "POST", body: JSON.stringify(campaignData) });
+  assert.equal(campaignA.response.status, 201);
+  const campaignB = await api(f.sistemYoneticisiToken, "/api/kampanyalar", {
+    method: "POST", body: JSON.stringify({ ...campaignData, subeId: f.subeB.id }),
+  });
+  assert.equal(campaignB.response.status, 201);
+  assert.equal((await api(f.kurucuAToken, "/api/kampanyalar", {
+    method: "POST", body: JSON.stringify({ ...campaignData, subeId: f.subeB.id }),
+  })).response.status, 403);
+  const renamed = `${name} yeni`;
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri/${a.body.id}`, {
+    method: "PUT", body: JSON.stringify({ egitimTipi: renamed }),
+  })).response.status, 200);
+  assert.equal((await api(f.kurucuAToken, `/api/kampanyalar/${campaignA.body.id}`)).body.egitimTipi, renamed);
+  assert.equal((await api(f.sistemYoneticisiToken, `/api/kampanyalar/${campaignB.body.id}`)).body.egitimTipi, name);
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri/${a.body.id}`, { method: "DELETE" })).response.status, 409);
+  for (const method of ["PUT", "DELETE"]) {
+    assert.equal((await api(f.kurucuAToken, `/api/kampanyalar/${campaignB.body.id}`, {
+      method, ...(method === "PUT" ? { body: JSON.stringify({ ...campaignData, subeId: f.subeB.id }) } : {}),
+    })).response.status, 403);
+  }
+  assert.equal((await api(f.kurucuAToken, `/api/kampanyalar/${campaignA.body.id}`, {
+    method: "PUT", body: JSON.stringify({ ...campaignData, egitimTipi: renamed, kampanyaAdi: "Güncel kampanya" }),
+  })).response.status, 200);
+  assert.equal((await api(f.kurucuAToken, `/api/kampanyalar/${campaignA.body.id}`, { method: "DELETE" })).response.status, 204);
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri/${a.body.id}`, { method: "DELETE" })).response.status, 204);
+  // B still uses the same original name, and must not block an unrelated A deletion.
+  const independentA = await create(f.kurucuAToken, f.subeA.id);
+  assert.equal(independentA.response.status, 201);
+  assert.equal((await api(f.kurucuAToken, `/api/egitim-tipleri/${independentA.body.id}`, { method: "DELETE" })).response.status, 204);
+  await db.delete(kampanyalar).where(eq(kampanyalar.id, campaignB.body.id));
+});
+
+test("Kurucu kendi şubesinde yönetici oluşturur/düzenler/siler; başka şubeye ve genel yetkiye erişemez", async (t) => {
+  const f = await seedIkiSube(t);
+  const marker = randomUUID();
+  const payload = {
+    adi: "Test", soyadi: "Yönetici", telefon: `founder-crud-${marker}`, sifre: "test-only-password",
+    aktif: true, roller: [{ subeId: f.subeA.id, rol: "Müdür" }],
+  };
+  const created = await api(f.kurucuAToken, "/api/kullanicilar", { method: "POST", body: JSON.stringify(payload) });
+  assert.equal(created.response.status, 201);
+  t.after(async () => {
+    await db.delete(kullaniciSubeRolleri).where(eq(kullaniciSubeRolleri.kullaniciId, created.body.id));
+    await db.delete(kullanicilar).where(eq(kullanicilar.id, created.body.id));
+  });
+  assert.equal((await api(f.kurucuAToken, `/api/kullanicilar/${created.body.id}`, {
+    method: "PATCH", body: JSON.stringify({ ...payload, soyadi: "Güncel", roller: [{ subeId: f.subeA.id, rol: "Kurucu" }] }),
+  })).response.status, 200);
+  assert.equal((await api(f.kurucuAToken, `/api/kullanicilar/${created.body.id}`, {
+    method: "PATCH", body: JSON.stringify({ ...payload, globalRol: "Sistem Yöneticisi" }),
+  })).response.status, 403);
+  assert.equal((await api(f.kurucuAToken, "/api/kullanicilar", {
+    method: "POST", body: JSON.stringify({ ...payload, telefon: `outside-${marker}`, roller: [{ subeId: f.subeB.id, rol: "Müdür" }] }),
+  })).response.status, 403);
+  for (const method of ["PATCH", "DELETE"]) {
+    assert.equal((await api(f.kurucuAToken, `/api/kullanicilar/${f.danismanB.id}`, {
+      method, ...(method === "PATCH" ? { body: JSON.stringify({ ...payload, roller: [{ subeId: f.subeB.id, rol: "Satış Danışmanı" }] }) } : {}),
+    })).response.status, 403);
+  }
+  assert.equal((await api(f.kurucuAToken, `/api/kullanicilar/${created.body.id}`, { method: "DELETE" })).response.status, 204);
 });
 
 test("WhatsApp kaydı oturum sahibine atanır ve başka şube adına oluşturulamaz", async (t) => {

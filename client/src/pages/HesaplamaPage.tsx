@@ -3,9 +3,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { EgitimTipi } from "@shared/schema";
+import { useEgitimTipleri } from "@/hooks/use-egitim-tipleri";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ const HesaplamaPage = () => {
   const { kampanyalar, getKampanyalarBySubeId, selectedSubeId } = useAppContext();
   const { toast } = useToast();
   const { user } = useAuth();
+  const educationSubeId = (selectedSubeId ?? Number(((user as any)?.roller || [])[0]?.subeId)) || null;
 
   // Kurucu gibi çok şubeli kullanıcılar için — kampanyalar boşsa birincil şubeden yükle
   const autoLoadedRef = useRef(false);
@@ -48,9 +49,7 @@ const HesaplamaPage = () => {
   }, [user, kampanyalar.length, getKampanyalarBySubeId]);
 
   // Eğitim tiplerini veritabanından çek
-  const { data: egitimTipleri = [] } = useQuery<EgitimTipi[]>({
-    queryKey: ["/api/egitim-tipleri"],
-  });
+  const { egitimTipleri } = useEgitimTipleri(educationSubeId);
 
   // --- Ana State ---
   const [offers, setOffers] = useState<OfferResult[]>([]);

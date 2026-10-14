@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { egitimTipleri } from "@shared/schema";
+import { egitimTipleri, subeler } from "@shared/schema";
 
 const defaultEgitimTipleri = [
   "Genel İngilizce",
@@ -22,10 +22,12 @@ export async function createDefaultEgitimTipleri() {
   
   if (existingEgitimTipleri.length === 0) {
     // Varsayılan eğitim tiplerini ekle
-    for (const tip of defaultEgitimTipleri) {
-      await db.insert(egitimTipleri).values({
+    const branches = await db.select({ id: subeler.id }).from(subeler);
+    for (const branch of branches) {
+      await db.insert(egitimTipleri).values(defaultEgitimTipleri.map((tip) => ({
         egitimTipi: tip,
-      });
+        subeId: branch.id,
+      }))).onConflictDoNothing();
     }
     console.log(`${defaultEgitimTipleri.length} varsayılan eğitim tipi eklendi.`);
   } else {

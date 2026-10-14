@@ -5,6 +5,7 @@ import {
   type UseMutationResult,
 } from "@tanstack/react-query";
 import { EgitimTipi, InsertEgitimTipi } from "@shared/schema";
+import { useAppContext } from "@/contexts/AppContext";
 
 const API_ENDPOINT = "/api/egitim-tipleri";
 
@@ -14,12 +15,13 @@ export interface EgitimTipleriResult {
   isError: boolean;
   error: Error | null;
   createEgitimTipi: UseMutationResult<unknown, Error, InsertEgitimTipi>;
-  updateEgitimTipi: UseMutationResult<unknown, Error, { id: number; data: InsertEgitimTipi }>;
+  updateEgitimTipi: UseMutationResult<unknown, Error, { id: number; data: InsertEgitimTipi & { subeId?: number } }>;
   deleteEgitimTipi: UseMutationResult<number, Error, number>;
 }
 
-export function useEgitimTipleri(): EgitimTipleriResult {
+export function useEgitimTipleri(subeId?: number | null): EgitimTipleriResult {
   const queryClient = useQueryClient();
+  const { refreshKampanyalar } = useAppContext();
   
   // Tüm eğitim tiplerini getir - performans için staleTime uzun tutuldu
   const {
@@ -28,7 +30,16 @@ export function useEgitimTipleri(): EgitimTipleriResult {
     isError,
     error
   } = useQuery<EgitimTipi[]>({
-    queryKey: [API_ENDPOINT],
+    queryKey: [API_ENDPOINT, subeId ?? null],
+    queryFn: async () => {
+      const url = subeId == null ? API_ENDPOINT : `${API_ENDPOINT}?subeId=${encodeURIComponent(subeId)}`;
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null);
+        throw new Error(detail?.error || `Eğitim tipleri yüklenemedi (${response.status})`);
+      }
+      return response.json();
+    },
     retry: 1,
     retryOnMount: false, 
     refetchOnWindowFocus: false,
@@ -46,23 +57,25 @@ export function useEgitimTipleri(): EgitimTipleriResult {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, subeId: data.subeId ?? subeId ?? undefined }),
       });
       
       if (!response.ok) {
-        throw new Error("Eğitim tipi eklenirken bir hata oluştu");
+        const detail = await response.json().catch(() => null);
+        throw new Error(detail?.error || detail?.message || "Eğitim tipi eklenirken bir hata oluştu");
       }
       
       return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_ENDPOINT] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kampanyalar"] });
     },
   });
 
   // Eğitim tipini güncelle
   const updateEgitimTipi = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: InsertEgitimTipi }) => {
+    mutationFn: async ({ id, data }: { id: number; data: InsertEgitimTipi & { subeId?: number } }) => {
       const response = await fetch(`${API_ENDPOINT}/${id}`, {
         method: "PUT",
         headers: {
@@ -73,13 +86,17 @@ export function useEgitimTipleri(): EgitimTipleriResult {
       });
       
       if (!response.ok) {
-        throw new Error("Eğitim tipi güncellenirken bir hata oluştu");
+        const detail = await response.json().catch(() => null);
+        throw new Error(detail?.error || detail?.message || "Eğitim tipi güncellenirken bir hata oluştu");
       }
       
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: [API_ENDPOINT] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kampanyalar"] });
+      // Campaigns also live in AppContext, outside the query cache.
+      await refreshKampanyalar();
     },
   });
 
@@ -97,11 +114,11 @@ export function useEgitimTipleri(): EgitimTipleriResult {
         
         if (response.status === 409) {
           // 409 Conflict - Eğitim tipi kullanımda
-          throw new Error(errorData.error || "Bu eğitim tipi bir veya daha fazla kampanyada kullanıldığı için silinemez");
+          throw new Error(errorData.error || errorData.message || "Bu eğitim tipi bir veya daha fazla kampanyada kullanıldığı için silinemez");
         } else if (response.status === 404) {
           throw new Error("Silinecek eğitim tipi bulunamadı");
         } else {
-          throw new Error(errorData.error || "Eğitim tipi silinirken bir hata oluştu");
+          throw new Error(errorData.error || errorData.message || "Eğitim tipi silinirken bir hata oluştu");
         }
       }
       
@@ -109,6 +126,7 @@ export function useEgitimTipleri(): EgitimTipleriResult {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_ENDPOINT] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kampanyalar"] });
     },
   });
 
