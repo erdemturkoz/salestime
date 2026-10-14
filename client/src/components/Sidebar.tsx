@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRoleNames, hasGlobalSystemAdminRole } from '@shared/role-policy';
+import { getRoleNames, canAccessBranchManagement, hasGlobalSystemAdminRole } from '@shared/role-policy';
 
 const NAV_ITEMS = [
   {
@@ -49,7 +49,7 @@ const NAV_ITEMS = [
     label: 'Şubeler',
     href: '/subeler',
     icon: Building,
-    fullAdminOnly: true,
+    branchAdminOnly: true,
   },
 ];
 
@@ -59,6 +59,7 @@ type NavItemDef = {
   icon: React.ElementType;
   adminOnly?: boolean;
   fullAdminOnly?: boolean;
+  branchAdminOnly?: boolean;
 };
 
 const NavItem = ({
@@ -75,10 +76,12 @@ const NavItem = ({
 
   const roles = getRoleNames(user);
   const isFullAdmin = hasGlobalSystemAdminRole(user);
+  const canAccessBranches = canAccessBranchManagement(user);
   const isKurucu = roles.includes("Kurucu");
   const canManage = isFullAdmin || isKurucu || roles.includes("Müdür");
 
   if (item.fullAdminOnly && !isFullAdmin) return null;
+  if (item.branchAdminOnly && !canAccessBranches) return null;
   if (item.adminOnly && !canManage) return null;
 
   return (

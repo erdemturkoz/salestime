@@ -17,3 +17,7 @@ export function getRoleNames(user: RoleBearingUser): string[] {
 export function hasGlobalSystemAdminRole(user: RoleBearingUser): boolean {
   return user?.globalRol === "Sistem Yöneticisi";
 }
+
+export function canAccessBranchManagement(user: RoleBearingUser): boolean {
+  return hasGlobalSystemAdminRole(user) || getRoleNames(user).includes("Kurucu");
+}

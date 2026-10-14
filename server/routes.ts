@@ -24,6 +24,7 @@ import {
 import { db } from "./db";
 import { z } from "zod";
 import { setupSession, attachUser, isAuthenticated, isAdmin, isFullAdmin, canManageCampaigns, isFullAdminUser, isKurucuUser, isMudurUser, getUserSubeIds, getManagedSubeIds, getSessionUser, login, logout, getCurrentUser, changePassword, hashPassword, isChromeExtensionOriginConfigured, requireChromeExtensionOrigin, requireSameOrigin, requireMutationProtection, serializeKullanici } from "./auth";
+import { hasGlobalSystemAdminRole } from "../shared/role-policy";
 import { computeOffer } from "../client/src/hooks/useOfferCalculator";
 import { istanbulDateInputsToUtcRange } from "../shared/turkey-dates";
 import "./types"; // Session tiplerini yükle
@@ -40,6 +41,21 @@ function kullaniciMudureAitMi(kullanici: any, managed: number[]): boolean {
   if (!kullanici || !Array.isArray(kullanici.roller) || kullanici.roller.length === 0) return false;
   return kullanici.roller.every((r: any) =>
     r.rol === "Satış Danışmanı" && managed.includes(Number(r.subeId)));
+}
+
+function kurucuRollerGecerliMi(roller: any[], managed: number[]): boolean {
+  return Array.isArray(roller) && roller.length > 0 && roller.every((r) =>
+    [Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(r?.rol)
+    && managed.includes(Number(r?.subeId))
+  );
+}
+
+function kullaniciKurucuyaAitMi(kullanici: any, managed: number[]): boolean {
+  if (!kullanici || kullanici.globalRol || !Array.isArray(kullanici.roller) || kullanici.roller.length === 0) return false;
+  return kullanici.roller.every((r: any) =>
+    [Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(r.rol)
+    && managed.includes(Number(r.subeId))
+  );
 }
 
 function topluTeklifSubeErisimiVarMi(user: any, subeId: number): boolean {
@@ -219,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getSessionUser(req);
       const tumSubeler = await storage.getAllSubeler();
-      // Tam admin her şeyi görür; Kurucu sadece kendi şubelerini görür
+      // Sistem Yöneticisi tüm şubeleri görür; Kurucu kendi şubelerini görür.
       if (isFullAdminUser(user)) {
         return res.json(tumSubeler);
       }
@@ -229,10 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // Müdür ve Danışman kendi şubelerini görür
       const myIds = getUserSubeIds(user);
-      if (myIds.length > 0) {
-        return res.json(tumSubeler.filter((s: any) => myIds.includes(s.id)));
-      }
-      res.json(tumSubeler);
+      return res.json(tumSubeler.filter((s: any) => myIds.includes(s.id)));
     } catch (error) {
       console.error("Şubeler API hatası:", error);
       res.status(500).json({ error: "Şubeler yüklenirken bir hata oluştu", details: String(error) });
@@ -242,7 +255,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subeler/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const sube = await storage.getSube(parseInt(id));
+      const subeId = parseInt(id);
+      const user = getSessionUser(req);
+      if (!isFullAdminUser(user) && !getUserSubeIds(user).includes(subeId)) {
+        return res.status(403).json({ error: "Bu şubeye erişim yetkiniz yok." });
+      }
+      const sube = await storage.getSube(subeId);
       
       if (!sube) {
         return res.status(404).json({ error: "Şube bulunamadı" });
@@ -316,17 +334,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getSessionUser(req);
       const kullanicilar = await storage.getAllKullanicilar();
 
-      // Kurucu/Müdür: yalnızca kendi şubelerindeki danışmanları görebilir
-      // (tüm rolleri kendi şubesinde ve yalnızca "Satış Danışmanı" olan kullanıcılar)
-      if (!isFullAdminUser(user)) {
-        const managed = getManagedSubeIds(user);
-        const filtrelenmis = (kullanicilar as any[]).filter((k) =>
-          kullaniciMudureAitMi(k, managed)
-        );
-        return res.json(filtrelenmis.map(serializeKullanici));
+      if (isFullAdminUser(user)) {
+        return res.json(kullanicilar.map(serializeKullanici));
       }
 
-      res.json(kullanicilar.map(serializeKullanici));
+      const managed = getManagedSubeIds(user);
+      const filtrelenmis = (kullanicilar as any[]).filter((k) =>
+        isKurucuUser(user)
+          ? kullaniciKurucuyaAitMi(k, managed)
+          : kullaniciMudureAitMi(k, managed)
+      );
+      return res.json(filtrelenmis.map(serializeKullanici));
     } catch (error) {
       console.error("Kullanıcılar API hatası:", error);
       res.status(500).json({ error: "Kullanıcılar yüklenirken bir hata oluştu", details: String(error) });
@@ -344,9 +362,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Müdür: yalnızca kendi şubesindeki danışmanları görebilir
       const user = getSessionUser(req);
+      if (kullanici.globalRol && !hasGlobalSystemAdminRole(user)) {
+        return res.status(403).json({ error: "Sistem Yöneticisi hesabına erişim yetkiniz yok." });
+      }
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
-        if (!kullaniciMudureAitMi(kullanici, managed)) {
+        const hedefYonetilebilir = isKurucuUser(user)
+          ? kullaniciKurucuyaAitMi(kullanici, managed)
+          : kullaniciMudureAitMi(kullanici, managed);
+        if (!hedefYonetilebilir) {
           return res.status(403).json({ error: "Bu kullanıcıya erişim yetkiniz yok." });
         }
       }
@@ -368,8 +392,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (globalRol !== null && globalRol !== Roller.SISTEM_YONETICISI) {
         return res.status(400).json({ error: "Geçersiz genel rol." });
       }
-      if (globalRol && !isFullAdminUser(user)) {
+      if (globalRol && !hasGlobalSystemAdminRole(user)) {
         return res.status(403).json({ error: "Genel yönetici rolünü yalnızca Sistem Yöneticisi atayabilir." });
+      }
+      if (globalRol && roller.length > 0) {
+        return res.status(400).json({ error: "Sistem Yöneticisi rolü şube rolleriyle birlikte atanamaz." });
       }
       if (!Array.isArray(roller) || roller.some((rol: any) =>
         !rol || ![Roller.KURUCU, Roller.MUDUR, Roller.SATIS_DANISMANI].includes(rol.rol)
@@ -380,11 +407,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Kullanıcıya en az bir şube rolü veya genel yönetici rolü atanmalıdır." });
       }
 
-      // Müdür: yalnızca kendi şubesine "Satış Danışmanı" ekleyebilir
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
-        if (!mudurRollerGecerliMi(roller, managed)) {
-          return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı ekleyebilir." });
+        const rollerGecerli = isKurucuUser(user)
+          ? kurucuRollerGecerliMi(roller, managed)
+          : mudurRollerGecerliMi(roller, managed);
+        if (!rollerGecerli) {
+          return res.status(403).json({
+            error: isKurucuUser(user)
+              ? "Kurucu yalnızca kendi şubelerine rol atayabilir."
+              : "Şube müdürü yalnızca kendi şubesine Satış Danışmanı ekleyebilir.",
+          });
         }
       }
 
@@ -438,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const roller = req.body.roller || [];
       const globalRolSent = Object.prototype.hasOwnProperty.call(req.body, "globalRol");
       const globalRol = req.body.globalRol ?? null;
-      if (globalRolSent && !isFullAdminUser(user)) {
+      if (globalRolSent && !hasGlobalSystemAdminRole(user)) {
         return res.status(403).json({ error: "Genel yönetici rolünü değiştirme yetkiniz yok." });
       }
       if (globalRolSent && globalRol !== null && globalRol !== Roller.SISTEM_YONETICISI) {
@@ -454,6 +487,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!mevcut) {
         return res.status(404).json({ error: "Güncellenecek kullanıcı bulunamadı" });
       }
+      if (mevcut.globalRol && !hasGlobalSystemAdminRole(user)) {
+        return res.status(403).json({ error: "Sistem Yöneticisi hesabını yalnızca Sistem Yöneticisi düzenleyebilir." });
+      }
+      if ((globalRolSent ? globalRol : mevcut.globalRol) && roller.length > 0) {
+        return res.status(400).json({ error: "Sistem Yöneticisi rolü şube rolleriyle birlikte atanamaz." });
+      }
       if (roller.length === 0 && !(globalRolSent ? globalRol : mevcut.globalRol)) {
         return res.status(400).json({ error: "Kullanıcının en az bir şube rolü veya genel yönetici rolü olmalıdır." });
       }
@@ -467,15 +506,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ error: "Son etkin Sistem Yöneticisinin rolü kaldırılamaz." });
       }
 
-      // Müdür: yalnızca kendi şubesindeki danışmanı düzenleyebilir ve
-      // yalnızca kendi şubesine "Satış Danışmanı" rolü atayabilir
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
-        if (!kullaniciMudureAitMi(mevcut, managed)) {
+        const hedefYonetilebilir = isKurucuUser(user)
+          ? kullaniciKurucuyaAitMi(mevcut, managed)
+          : kullaniciMudureAitMi(mevcut, managed);
+        if (!hedefYonetilebilir) {
           return res.status(403).json({ error: "Bu kullanıcıyı düzenleme yetkiniz yok." });
         }
-        if (!mudurRollerGecerliMi(roller, managed)) {
-          return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı atayabilir." });
+        const rollerGecerli = isKurucuUser(user)
+          ? kurucuRollerGecerliMi(roller, managed)
+          : mudurRollerGecerliMi(roller, managed);
+        if (!rollerGecerli) {
+          return res.status(403).json({
+            error: isKurucuUser(user)
+              ? "Kurucu yalnızca kendi şubelerine rol atayabilir."
+              : "Şube müdürü yalnızca kendi şubesine Satış Danışmanı atayabilir.",
+          });
         }
       }
       
@@ -537,16 +584,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const user = getSessionUser(req);
 
-      // Müdür: yalnızca kendi şubesindeki danışmanı silebilir
+      const hedef = await storage.getKullanici(parseInt(id));
+      if (hedef?.globalRol && !hasGlobalSystemAdminRole(user)) {
+        return res.status(403).json({ error: "Sistem Yöneticisi hesabını yalnızca Sistem Yöneticisi silebilir." });
+      }
+
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
-        const mevcut = await storage.getKullanici(parseInt(id));
-        if (!mevcut || !kullaniciMudureAitMi(mevcut, managed)) {
+        const hedefYonetilebilir = isKurucuUser(user)
+          ? kullaniciKurucuyaAitMi(hedef, managed)
+          : kullaniciMudureAitMi(hedef, managed);
+        if (!hedefYonetilebilir) {
           return res.status(403).json({ error: "Bu kullanıcıyı silme yetkiniz yok." });
         }
       }
 
-      const hedef = await storage.getKullanici(parseInt(id));
       if (
         hedef?.aktif &&
         hedef.globalRol === Roller.SISTEM_YONETICISI &&
@@ -586,17 +638,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Şube rolü yalnızca Kurucu, Müdür veya Satış Danışmanı olabilir." });
       }
 
-      // Müdür: yalnızca kendi şubesine "Satış Danışmanı" ekleyebilir
-      // ve yalnızca yeni (rolsüz) ya da kendi yönettiği danışman kullanıcıya
+      const hedefHesap = await storage.getKullanici(parseInt(kullaniciId));
+      if (hedefHesap?.globalRol) {
+        return res.status(409).json({ error: "Sistem Yöneticisi hesabına şube rolü eklenemez." });
+      }
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
-        if (rol !== "Satış Danışmanı" || !managed.includes(parseInt(subeId))) {
-          return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı ekleyebilir." });
+        if (!managed.includes(parseInt(subeId))) {
+          return res.status(403).json({ error: "Bu işlem yalnızca yönettiğiniz şubelerde yapılabilir." });
         }
-        const hedef = await storage.getKullanici(parseInt(kullaniciId));
-        const rolsuz = !hedef || !Array.isArray((hedef as any).roller) || (hedef as any).roller.length === 0;
-        if (!rolsuz && !kullaniciMudureAitMi(hedef, managed)) {
-          return res.status(403).json({ error: "Bu kullanıcı üzerinde işlem yapma yetkiniz yok." });
+        if (isKurucuUser(user)) {
+          const existingRoller = Array.isArray(hedefHesap?.roller) ? hedefHesap.roller : [];
+          if (existingRoller.length > 0 && !kullaniciKurucuyaAitMi(hedefHesap, managed)) {
+            return res.status(403).json({ error: "Bu kullanıcı üzerinde işlem yapma yetkiniz yok." });
+          }
+        } else {
+          const rolsuz = !hedefHesap || !Array.isArray(hedefHesap.roller) || hedefHesap.roller.length === 0;
+          if (rol !== "Satış Danışmanı" || (!rolsuz && !kullaniciMudureAitMi(hedefHesap, managed))) {
+            return res.status(403).json({ error: "Şube müdürü yalnızca kendi şubesine Satış Danışmanı ekleyebilir." });
+          }
         }
       }
       
@@ -614,14 +674,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { kullaniciId, subeId } = req.params;
       const user = getSessionUser(req);
 
-      // Müdür: yalnızca kendi şubesinden ve yalnızca yönettiği danışmandan çıkarma yapabilir
+      const hedefHesap = await storage.getKullanici(parseInt(kullaniciId));
+      if (hedefHesap?.globalRol && !hasGlobalSystemAdminRole(user)) {
+        return res.status(403).json({ error: "Sistem Yöneticisi hesabını yalnızca Sistem Yöneticisi düzenleyebilir." });
+      }
       if (!isFullAdminUser(user)) {
         const managed = getManagedSubeIds(user);
         if (!managed.includes(parseInt(subeId))) {
-          return res.status(403).json({ error: "Bu işlem için yetkiniz yok." });
+          return res.status(403).json({ error: "Bu işlem yalnızca yönettiğiniz şubelerde yapılabilir." });
         }
-        const hedef = await storage.getKullanici(parseInt(kullaniciId));
-        if (!hedef || !kullaniciMudureAitMi(hedef, managed)) {
+        const hedefYonetilebilir = isKurucuUser(user)
+          ? kullaniciKurucuyaAitMi(hedefHesap, managed)
+          : kullaniciMudureAitMi(hedefHesap, managed);
+        if (!hedefYonetilebilir) {
           return res.status(403).json({ error: "Bu kullanıcı üzerinde işlem yapma yetkiniz yok." });
         }
       }

@@ -78,7 +78,7 @@ async function seedIkiSube(
     ])
     .returning();
 
-  const [danismanA, mudurA, danismanB, sistemYoneticisi] = await db
+  const [danismanA, mudurA, danismanB, sistemYoneticisi, kurucuA] = await db
     .insert(kullanicilar)
     .values([
       {
@@ -108,6 +108,14 @@ async function seedIkiSube(
         telefon: `wp-s-${marker}`,
         sifre: "test-only-password",
         aktif: true,
+        globalRol: "Sistem Yöneticisi",
+      },
+      {
+        adi: "Kurucu",
+        soyadi: "Bir",
+        telefon: `wp-k-${marker}`,
+        sifre: "test-only-password",
+        aktif: true,
       },
     ])
     .returning();
@@ -116,7 +124,7 @@ async function seedIkiSube(
     { kullaniciId: danismanA.id, subeId: subeA.id, rol: "Satış Danışmanı" },
     { kullaniciId: mudurA.id, subeId: subeA.id, rol: "Müdür" },
     { kullaniciId: danismanB.id, subeId: subeB.id, rol: "Satış Danışmanı" },
-    { kullaniciId: sistemYoneticisi.id, subeId: subeA.id, rol: "Sistem Yöneticisi" },
+    { kullaniciId: kurucuA.id, subeId: subeA.id, rol: "Kurucu" },
   ]);
 
   const [bKaydi] = await db
@@ -143,10 +151,10 @@ async function seedIkiSube(
       .where(inArray(whatsappGonderimleri.subeId, [subeA.id, subeB.id]));
     await db
       .delete(kullaniciSubeRolleri)
-      .where(inArray(kullaniciSubeRolleri.kullaniciId, [danismanA.id, mudurA.id, danismanB.id, sistemYoneticisi.id]));
+      .where(inArray(kullaniciSubeRolleri.kullaniciId, [danismanA.id, mudurA.id, danismanB.id, sistemYoneticisi.id, kurucuA.id]));
     await db
       .delete(kullanicilar)
-      .where(inArray(kullanicilar.id, [danismanA.id, mudurA.id, danismanB.id, sistemYoneticisi.id]));
+      .where(inArray(kullanicilar.id, [danismanA.id, mudurA.id, danismanB.id, sistemYoneticisi.id, kurucuA.id]));
     await db.delete(subeler).where(inArray(subeler.id, [subeA.id, subeB.id]));
   });
 
@@ -155,11 +163,14 @@ async function seedIkiSube(
     subeB,
     danismanA,
     mudurA,
+    danismanB,
     sistemYoneticisi,
+    kurucuA,
     bKaydi,
     danismanAToken: await createToken(danismanA.id),
     mudurAToken: await createToken(mudurA.id),
     sistemYoneticisiToken: await createToken(sistemYoneticisi.id),
+    kurucuAToken: await createToken(kurucuA.id),
   };
 }
 
@@ -225,6 +236,30 @@ test("Sistem yöneticisi rolü olmayan şubede de kaydı kendi adına oluşturab
   assert.equal(olusturulan.response.status, 201);
   assert.equal(olusturulan.body.subeId, fixture.subeB.id);
   assert.equal(olusturulan.body.danismanId, fixture.sistemYoneticisi.id);
+});
+
+test("Kurucu kendi şubesindeki rolleri görür, Müdür yalnızca danışmanları görür", async (t) => {
+  const fixture = await seedIkiSube(t);
+  const [kurucuListesi, kurucuSubeleri, mudurListesi] = await Promise.all([
+    api(fixture.kurucuAToken, "/api/kullanicilar"),
+    api(fixture.kurucuAToken, "/api/subeler"),
+    api(fixture.mudurAToken, "/api/kullanicilar"),
+  ]);
+
+  assert.equal(kurucuListesi.response.status, 200);
+  const kurucuIds = new Set(kurucuListesi.body.map((user: { id: number }) => user.id));
+  assert.ok(kurucuIds.has(fixture.kurucuA.id));
+  assert.ok(kurucuIds.has(fixture.mudurA.id));
+  assert.ok(kurucuIds.has(fixture.danismanA.id));
+  assert.equal(kurucuIds.has(fixture.danismanB.id), false);
+  assert.equal(kurucuIds.has(fixture.sistemYoneticisi.id), false);
+
+  assert.equal(kurucuSubeleri.response.status, 200);
+  assert.deepEqual(kurucuSubeleri.body.map((sube: { id: number }) => sube.id), [fixture.subeA.id]);
+
+  assert.equal(mudurListesi.response.status, 200);
+  const mudurIds = new Set(mudurListesi.body.map((user: { id: number }) => user.id));
+  assert.deepEqual([...mudurIds], [fixture.danismanA.id]);
 });
 
 test("Müdür başka şubenin WhatsApp kaydını silemez", async (t) => {

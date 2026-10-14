@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { KullaniciWithRollerVeSubeler, Kullanici } from "@shared/schema";
 import { saveUser, getUser, clearUser, saveToken, getToken, clearToken } from "@/lib/authStorage";
-import { getRoleNames } from "@shared/role-policy";
+import { getRoleNames, hasGlobalSystemAdminRole } from "@shared/role-policy";
 
 type User = KullaniciWithRollerVeSubeler | Kullanici;
 
@@ -237,10 +237,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return getRoleNames(user);
   };
 
-  // Genel yönetici rolü yalnızca şubeden bağımsız Sistem Yöneticisidir.
+  // Genel yetki yalnızca şubeden bağımsız Sistem Yöneticisi rolündedir.
   const isFullAdmin = () => {
-    const roles = getRoles();
-    return roles.includes("Sistem Yöneticisi");
+    return hasGlobalSystemAdminRole(user);
   };
 
   const isKurucu = () => getRoles().includes("Kurucu");

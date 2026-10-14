@@ -23,6 +23,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
+import { getRoleNames, hasGlobalSystemAdminRole } from "@shared/role-policy";
 
 // Şube tipini tanımlayalım
 type Sube = {
@@ -60,12 +61,15 @@ type Kullanici = {
 const KullanicilarPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isFullAdmin, getManagedSubeIds } = useAuth();
+  const { user, isFullAdmin, getManagedSubeIds } = useAuth();
 
   // Müdür ise: yalnızca "Satış Danışmanı" rolü ve kendi şubelerine erişim
   const tamAdmin = isFullAdmin();
+  const isKurucu = getRoleNames(user).includes("Kurucu");
+  const canManageBranchRoles = tamAdmin || isKurucu;
+  const canAssignGlobalRole = hasGlobalSystemAdminRole(user);
   const yonetilenSubeIds = getManagedSubeIds();
-  const kullanilabilirRoller: Rol[] = tamAdmin
+  const kullanilabilirRoller: Rol[] = canManageBranchRoles
     ? ["Satış Danışmanı", "Müdür", "Kurucu"]
     : ["Satış Danışmanı"];
   const [searchTerm, setSearchTerm] = useState("");
@@ -368,7 +372,7 @@ const KullanicilarPage = () => {
         subeId: sr.subeId,
         rol: sr.rol
       })),
-      ...(tamAdmin ? {
+      ...(canAssignGlobalRole ? {
         globalRol: editingGlobalAdmin ? "Sistem Yöneticisi" : null,
       } : {}),
     };
@@ -540,7 +544,7 @@ const KullanicilarPage = () => {
                     <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                       {searchTerm
                         ? 'Arama kriterine uygun kullanıcı bulunamadı'
-                        : tamAdmin
+                        : canManageBranchRoles
                           ? 'Henüz kullanıcı bulunmuyor'
                           : 'Yönetebileceğiniz satış danışmanı bulunmuyor'}
                     </TableCell>
@@ -606,7 +610,7 @@ const KullanicilarPage = () => {
                 className="col-span-3"
               />
             </div>
-            {tamAdmin && (
+            {canAssignGlobalRole && (
               <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
                 <input
                   type="checkbox"
@@ -651,7 +655,7 @@ const KullanicilarPage = () => {
                   onChange={(e) => 
                     setCurrentSubeRol({ ...currentSubeRol, rol: e.target.value as Rol })
                   }
-                  disabled={!tamAdmin}
+                  disabled={!canManageBranchRoles}
                   className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {kullanilabilirRoller.map((rol) => (
@@ -737,7 +741,7 @@ const KullanicilarPage = () => {
                     className="col-span-3"
                   />
                 </div>
-                {tamAdmin && (
+                {canAssignGlobalRole && (
                   <label className="mb-4 flex items-center gap-2 rounded-md border p-3 text-sm">
                     <input
                       type="checkbox"
@@ -782,7 +786,7 @@ const KullanicilarPage = () => {
                       onChange={(e) => 
                         setEditCurrentSubeRol({ ...editCurrentSubeRol, rol: e.target.value as Rol })
                       }
-                      disabled={!tamAdmin}
+                      disabled={!canManageBranchRoles}
                       className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {kullanilabilirRoller.map((rol) => (

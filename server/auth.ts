@@ -300,7 +300,7 @@ export const getUserRoles = (user: any): string[] => {
   return getRoleNames(user);
 };
 
-// Tam yetkili admin mi? (yalnızca Sistem Yöneticisi) — TÜM şubelere hakim
+// Tam yönetim yetkisi: yalnızca Sistem Yöneticisi.
 export const isFullAdminUser = (user: any): boolean => {
   return hasGlobalSystemAdminRole(user);
 };

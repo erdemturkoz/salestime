@@ -36,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { type SubeWithKullanicilar } from '@shared/schema';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Form şeması
 const subeSchema = z.object({
@@ -54,6 +55,8 @@ const rolColors: Record<string, string> = {
 const SubeKartlari = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { isFullAdmin } = useAuth();
+  const canManageBranches = isFullAdmin();
   const [isSubeDialogOpen, setIsSubeDialogOpen] = useState(false);
   const [editSubeId, setEditSubeId] = useState<number | null>(null);
 
@@ -176,10 +179,12 @@ const SubeKartlari = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Şube Yönetimi</h1>
-        <Button onClick={openNewSubeForm}>
-          <Plus className="mr-2 h-4 w-4" /> Yeni Şube Ekle
-        </Button>
+        <h1 className="text-2xl font-bold">{canManageBranches ? "Şube Yönetimi" : "Şubelerim"}</h1>
+        {canManageBranches && (
+          <Button onClick={openNewSubeForm}>
+            <Plus className="mr-2 h-4 w-4" /> Yeni Şube Ekle
+          </Button>
+        )}
       </div>
 
       {subelerLoading ? (
@@ -218,10 +223,14 @@ const SubeKartlari = () => {
         <div className="p-8 text-center border border-dashed rounded-md">
           <Building className="w-12 h-12 mx-auto text-gray-400 mb-2" />
           <h3 className="text-lg font-medium mb-1">Henüz şube bulunmuyor</h3>
-          <p className="text-muted-foreground mb-4">İlk şubenizi eklemek için yukarıdaki butonu kullanın.</p>
-          <Button onClick={openNewSubeForm}>
-            <Plus className="mr-2 h-4 w-4" /> Yeni Şube Ekle
-          </Button>
+          <p className="text-muted-foreground mb-4">
+            {canManageBranches ? "İlk şubenizi eklemek için yukarıdaki butonu kullanın." : "Hesabınıza bağlı bir şube bulunmuyor."}
+          </p>
+          {canManageBranches && (
+            <Button onClick={openNewSubeForm}>
+              <Plus className="mr-2 h-4 w-4" /> Yeni Şube Ekle
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -230,14 +239,16 @@ const SubeKartlari = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="flex justify-between items-start">
                   <span className="text-xl font-bold">{sube.subeAdi}</span>
-                  <div className="flex space-x-1">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditSube(sube)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteSube(sube.id)}>
-                      <Trash className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
+                  {canManageBranches && (
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleEditSube(sube)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteSube(sube.id)}>
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  )}
                 </CardTitle>
                 <CardDescription className="flex flex-col space-y-1">
                   {sube.subeAdresi && (

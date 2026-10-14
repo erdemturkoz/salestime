@@ -48,7 +48,7 @@ function Router() {
             </AuthenticationGuard>
           </Route>
           <Route path="/subeler">
-            <AuthenticationGuard fullAdminOnly>
+            <AuthenticationGuard branchAdminOnly>
               <SubeKartlari />
             </AuthenticationGuard>
           </Route>

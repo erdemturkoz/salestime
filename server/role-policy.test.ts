@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getRoleNames, hasGlobalSystemAdminRole } from "../shared/role-policy";
+import { canAccessBranchManagement, getRoleNames, hasGlobalSystemAdminRole } from "../shared/role-policy";
 
 test("only a global System Administrator has full-system authority", () => {
   assert.equal(hasGlobalSystemAdminRole({ globalRol: "Sistem Yöneticisi", roller: [] }), true);
@@ -17,4 +17,12 @@ test("role list combines the global role with branch-scoped roles", () => {
     ["Sistem Yöneticisi", "Kurucu"],
   );
   assert.deepEqual(getRoleNames(null), []);
+});
+
+test("Kurucu can open branch management without becoming a global System Administrator", () => {
+  const kurucu = { roller: [{ rol: "Kurucu" }] };
+  assert.equal(canAccessBranchManagement(kurucu), true);
+  assert.equal(hasGlobalSystemAdminRole(kurucu), false);
+  assert.equal(canAccessBranchManagement({ roller: [{ rol: "Müdür" }] }), false);
+  assert.equal(canAccessBranchManagement({ globalRol: "Sistem Yöneticisi" }), true);
 });
